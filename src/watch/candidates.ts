@@ -34,7 +34,12 @@ function median(xs: number[]): number {
 export function findCandidates(input: {
   durationMs: number; events: Aligned['events']; turns: Transcript['turns']; rms: number[]; rmsWindowMs: number; rmsOffsetMs?: number;
 }): Candidate[] {
-  const { durationMs, events, turns, rms, rmsWindowMs } = input;
+  // Everything after the operator starts the spoken debrief is talk about the game, not play.
+  const debrief = input.events.find(e => e.type === 'debrief_start');
+  const durationMs = debrief ? Math.min(input.durationMs, debrief.ms) : input.durationMs;
+  const events = input.events.filter(e => e.ms < durationMs && e.kind !== 'note');
+  const turns = input.turns.filter(t => t.startMs < durationMs);
+  const { rms, rmsWindowMs } = input;
   const triggers: Trigger[] = [];
 
   const minutes = Math.max(durationMs, 1) / 60_000;

@@ -79,6 +79,13 @@ describe('findCandidates', () => {
     expect(has(find({ events: [ev(60_000, 'wave_start', 'progress')] }), 'end')).toBeUndefined();
   });
 
+  it('ignores the spoken debrief after play: no windows start after debrief_start', () => {
+    const events = [ev(30_000, 'die', 'fail'), ev(80_000, 'debrief_start', 'note'), ev(90_000, 'quit_now', 'quit')];
+    const cs = find({ events, durationMs: 120_000 });
+    expect(cs.every(c => c.endMs <= 80_000)).toBe(true);
+    expect(has(cs, 'quit')).toBeUndefined();
+  });
+
   it('merges overlapping windows and unions triggers', () => {
     const cs = find({ events: [ev(30_000, 'die', 'fail'), ev(42_000, 'back', 'quit')] });
     const merged = cs.find(c => c.triggers.includes('fail:die'))!;

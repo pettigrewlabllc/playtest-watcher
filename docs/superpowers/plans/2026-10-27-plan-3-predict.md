@@ -99,6 +99,8 @@ type PlayerFingerprint = { letter: string; sessions: string[]; mean: Fingerprint
 - [ ] Tests with the fake client: four calls in order, evidence validation drops fabricated ids, markdown renders and contains no "personality". Commit.
 - Changed during build: moment ids are qualified as `<sessionId>:<momentId>` (ids like `c001` repeat across sessions); evidence must use that form or a `Fingerprint` field name, and an observation with any unknown evidence item, or none, is dropped. Options are `{ root?, dir?, log? }` (`dir` is an explicit player output dir, used by leave-one-game-out folds). The word "personality" is scrubbed to "play style" in anything the model returns, as a belt on top of the prompt wording. Fake client now answers `lens`, `persona`, `prediction`. `inputs.ts` now re-exports the Plan 2 types (`Aligned`, `AlignedEvent`, `Moment`, `Label`, `LABELS`, `Transcript`) from `src/watch/`.
 
+Changed after the first real sessions (2026-10-27): the recorder now logs `operator_mood {mood}` before Start and `debrief_start` before a spoken three-question debrief (fun 1-5, hardest part, play again tomorrow). The persona input should include the mood per session and the kid's debrief turns (transcript turns after `debrief_start`) as "what they said afterwards", next to the questionnaire. Watch stage candidates already stop at `debrief_start`.
+
 ### Task 5: Four predictors
 
 **Produces:** `predictSession(letter, targetSessionDir, client, predictors?): Promise<Record<Predictor, Prediction>>`.

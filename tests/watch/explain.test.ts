@@ -17,9 +17,9 @@ describe('compositeClip', () => {
     const out = join(dir, 'clips', 'c001.mp4');
     await compositeClip(dir, a, cand('c001', 500, 2000), out);
     const { width, height } = await probeSize(out);
-    expect(height).toBe(360);
-    // face 4:3 -> 480, hands 4:3 -> 480, screen 16:9 -> 640
-    expect(width).toBe(480 + 480 + 640);
+    expect(height).toBe(480);
+    // at 480 high: face 4:3 -> 640, hands 4:3 -> 640, screen 16:9 -> 854
+    expect(width).toBe(640 + 640 + 854);
     expect(Math.abs((await probeDurationMs(out)) - 1500)).toBeLessThan(300);
     expect(await hasStream(out, 'a')).toBe(true);
   }, 20000);
@@ -30,7 +30,8 @@ describe('compositeClip', () => {
     const a = await align(dir);
     const out = join(dir, 'clips', 'c001.mp4');
     await compositeClip(dir, a, cand('c001', 0, 1500), out);
-    expect((await probeSize(out)).width).toBe(480 + 480 + 640);
+    // the missing hands panel is a 480-wide black block
+    expect((await probeSize(out)).width).toBe(640 + 480 + 854);
     expect(await hasStream(out, 'a')).toBe(true);
   }, 20000);
 });
