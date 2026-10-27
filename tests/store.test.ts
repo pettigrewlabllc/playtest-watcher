@@ -51,4 +51,9 @@ describe('store', () => {
     const id = await s.createSession({ kid: 'A', game: 'g', round: 'learn' });
     expect(await s.appendEvents(id, [{ t: 'x', type: 'a' } as any, { t: 1 } as any], 5)).toBe(0);
   });
+
+  it('refuses events for a session the recorder never created', async () => {
+    const s = createStore(root);
+    await expect(s.appendEvents('20261027-000000-d-old-test', [{ t: 1, type: 'page_hide' }], 5)).rejects.toThrow(/no such session/);
+  });
 });
