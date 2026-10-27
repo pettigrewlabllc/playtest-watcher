@@ -15,6 +15,11 @@ const RETRY_SPAN_MS = 5000;
 const IDLE_GAP_MS = 8000;
 const FAST_PROGRESS_MS = 20_000;
 const SWEEP_MS = 60_000;
+const RARE_FAILS_PER_MIN = 2;
+const BURST_SPAN_MS = 10_000;
+const RETRY_MAX_PER_MIN = 6;
+const FAST_PROGRESS_FRACTION = 0.4;
+const END_TYPE = /(^|_)(end|over|clear|finish|done)$/;
 const MAX_WINDOW_MS = 40_000;
 const SPLIT_MS = 30_000;
 
@@ -32,19 +37,41 @@ export function findCandidates(input: {
   const { durationMs, events, turns, rms, rmsWindowMs } = input;
   const triggers: Trigger[] = [];
 
-  // fail streaks: a fail within 10 s of the previous one extends the same trigger
-  let streak: Trigger | undefined;
-  let lastFail = -Infinity;
+  const minutes = Math.max(durationMs, 1) / 60_000;
+
+  // Fails. Triggers adapt to the game's pace: in a slow game every fail is worth a look; in a busy one
+  // (a swipe game fails every few seconds) only a burst well above the session's own rate is.
+  // Fails less than 1 s apart (a wrong cut and the life it costs) count once.
+  const fails: Aligned['events'] = [];
   for (const e of events.filter(e => e.kind === 'fail')) {
-    if (streak && e.ms - lastFail <= FAIL_STREAK_MS) streak.to = e.ms;
-    else { streak = { label: `fail:${e.type}`, from: e.ms, to: e.ms }; triggers.push(streak); }
-    lastFail = e.ms;
+    if (!fails.length || e.ms - fails[fails.length - 1].ms >= 1000) fails.push(e);
+  }
+  if (fails.length / minutes <= RARE_FAILS_PER_MIN) {
+    let streak: Trigger | undefined;
+    let lastFail = -Infinity;
+    for (const e of fails) {
+      if (streak && e.ms - lastFail <= FAIL_STREAK_MS) streak.to = e.ms;
+      else { streak = { label: `fail:${e.type}`, from: e.ms, to: e.ms }; triggers.push(streak); }
+      lastFail = e.ms;
+    }
+  } else {
+    const expected = fails.length / (Math.max(durationMs, 1) / BURST_SPAN_MS);
+    const need = Math.max(3, Math.ceil(2.5 * expected));
+    let burst: Trigger | undefined;
+    for (let i = 0; i < fails.length; i++) {
+      let j = i;
+      while (j + 1 < fails.length && fails[j + 1].ms - fails[i].ms <= BURST_SPAN_MS) j++;
+      if (j - i + 1 < need) continue;
+      if (burst && fails[i].ms <= burst.to) burst.to = Math.max(burst.to, fails[j].ms);
+      else { burst = { label: `fail_burst:${fails[i].type}`, from: fails[i].ms, to: fails[j].ms }; triggers.push(burst); }
+    }
   }
 
-  // retries: the same attempt type 3+ times inside 5 s
+  // Retries: the same attempt 3+ times inside 5 s, only for actions that are normally occasional.
   const attempts = new Map<string, number[]>();
   for (const e of events.filter(e => e.kind === 'attempt')) attempts.set(e.type, [...(attempts.get(e.type) ?? []), e.ms]);
   for (const [type, times] of attempts) {
+    if (times.length / minutes > RETRY_MAX_PER_MIN) continue;
     for (let i = 0; i + RETRY_COUNT - 1 < times.length; i++) {
       if (times[i + RETRY_COUNT - 1] - times[i] <= RETRY_SPAN_MS) triggers.push({ label: `retry:${type}`, from: times[i], to: times[i + RETRY_COUNT - 1] });
     }
@@ -58,11 +85,17 @@ export function findCandidates(input: {
 
   for (const e of events) if (e.kind === 'quit') triggers.push({ label: 'quit', from: e.ms, to: e.ms });
 
-  const lastProgress = new Map<string, number>();
-  for (const e of events.filter(e => e.kind === 'progress')) {
-    const prev = lastProgress.get(e.type);
-    if (prev !== undefined && e.ms - prev < FAST_PROGRESS_MS) triggers.push({ label: 'fast_progress', from: prev, to: e.ms });
-    lastProgress.set(e.type, e.ms);
+  // The end of a run or level is where pride or frustration shows.
+  for (const e of events) if (e.kind === 'progress' && END_TYPE.test(e.type)) triggers.push({ label: 'end', from: e.ms, to: e.ms });
+
+  // Fast progress: faster than this session's usual pace for that kind of progress (or under 20 s when there's
+  // too little history to know the usual pace).
+  const progressTimes = new Map<string, number[]>();
+  for (const e of events.filter(e => e.kind === 'progress')) progressTimes.set(e.type, [...(progressTimes.get(e.type) ?? []), e.ms]);
+  for (const times of progressTimes.values()) {
+    const gaps = times.slice(1).map((t, i) => t - times[i]);
+    const limit = times.length >= 4 ? FAST_PROGRESS_FRACTION * median(gaps) : FAST_PROGRESS_MS;
+    gaps.forEach((g, i) => { if (g < limit) triggers.push({ label: 'fast_progress', from: times[i], to: times[i + 1] }); });
   }
 
   for (const t of turns) if (t.who === 'kid') triggers.push({ label: 'speech', from: t.startMs, to: t.startMs });
@@ -72,7 +105,6 @@ export function findCandidates(input: {
     if (v > thresh) { const ms = i * rmsWindowMs + (input.rmsOffsetMs ?? 0); triggers.push({ label: 'loud', from: ms, to: ms }); }
   });
 
-  for (let t = SWEEP_MS / 2; t < durationMs; t += SWEEP_MS) triggers.push({ label: 'sweep', from: t, to: t });
 
   // windows, clamped, merged
   const wins = triggers
@@ -87,6 +119,13 @@ export function findCandidates(input: {
       w.triggers.forEach(x => last.triggers.add(x));
     } else merged.push(w);
   }
+
+  // Sweeps make sure quiet stretches still get looked at; skip any that would overlap a real window.
+  for (let t = SWEEP_MS / 2; t < durationMs; t += SWEEP_MS) {
+    const w = { startMs: Math.max(0, t - BEFORE_MS), endMs: Math.min(durationMs, t + AFTER_MS), triggers: new Set(['sweep']) };
+    if (!merged.some(m => w.startMs < m.endMs && w.endMs > m.startMs)) merged.push(w);
+  }
+  merged.sort((a, b) => a.startMs - b.startMs);
 
   const pieces: { startMs: number; endMs: number; triggers: string[] }[] = [];
   for (const w of merged) {

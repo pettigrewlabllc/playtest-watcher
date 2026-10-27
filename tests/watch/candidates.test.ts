@@ -53,6 +53,32 @@ describe('findCandidates', () => {
     expect(has(find({ rms: new Array(240).fill(0.01) }), 'loud')).toBeUndefined();
   });
 
+  it('adapts to a busy game: steady play makes no windows, a real burst does', () => {
+    // Slicer-like pace: an attempt every second, a wave every 8 s, a fail every 12 s, for 3 minutes.
+    const events = [];
+    for (let ms = 1000; ms < 180_000; ms += 1000) events.push(ev(ms, 'slice', 'attempt'));
+    for (let ms = 4000; ms < 180_000; ms += 8000) events.push(ev(ms, 'wave_start', 'progress'));
+    for (let ms = 6500; ms < 180_000; ms += 12_000) events.push(ev(ms, 'wrong_cut', 'fail'));
+    // a burst: four fails in six seconds around 100 s
+    for (const ms of [100_200, 101_700, 103_300, 105_900]) events.push(ev(ms, 'life_lost', 'fail'));
+    events.sort((a, b) => a.ms - b.ms);
+    const cs = find({ events, durationMs: 180_000 });
+    const nonSweep = cs.filter(c => c.triggers.some(t => t !== 'sweep'));
+    expect(nonSweep).toHaveLength(1);
+    expect(nonSweep[0].triggers.some(t => t.startsWith('fail'))).toBe(true);
+    expect(nonSweep[0].startMs).toBeLessThanOrEqual(100_200);
+    expect(nonSweep[0].endMs).toBeGreaterThanOrEqual(105_900);
+    expect(nonSweep[0].endMs - nonSweep[0].startMs).toBeLessThan(25_000);
+    expect(cs.flatMap(c => c.triggers)).not.toContain('retry:slice');
+    expect(cs.flatMap(c => c.triggers)).not.toContain('fast_progress');
+  });
+
+  it('marks the end of a run or level', () => {
+    expect(has(find({ events: [ev(60_000, 'run_end', 'progress')] }), 'end')).toBeTruthy();
+    expect(has(find({ events: [ev(60_000, 'level_end', 'progress')] }), 'end')).toBeTruthy();
+    expect(has(find({ events: [ev(60_000, 'wave_start', 'progress')] }), 'end')).toBeUndefined();
+  });
+
   it('merges overlapping windows and unions triggers', () => {
     const cs = find({ events: [ev(30_000, 'die', 'fail'), ev(42_000, 'back', 'quit')] });
     const merged = cs.find(c => c.triggers.includes('fail:die'))!;
@@ -67,7 +93,8 @@ describe('findCandidates', () => {
   });
 
   it('splits a long window at 30 s', () => {
-    const events = Array.from({ length: 10 }, (_, i) => ev(20_000 + i * 8000, `e${i}`, 'fail'));
+    // A minute of fails every 3 s: one long burst.
+    const events = Array.from({ length: 20 }, (_, i) => ev(20_000 + i * 3000, `e${i}`, 'fail'));
     const cs = find({ events, durationMs: 200_000 }).filter(c => c.triggers.some(t => t.startsWith('fail')));
     expect(cs.length).toBeGreaterThan(1);
     expect(cs.every(c => c.endMs - c.startMs <= 40_000)).toBe(true);
