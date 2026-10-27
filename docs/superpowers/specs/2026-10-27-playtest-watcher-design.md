@@ -43,6 +43,15 @@ The system knows only **sessions**: one player, one game build, an event stream,
 - **Evaluation is automatic leave-one-game-out:** for each player and each game they played, hide that game, predict it from the rest, and score. Four kids by four games gives 16 folds from the same recordings, on top of the 4 frozen check sessions that guard against fooling ourselves.
 - **Player types** (clusters of fingerprints, with nearest-type matching for a player who has little data) are supported in code but presented as what happens at scale. Four players is too few to discover types, and the demo says so.
 
+### What we borrow from Stanford's 1,052-person agents study
+
+Park et al. 2024 (arXiv 2411.10109) built agents of 1,052 real people from 2-hour interviews and scored them against the people's own answers. Four of its methods carry over:
+
+1. **Score against the kid's own consistency, not 100%.** People don't answer identically twice; the study reports accuracy as a share of each person's two-week test-retest agreement (agents reached 85% of it). We do the same: two kids replay one of their learning games on a later day (a **replay** round, 10 minutes each), and the reaction mix and moment positions between their two plays of that game are the ceiling. Predictions are reported as raw recall and as a share of that ceiling.
+2. **The baselines that matter.** The study's interview agents beat agents given only demographics and agents given a short self-written paragraph. Our predictors line up with that exactly, so we run four, not three: `baseline` (age only, like demographics), `questionnaire` (the kid's 12 answers only, like the self-written paragraph), `persona` (built from observed play, like the interview), and `model` (the per-kid reaction model). If observed play beats self-report for kids too, that's the headline.
+3. **Expert lenses.** The study had an LLM read each transcript as a psychologist, an economist and a sociologist, and kept those readings in the agent's memory. Our persona builder reads the sessions through three lenses, a game designer, a learning scientist and a UX researcher, one Muse Wonder call each, and the persona keeps all three.
+4. **Consent and audit.** The study's agents aren't public, every use is logged, and people can withdraw. Ours: personas stay in `recordings/`, every model call that touches a kid's data is in `spend.jsonl` with the session id, and `npm run forget -- <kid>` deletes everything for that kid (recordings, personas, models, Meta file uploads still alive).
+
 ## 2. Meta models used (checked against dev.meta.ai/docs/models, 2026-10-27)
 
 | Job | Model | Notes |
@@ -100,6 +109,7 @@ Each unit is one module with one job, reading and writing JSON files in the sess
 13. **Persona.** After a kid's three learning sessions, one Muse Wonder call builds `persona.json` plus a readable `persona.md` from the fingerprint, the questionnaire, the reaction model's strongest features, and the moments. It covers patience before giving up, how much they read, what delights them, what confuses them, how they explore, and their tells (what their face and voice do when stuck). Every trait cites fingerprint numbers or moment IDs as evidence, and it calls out where what the kid said differs from what they did.
 14. **Predict.** Given a held-out game's reference playthrough, three predictors each produce `prediction-<name>.json`, a list of `{event_index, stage, predicted_label, p, why}` **keyed to game events and stages, not clock time**, because the kid's run will not follow the same timing:
     - `baseline`: Muse Wonder with a generic "a child aged 8–14" profile;
+    - `questionnaire`: Muse Wonder with only the kid's 12 answers;
     - `persona`: Muse Wonder with the kid's persona;
     - `model`: the kid's reaction model run over the reference playthrough's feature rows.
 15. **Score** (local, no model calls). Matches the kid's real moments to each predictor's predictions by game stage and label. Reports recall (real moments that were predicted) and precision (predictions that happened) for all three predictors, per kid and overall. This is the number at the end of the video.
