@@ -5,7 +5,9 @@
   "scripts": {
     "start": "node src/server/main.ts",
     "test": "vitest run",
-    "watch": "node src/watch/run.ts"
+    "watch": "node src/watch/run.ts",
+    "predict": "node src/predict/run.ts",
+    "forget": "node src/predict/forget.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
