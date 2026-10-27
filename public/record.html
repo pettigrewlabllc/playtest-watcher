@@ -31,7 +31,7 @@
   <fieldset><legend>Session</legend>
     <div class="pick" data-field="kid">Kid <button>A</button><button>B</button><button>C</button><button>D</button></div>
     <div class="pick" data-field="game">Game <button>factor-slicer</button><button>bond-swap</button><button>hoard-keeper</button><button>current-cut</button></div>
-    <div class="pick" data-field="round">Round <button>learn</button><button>replay</button><button>check</button><button>reference</button></div>
+    <div class="pick" data-field="round">Round <button>learn</button><button>replay</button><button>check</button><button>reference</button><button>debrief</button></div>
     <div class="pick" data-field="device">Device <button>ipad</button><button>laptop</button></div>
   </fieldset>
   <fieldset><legend>Sources</legend>
@@ -116,10 +116,11 @@ async function ready() {
   streams = {
     face: await PW.openCamera($('face').value, { width: 1280, height: 720, fps: 30 }),
     hands: await PW.openCamera($('hands').value, { width: 640, height: 480, fps: 30 }),
-    screen: await PW.openScreen(),
     mic: await PW.openMic($('mic').value),
   };
-  for (const k of ['face', 'hands', 'screen']) { const v = $('v-' + k); v.srcObject = streams[k]; await v.play(); }
+  // A debrief is just talking, so there's no game screen to share.
+  if (sel.round !== 'debrief') streams.screen = await PW.openScreen();
+  for (const k of ['face', 'hands', 'screen']) { if (!streams[k]) continue; const v = $('v-' + k); v.srcObject = streams[k]; await v.play(); }
   const ctx = new AudioContext(), an = ctx.createAnalyser(), buf = new Float32Array(an.fftSize);
   ctx.createMediaStreamSource(streams.mic).connect(an);
   setInterval(() => { an.getFloatTimeDomainData(buf); $('level').value = Math.max(...buf.map(Math.abs)); }, 150);
@@ -128,7 +129,8 @@ async function ready() {
     body: JSON.stringify({ kid: sel.kid, game: sel.game, round: sel.round, device: sel.device }) });
   session = (await r.json()).id;
   $('sid').textContent = session;
-  await showGameLink();
+  if (sel.round === 'debrief') $('gameLink').textContent = 'Debrief: no game to open. Start, ask the questions, Stop.';
+  else await showGameLink();
   $('setup').hidden = true; $('live').hidden = false;
   poll = setInterval(refreshStatus, 2000);
   refreshStatus();
