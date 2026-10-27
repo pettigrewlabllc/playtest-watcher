@@ -530,11 +530,15 @@ If the spike fails: try the hands camera at 640x480@15, then move cameras to dif
 
 **Interfaces:**
 - Produces: `window.PlaytestLog = { enabled: boolean, log(type: string, data?: object): void }`. A no-op unless the page URL has `playtest` and `pw` parameters. Batches events every 500 ms and on `pagehide` (using `fetch(..., { keepalive: true })`), posting to `${pw}/events/${playtest}`.
+- Every call passes a shared `kind` (spec section 3a): `PlaytestLog.log(type, { kind, ...data })` where `kind` is one of `attempt, success, fail, progress, explore, text_shown, text_closed, help, new_thing, first_touch, quit`. The snippet itself also emits:
+  - `idle {kind:'idle', seconds}` after 8 s with no pointer or key input (once per idle stretch);
+  - `first_touch {kind:'first_touch', target}` on the first `pointerdown` after the game calls `PlaytestLog.screen(name)`, where `target` is the nearest element's `data-pw` attribute, else its tag and class.
+- Games mark text blocks with `PlaytestLog.text(id, chars)` and `PlaytestLog.textClosed(id)`, and new screens with `PlaytestLog.screen(name)`.
 
 - [ ] **Step 1:** Write the snippet with a test page `public/playtest-log-test.html` that logs three events, and an app test proving the batch lands in `events.jsonl` in order with each event's own `t`.
-- [ ] **Step 2: Factor Slicer** (`factor-slicer/www/`): log `run_start`, `wave_start {blade}`, `slice {n, correct}`, `miss {n}`, `wrong_cut {n}`, `life_lost`, `fusion`, `run_end {score, waves}`. Its core already has hook points in `factor-slicer-core.js`; wire the calls there.
-- [ ] **Step 3: Bond Swap**: log `level_start {level}`, `swap {valid}`, `bond {molecule}`, `stir`, `stuck {seconds}` (no valid swap made for 8 s), `level_end {result, moves}`, `compendium_open`.
-- [ ] **Step 4: Hoard Keeper** (`hoard-keeper/src/game.js`): log `rush_start`, `file_item {bin, correct}`, `rush_end {score}`, `audit_start {question}`, `query_step {kind}`, `audit_answer {correct}`, `upgrade {name}`.
+- [ ] **Step 2: Factor Slicer** (`factor-slicer/www/`): log `run_start` (progress), `wave_start {blade}` (progress, plus `new_thing` the first time a blade number appears), `slice {n, correct}` (attempt, then success or fail), `miss {n}` (fail), `wrong_cut {n}` (fail), `life_lost` (fail), `fusion` (new_thing), `run_end {score, waves}` (progress), easy-mode toggle and any menu (explore), any lesson or fact card (text_shown / text_closed), and `screen()` on each new screen. Its core already has hook points in `factor-slicer-core.js`; wire the calls there.
+- [ ] **Step 3: Bond Swap**: log `level_start {level}` (progress), `swap {valid}` (attempt, then success or fail), `bond {molecule}` (success, plus `new_thing` for a first-time molecule), `stir` (help), `stuck {seconds}` (fail: no valid swap for 8 s), `level_end {result, moves}` (progress), `compendium_open` and each entry viewed (explore, with the entry text as text_shown / text_closed), and `screen()` on each new screen.
+- [ ] **Step 4: Hoard Keeper** (`hoard-keeper/src/game.js`): log `rush_start` (progress), `file_item {bin, correct}` (attempt, then success or fail), `rush_end {score}` (progress), `audit_start {question}` (progress, with the question as text_shown), `query_step {step}` (attempt), `audit_answer {correct}` (success or fail), `upgrade {name}` (explore, plus `new_thing` when first unlocked), any tutorial card (text_shown / text_closed), and `screen()` on each new screen.
 - [ ] **Step 5:** For each game: run its own `npm test` and build, open it with `?playtest=<test id>&pw=http://localhost:3058`, play 1 minute, confirm events arrive, commit on the `playtest-log` branch, push the branch, and open a PR in that repo (no merge without Joel).
 
 ---
@@ -549,17 +553,34 @@ If the spike fails: try the hands camera at 640x480@15, then move cameras to dif
 - Produces: autoload `PlaytestLog` with `log_event(type: String, data := {})`. Active only when `OS.get_cmdline_user_args()` contains `--playtest=<id>` and `--pw=<url>`. Uses `Time.get_unix_time_from_system() * 1000.0` for `t`, batches every 0.5 s through one `HTTPRequest` node at a time.
 
 - [ ] **Step 1:** Write the autoload and a headless test scene `game/tests/test_playtest_log.gd` that checks it stays disabled with no args and builds the right payload when enabled.
-- [ ] **Step 2:** Wire `level_start {level}`, `cut {wire}`, `short_circuit`, `undo`, `hint`, `level_end {result, cuts}`.
+- [ ] **Step 2:** Wire `level_start {level}` (progress), `cut {wire}` (attempt), `short_circuit` (fail), `level_clear` (success), `undo` and `hint` (help), `level_end {result, cuts}` (progress), lesson and real-world lines (text_shown / text_closed with chars), first appearance of a new part (new_thing), and a `screen` event on each new screen. The autoload also emits `idle` after 8 s without input.
 - [ ] **Step 3:** Run `cd tools && npm test` and `godot --headless --path game -s tests/test_parity.gd` (repo rule), plus the new test. Run `godot --path game -- --playtest=<id> --pw=http://localhost:3058`, play a level, confirm events arrive. Commit on the branch, push, open the PR.
 
 ---
 
-### Task 5: Session-day checklist and launch entry
+### Task 5: Questionnaire page
+
+**Files:**
+- Create: `public/questions.html`, `public/questions.js`, `src/server/questionnaire.ts`
+- Modify: `src/server/store.ts` (add `writeKidJson(kid: 'a'|'b'|'c'|'d', name: 'questionnaire', obj)` writing `recordings/kids/<kid>/<name>.json`), `src/server/app.ts` (`POST /api/kids/:kid/questionnaire`)
+- Test: `tests/questionnaire.test.ts`, additions to `tests/store.test.ts` and `tests/app.test.ts`
+
+**Interfaces:**
+- Produces: `QUESTIONS: {id: number, axis: Axis, text: string, a: string, b: string}[]` (copied from `docs/questionnaire.md` once Joel signs off), `type Axis = 'explore'|'read'|'challenge'|'persist'|'look'|'social'|'pace'`, `scoreAnswers(answers: Record<number,'a'|'b'>): Record<Axis, number>` returning -1 (all A) to +1 (all B) per axis, ignoring unanswered questions. Saved JSON: `{ kid, answeredAt, answers, scores }`.
+
+- [ ] **Step 1:** Failing tests for `scoreAnswers`: all-A gives -1 on every axis, all-B gives +1, mixed answers on the three explore questions (1 A, 2 B, 12 A) give -1/3, unanswered questions are skipped, and a kid id outside a–d is rejected by `writeKidJson`.
+- [ ] **Step 2:** Implement `questionnaire.ts` and the store method; run tests to pass.
+- [ ] **Step 3:** `questions.html`: pick the kid letter, then one question per screen with two big buttons (iPad-friendly, 44 px+ targets), a back button, and a done screen. Posts to the new endpoint. No scores are shown to the kid.
+- [ ] **Step 4:** Verify on `http://localhost:3058/questions.html` at 390 px and 1024 px, check the saved JSON, commit.
+
+---
+
+### Task 6: Session-day checklist and launch entry
 
 **Files:**
 - Create: `docs/session-day.md`
 - Modify: workspace `CLAUDE.md` port table (add `playtest-watcher | 3058`), workspace `.claude/launch.json` (add `playtest-watcher`, `npm start`, port 3058)
 
-- [ ] **Step 1:** Write the one-page checklist Joel follows each session: plug in iPad, QuickTime mirror, open `/record.html`, pick kid/game/round, scan the QR on the iPad, check the events counter ticks, Start, play 10 minutes, Stop, confirm the summary.
+- [ ] **Step 1:** Write the one-page checklist Joel follows each session: (first session only) the kid answers `/questions.html`; then plug in iPad, QuickTime mirror, open `/record.html`, pick kid/game/round, scan the QR on the iPad, check the events counter ticks, Start, play 10 minutes, Stop, confirm the summary.
 - [ ] **Step 2:** Run `node scripts/check-ports.mjs` at the workspace root. Expected: no drift.
 - [ ] **Step 3:** Commit (`playtest-watcher` repo for the checklist; the workspace files are untracked config).

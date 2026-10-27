@@ -8,7 +8,9 @@ Read `BRIEF.md` first for the backstory and constraints.
 
 Watching playtest recordings is the bottleneck. Playtest Watcher records a kid playing (face, hands, voice, screen, game events), finds the moments that matter, writes the fix list, builds a persona of each kid from real play, and then **predicts how that kid will react to a game they have never played** before checking against the real session.
 
-The deliverable is a measured result, not a claim: across 4 kids and 4 held-out games, what share of real reaction moments did each persona predict, compared with a generic "a kid" baseline?
+The deliverable is a measured result, not a claim: across 4 kids and 4 held-out games, what share of real reaction moments did each predictor catch? Three predictors are compared: a generic "a kid" baseline, the written Muse Wonder persona, and a per-kid reaction model trained on that kid's own play (section 3a).
+
+**Framing rule.** This is a *player behavior model for game design*, built from how a kid plays. It is never called a personality profile or personality analysis, anywhere: code, copy, video, or submission. The hackathon lists "Personality Analyzers" as an anti-project.
 
 ### The experiment
 
@@ -28,8 +30,8 @@ Each held-out game also needs one **reference playthrough**: Joel (or the game's
 ### Success criteria
 
 1. A 10-minute session goes in and a moment timeline plus fix list comes out, without hand editing.
-2. Four personas, each citing the moments it was built from.
-3. Four predictions scored against the real check sessions, with recall and precision for both the persona and the generic baseline.
+2. Four personas, each with a play fingerprint (measured numbers), questionnaire answers, and a written profile citing the moments it was built from.
+3. Four predictions scored against the real check sessions, with recall and precision for all three predictors.
 4. A viewer that plays face (blurred), hands, and screen in sync with the timeline. The demo video is filmed from it.
 
 ## 2. Meta models used (checked against dev.meta.ai/docs/models, 2026-10-27)
@@ -83,10 +85,54 @@ Each unit is one module with one job, reading and writing JSON files in the sess
 7. **Hands** (SAM 3.1). On the hands camera, tracks "hand" and "finger" through each moment clip, so the explanation can say where the kid tapped against what was on screen. Used only inside moment windows to keep cost down.
 8. **Blur** (SAM 3.1 plus ffmpeg). Segments "face" on the face camera and writes a blurred copy. **The viewer and every export read only blurred files.** Unblurred video never leaves `recordings/`.
 9. **Fix list.** One Muse Wonder call per session: moments in, a ranked fix list out (`fixes.md`), each item linked to its moment timestamps.
-10. **Persona.** After a kid's three learning sessions, one Muse Wonder call builds `persona.json` plus a readable `persona.md`. It covers patience before giving up, how much they read, what delights them, what confuses them, and their tells (what their face and voice do when stuck), and every trait cites moment IDs as evidence.
-11. **Predict.** Given a persona and a held-out game's reference playthrough (its events, transcript-free, plus screen proxy frames at key events), Muse Wonder predicts reactions **keyed to game events and stages, not clock time**, because the kid's run will not follow the same timing. Output: `prediction.json`, a list of `{stage_or_event, predicted_label, why}`. The same call is also run with a generic "a child aged 8–14" persona as the baseline.
-12. **Score** (local, no model calls). Matches the kid's real moments to predictions by game stage or event type and label. Reports recall (real moments that were predicted), precision (predictions that happened), for persona and baseline, per kid and overall. This is the number at the end of the video.
-13. **Viewer page** (`/view/<session>`). Synced three-pane playback (blurred face, hands, screen), a timeline with coloured moment markers, a transcript, the fix list, and for check sessions, prediction vs real shown side by side. Also a `/personas` page.
+10. **Questionnaire** (`/questions`). Twelve two-choice questions per kid, answered once before their first session, scored onto seven play axes. Questions and scoring: `docs/questionnaire.md`. Saved to `recordings/kids/<letter>/questionnaire.json`.
+11. **Fingerprint** (local, no model calls). Computes the play fingerprint per session and per kid from events, moments and transcript. See section 3a.
+12. **Reaction model** (local, Python). Trains one model per kid on that kid's learning sessions. See section 3a.
+13. **Persona.** After a kid's three learning sessions, one Muse Wonder call builds `persona.json` plus a readable `persona.md` from the fingerprint, the questionnaire, the reaction model's strongest features, and the moments. It covers patience before giving up, how much they read, what delights them, what confuses them, how they explore, and their tells (what their face and voice do when stuck). Every trait cites fingerprint numbers or moment IDs as evidence, and it calls out where what the kid said differs from what they did.
+14. **Predict.** Given a held-out game's reference playthrough, three predictors each produce `prediction-<name>.json`, a list of `{event_index, stage, predicted_label, p, why}` **keyed to game events and stages, not clock time**, because the kid's run will not follow the same timing:
+    - `baseline`: Muse Wonder with a generic "a child aged 8–14" profile;
+    - `persona`: Muse Wonder with the kid's persona;
+    - `model`: the kid's reaction model run over the reference playthrough's feature rows.
+15. **Score** (local, no model calls). Matches the kid's real moments to each predictor's predictions by game stage and label. Reports recall (real moments that were predicted) and precision (predictions that happened) for all three predictors, per kid and overall. This is the number at the end of the video.
+16. **Viewer page** (`/view/<session>`). Synced three-pane playback (blurred face, hands, screen), a timeline with coloured moment markers, a transcript, the fix list, and for check sessions, prediction vs real shown side by side. Also a `/personas` page.
+
+## 3a. Play fingerprint and reaction model
+
+Four kids is too few to train anything *across* kids, and three sessions is not a time series, so neither Prophet nor a cross-kid random forest fits. The data that is plentiful is **events within a session**: a 10-minute session logs hundreds of them. So the modelling happens at event level, per kid, with features that mean the same thing in every game.
+
+### Game-agnostic event schema
+
+Every game maps its own events onto shared kinds, in addition to its game-specific ones. Each logged event carries `kind` in `data`:
+
+| kind | Meaning | Examples |
+|---|---|---|
+| `attempt` | the player tries the main action | slice, swap, file item, cut wire |
+| `success` / `fail` | the attempt worked or didn't | correct slice / wrong cut |
+| `progress` | a level, wave or round ends | `level_end`, `wave_start` |
+| `explore` | anything off the main path | open Compendium, menu, settings, tap a decoration |
+| `text_shown` / `text_closed` | a block of reading appears / goes away, with `chars` | hint, lesson card, instructions |
+| `help` | the player asks for help | hint, Stir, undo |
+| `new_thing` | something appears for the first time in this session | new atom, new part, new blade |
+| `first_touch` | the first input after a new screen appears, with what was touched | |
+| `idle` | no input for 8 s (logged by the snippet itself) | |
+| `quit` | back out or close | |
+
+### Fingerprint (one vector per session, averaged per kid)
+
+Fail streak before the first frustrated or bored moment. Recovery time: seconds from a `fail` to the next `attempt`. Exploration share: `explore` events over all events. Reading: share of `text_shown` closed after enough time to read it (about 15 chars per second for this age), and median dwell per 100 chars. Pace: attempts per minute. Hesitation: median gap before acting on a `new_thing`. Help seeking: `help` per `fail`. First-touch habit: share of `first_touch` on the main action vs. elsewhere. Talk rate: kid utterances per minute (from the transcript). Reaction mix: share of each moment label.
+
+The seven questionnaire axes map onto fingerprint fields (explore/finish to exploration share, read/try to reading, challenge/chill and stick with it/walk away to fail streak and recovery time, fast/careful to pace and hesitation, show/solo to talk rate), and the persona reports each pair side by side.
+
+### Reaction model (per kid)
+
+- **Rows:** one per game event in the kid's learning sessions, roughly 1,000 to 2,000 per kid.
+- **Features** (computed at that event, game-agnostic): current fail streak, seconds since last success, seconds since last `progress`, attempts in the last 30 s, `new_thing` in the last 10 s, text on screen (chars), seconds in session, explore events so far, help used so far, the event's `kind`.
+- **Label:** the moment label whose window covers the event (`none` if no moment does).
+- **Model:** scikit-learn `HistGradientBoostingClassifier` with class weights, checked by leave-one-session-out cross validation (train on two learning sessions, test on the third). A logistic regression runs alongside as a sanity check. If the boosted model doesn't beat logistic regression in cross validation, the simpler one is used.
+- **Output:** `model.joblib`, cross-validation scores, and the top features by permutation importance, which feed the persona ("Kid A's frustration tracks fail streak far more than time on task").
+- **Prediction:** the reference playthrough's events are turned into the same feature rows. The model gives each row a probability per label, and runs of high probability become predicted moments.
+
+Python 3 with scikit-learn, pandas and joblib, in `analysis/` with its own `requirements.txt`. Everything else stays Node.
 
 ## 4. Capture setup and the two-camera risk
 
@@ -118,7 +164,8 @@ Joel has two cameras and a mic. Two USB cameras on one Mac usually work in Chrom
 
 ## 7. Testing
 
-- **Unit tests** (Vitest) for the pure parts: clock alignment, candidate detection, window merging, and the scorer. Fixtures come from the existing Snack Lob play logs (events only, no video).
+- **Unit tests** (Vitest) for the pure parts: clock alignment, candidate detection, window merging, questionnaire scoring, fingerprint fields, and the scorer.
+- **Model tests** (pytest) on synthetic event streams with a planted rule (for example, "bored after 4 fails in a row"): the model must recover it in cross validation and rank fail streak as its top feature. Fixtures come from the existing Snack Lob play logs (events only, no video).
 - **Contract tests** for each model call, run against the fake client: the request is built correctly and malformed model output is handled.
 - **End-to-end dry run** on a synthetic session (screen recording of a bot playing, no people) through every stage with the fake client.
 - **One live smoke test** on that synthetic session once credits land, before any real kid session is sent.
@@ -128,12 +175,12 @@ Joel has two cameras and a mic. Two USB cameras on one Mac usually work in Chrom
 | Date | Work |
 |---|---|
 | Tue Oct 27 | Spec signed off. Camera spike. |
-| Wed Oct 28 | Recorder, server, event bridge in the three web games. |
-| Thu Oct 29 | Current Cut event autoload. Align, transcribe, candidates. **First learning sessions.** |
-| Fri Oct 30 | Explain, hands, blur. Live smoke test if credits have landed. |
-| Sat Oct 31–Sun Nov 1 | Remaining learning sessions (12 in total). Fix lists. Viewer. |
+| Wed Oct 28 | Recorder, server, event bridge (with the shared event kinds) in the three web games. Questionnaire page. Joel signs off the questions. |
+| Thu Oct 29 | Current Cut event autoload. Align, transcribe, candidates. **Questionnaires, then first learning sessions.** |
+| Fri Oct 30 | Explain, hands, blur. Fingerprint. Live smoke test if credits have landed. |
+| Sat Oct 31–Sun Nov 1 | Remaining learning sessions (12 in total). Fix lists. Viewer. Reaction model. |
 | Sun Nov 1 | Personas. Reference playthroughs of all four games. |
-| Mon Nov 2 | Predictions written and frozen (committed with a timestamp) **before** the check sessions. Check sessions. |
+| Mon Nov 2 | All three predictors run and frozen (committed with a timestamp) **before** the check sessions. Check sessions. |
 | Tue Nov 3 | Scoring, viewer polish, last day for organiser questions. |
 | Wed Nov 4 | Cut the 3-minute video, write the submission page, submit by 7:00 PM MT. |
 
