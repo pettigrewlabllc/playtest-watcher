@@ -12,7 +12,7 @@ Joel's application to the **Meta Global AI Developer Hackathon** (Cerebral Valle
 
 - Runs Mon Oct 26 12:00 PM ET to **Wed Nov 4 9:00 PM ET** (7 PM MT). Submissions are due then. Judging runs Nov 4 to 8, and winners are announced Nov 9.
 - Kickoff livestream is Oct 26 at 12 PM ET. Workshops and Discord office hours run Oct 27 to Nov 4.
-- The problem statements and schedule are at cerebralvalley.ai/e/meta-ai-developer-hackathon/details. That page needs a sign-in: Joel's, Google, pettigrewlabllc@gmail.com. Never sign in for him.
+- The problem statements and schedule are at cerebralvalley.ai/e/meta-ai-developer-hackathon/details. It needs a sign-in.
 - Tracks: **Indie** (solo; judged on creativity, technical ambition, whether it works) or **Startup** (judged on execution, holds up in production). Indie is the likely fit.
 - Themes: "Build for Your World" (a problem you know firsthand). This project fits it exactly.
 - Required: Meta models via the Meta Model API. The listed models are Muse Spark series, Muse Wonder, Muse Image, SAM 3.1 and Meta open weights, plus the Muse Code agent. Verify what each one actually does (vision, audio, video input) from the official docs before designing around it.
