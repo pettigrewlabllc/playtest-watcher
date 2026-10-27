@@ -32,10 +32,13 @@ function median(xs: number[]): number | null {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
-// A first_touch is on the main action when the game says so (data.main) or the target is tagged main*.
+// The data-pw / node names each game's logger reports for its main play surface or action.
+export const MAIN_TARGETS: RegExp[] = [/^main/i, /^playfield$/, /^board$/, /^Control\.Board$/, /^(seal|chip|file|bin)[:-]/, /^play$/];
+
+// A first_touch is on the main action when the game says so (data.main) or the target is a known main target.
 function isMainTouch(data: Record<string, unknown>): boolean {
   if (data.main === true) return true;
-  return typeof data.target === 'string' && /^main/i.test(data.target);
+  return typeof data.target === 'string' && MAIN_TARGETS.some(r => r.test(data.target as string));
 }
 
 export function fingerprintOf(s: Session): Fingerprint {

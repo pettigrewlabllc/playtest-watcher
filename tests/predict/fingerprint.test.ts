@@ -117,4 +117,11 @@ describe('playerFingerprint', () => {
     expect(Object.values(pf.said).every(v => v === null)).toBe(true);
     expect(pf.gaps).toEqual([]);
   });
+
+  it('recognises the main targets the four games actually log', async () => {
+    const { MAIN_TARGETS } = await import('../../src/predict/fingerprint.ts');
+    const isMain = (t: string) => MAIN_TARGETS.some(r => r.test(t));
+    for (const t of ['playfield', 'board', 'Control.Board', 'seal:storm', 'chip:sum', 'play', 'main-action']) expect(isMain(t)).toBe(true);
+    for (const t of ['compendium', 'menu_high_scores', 'stir', 'buy:pad', 'settings']) expect(isMain(t)).toBe(false);
+  });
 });
