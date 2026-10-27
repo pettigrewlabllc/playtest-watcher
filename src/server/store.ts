@@ -1,4 +1,4 @@
-import { mkdir, appendFile, writeFile } from 'node:fs/promises';
+import { mkdir, appendFile, writeFile, readFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { isValidSessionId, newSessionId } from './ids.ts';
 
@@ -7,6 +7,8 @@ export type GameEvent = { t: number; type: string; data?: unknown };
 
 const TRACK = /^[a-z]{1,16}$/;
 const JSON_NAMES = new Set(['manifest', 'report', 'session']);
+const KID = /^[a-d]$/;
+const KID_JSON = new Set(['questionnaire']);
 
 export function createStore(root: string) {
   const nextSeq = new Map<string, number>();
@@ -41,6 +43,23 @@ export function createStore(root: string) {
       if (!JSON_NAMES.has(name)) throw new Error(`bad json name: ${name}`);
       await mkdir(dir(id), { recursive: true });
       await writeFile(join(dir(id), `${name}.json`), JSON.stringify(obj, null, 2));
+    },
+
+    async writeKidJson(kid: string, name: string, obj: unknown): Promise<void> {
+      if (!KID.test(kid)) throw new Error(`bad kid: ${kid}`);
+      if (!KID_JSON.has(name)) throw new Error(`bad json name: ${name}`);
+      const d = join(root, 'kids', kid);
+      await mkdir(d, { recursive: true });
+      await writeFile(join(d, `${name}.json`), JSON.stringify(obj, null, 2));
+    },
+
+    async summary(id: string): Promise<{ eventCount: number; files: Record<string, number> }> {
+      const d = dir(id);
+      const files: Record<string, number> = {};
+      for (const f of await readdir(d)) files[f] = (await stat(join(d, f))).size;
+      let eventCount = 0;
+      if (files['events.jsonl']) eventCount = (await readFile(join(d, 'events.jsonl'), 'utf8')).split('\n').filter(Boolean).length;
+      return { eventCount, files };
     },
 
     async appendEvents(id: string, events: GameEvent[], serverT: number): Promise<number> {

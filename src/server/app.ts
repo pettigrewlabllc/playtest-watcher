@@ -2,7 +2,9 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { readFile } from 'node:fs/promises';
 import { join, normalize, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { networkInterfaces } from 'node:os';
 import { createStore } from './store.ts';
+import { QUESTIONS, scoreAnswers } from './questionnaire.ts';
 
 const PUBLIC = fileURLToPath(new URL('../../public/', import.meta.url));
 const TYPES: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
@@ -42,6 +44,25 @@ export function createApp(root: string) {
         return send(res, 200, { stored }, CORS);
       }
 
+      if (req.method === 'GET' && path === '/api/info') {
+        const lanIps = Object.values(networkInterfaces()).flat()
+          .filter(n => n && n.family === 'IPv4' && !n.internal).map(n => n!.address);
+        return send(res, 200, { lanIps });
+      }
+
+      if (req.method === 'GET' && path === '/api/questions') return send(res, 200, QUESTIONS);
+
+      if (req.method === 'POST' && seg[0] === 'api' && seg[1] === 'kids' && seg.length === 4 && seg[3] === 'questionnaire') {
+        const { answers } = JSON.parse((await body(req)).toString('utf8'));
+        const scores = scoreAnswers(answers ?? {});
+        await store.writeKidJson(seg[2], 'questionnaire', { kid: seg[2], answeredAt: Date.now(), answers, scores });
+        return send(res, 200, { ok: true });
+      }
+
+      if (req.method === 'GET' && seg[0] === 'api' && seg[1] === 'sessions' && seg.length === 4 && seg[3] === 'summary') {
+        return send(res, 200, await store.summary(seg[2]));
+      }
+
       if (seg[0] === 'api' && seg[1] === 'sessions' && req.method === 'POST') {
         if (seg.length === 2) {
           const meta = JSON.parse((await body(req)).toString('utf8'));
@@ -70,7 +91,7 @@ export function createApp(root: string) {
 
       send(res, 404, { error: 'not found' });
     } catch (err: any) {
-      const status = err.status ?? (/bad |expected seq|JSON/.test(String(err.message)) ? 400 : 500);
+      const status = err.status ?? (/bad |expected seq|JSON|ENOENT/.test(String(err.message)) ? 400 : 500);
       send(res, status, { error: String(err.message) }, path.startsWith('/events') ? CORS : {});
     }
   });

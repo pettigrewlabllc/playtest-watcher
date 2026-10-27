@@ -42,4 +42,24 @@ describe('app', () => {
   it('returns 404 for unknown routes', async () => {
     expect((await fetch(base + '/nope.html')).status).toBe(404);
   });
+
+  it('reports LAN ips and the question list', async () => {
+    expect(Array.isArray((await (await fetch(base + '/api/info')).json()).lanIps)).toBe(true);
+    expect(await (await fetch(base + '/api/questions')).json()).toHaveLength(12);
+  });
+
+  it('saves a scored questionnaire per kid and rejects other kids', async () => {
+    expect((await post('/api/kids/b/questionnaire', JSON.stringify({ answers: { 3: 'a', 4: 'a' } }))).status).toBe(200);
+    const saved = JSON.parse(await readFile(join(root, 'kids', 'b', 'questionnaire.json'), 'utf8'));
+    expect(saved.scores.read).toBe(-1);
+    expect((await post('/api/kids/e/questionnaire', JSON.stringify({ answers: {} }))).status).toBe(400);
+  });
+
+  it('summarises a session', async () => {
+    const { id } = await (await post('/api/sessions', JSON.stringify({ kid: 'D', game: 'g', round: 'learn' }))).json();
+    await post(`/events/${id}`, JSON.stringify([{ t: 1, type: 'a' }, { t: 2, type: 'b' }]));
+    const s = await (await fetch(`${base}/api/sessions/${id}/summary`)).json();
+    expect(s.eventCount).toBe(2);
+    expect(s.files['session.json']).toBeGreaterThan(0);
+  });
 });

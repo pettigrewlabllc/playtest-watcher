@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Before you play</title>
+<style>
+  :root { --bg: #14161c; --card: #1f2330; --ink: #f3f4f7; --muted: #9aa0b0; --a: #3b82f6; --b: #f59e0b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font: 20px/1.35 system-ui, sans-serif;
+         display: flex; align-items: center; justify-content: center; padding: 16px; }
+  main { width: 100%; max-width: 720px; }
+  h1 { font-size: 30px; margin: 0 0 24px; }
+  .progress { color: var(--muted); font-size: 16px; margin-bottom: 12px; }
+  .bar { height: 6px; background: var(--card); border-radius: 3px; margin-bottom: 28px; overflow: hidden; }
+  .bar > div { height: 100%; background: var(--a); transition: width .2s; }
+  .choices { display: grid; gap: 14px; }
+  button { font: inherit; color: var(--ink); border: 0; border-radius: 14px; padding: 22px 20px; min-height: 64px;
+           text-align: left; cursor: pointer; background: var(--card); }
+  button.a { border-left: 8px solid var(--a); }
+  button.b { border-left: 8px solid var(--b); }
+  button:active { transform: scale(.98); }
+  .kids { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .kids button { text-align: center; font-size: 34px; font-weight: 700; }
+  .back { background: none; color: var(--muted); padding: 12px 0; min-height: 44px; font-size: 16px; margin-top: 18px; }
+  .err { color: #f87171; }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+const app = document.getElementById('app');
+let questions = [], kid = null, answers = {}, i = 0;
+
+function pickKid() {
+  app.innerHTML = `<h1>Who's playing?</h1><div class="kids">${['A', 'B', 'C', 'D'].map(k => `<button data-k="${k}">${k}</button>`).join('')}</div>`;
+  app.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { kid = b.dataset.k.toLowerCase(); answers = {}; i = 0; ask(); });
+}
+
+function ask() {
+  const q = questions[i];
+  app.innerHTML = `
+    <div class="progress">${i + 1} of ${questions.length}</div>
+    <div class="bar"><div style="width:${100 * i / questions.length}%"></div></div>
+    <h1>${q.text}</h1>
+    <div class="choices">
+      <button class="a" data-v="a">${q.a}</button>
+      <button class="b" data-v="b">${q.b}</button>
+    </div>
+    <button class="back">${i === 0 ? 'Back' : 'Previous question'}</button>`;
+  app.querySelectorAll('[data-v]').forEach(b => b.onclick = () => {
+    answers[q.id] = b.dataset.v;
+    if (++i < questions.length) ask(); else finish();
+  });
+  app.querySelector('.back').onclick = () => { if (i === 0) pickKid(); else { i--; ask(); } };
+}
+
+async function finish() {
+  app.innerHTML = '<h1>Saving...</h1>';
+  try {
+    const r = await fetch(`/api/kids/${kid}/questionnaire`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ answers }) });
+    if (!r.ok) throw new Error(r.status);
+    app.innerHTML = `<h1>All done. Thanks!</h1><p>Now go play.</p>`;
+  } catch (e) {
+    app.innerHTML = `<h1 class="err">That didn't save.</h1><button class="a" id="retry">Try again</button>`;
+    document.getElementById('retry').onclick = finish;
+  }
+}
+
+fetch('/api/questions').then(r => r.json()).then(q => { questions = q; pickKid(); });
+</script>
+</body>
+</html>
