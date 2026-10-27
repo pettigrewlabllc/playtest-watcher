@@ -34,6 +34,15 @@ Each held-out game also needs one **reference playthrough**: Joel (or the game's
 3. Four predictions scored against the real check sessions, with recall and precision for all three predictors.
 4. A viewer that plays face (blurred), hands, and screen in sync with the timeline. The demo video is filmed from it.
 
+### Grain: the session, not the study
+
+The system knows only **sessions**: one player, one game build, an event stream, and optionally media, transcript and questionnaire. The 4x4 round-robin above is one study, written down in `study.json` (who plays what, which sessions are frozen checks) and read only by the scoring and video scripts. Nothing else in the code knows about it.
+
+- **Three stages, each usable alone:** capture (recorder plus game logger) writes a session folder; watch (Plan 2) turns a session folder into moments; predict (Plan 3) turns any set of session folders into fingerprints, models, personas and predictions. A developer without cameras can skip capture and watch, and feed predict with game events only.
+- **Personas update after every session.** One session gives a rough fingerprint; each new one sharpens it.
+- **Evaluation is automatic leave-one-game-out:** for each player and each game they played, hide that game, predict it from the rest, and score. Four kids by four games gives 16 folds from the same recordings, on top of the 4 frozen check sessions that guard against fooling ourselves.
+- **Player types** (clusters of fingerprints, with nearest-type matching for a player who has little data) are supported in code but presented as what happens at scale. Four players is too few to discover types, and the demo says so.
+
 ## 2. Meta models used (checked against dev.meta.ai/docs/models, 2026-10-27)
 
 | Job | Model | Notes |
