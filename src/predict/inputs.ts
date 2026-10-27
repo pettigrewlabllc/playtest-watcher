@@ -32,9 +32,13 @@ export async function loadSession(dir: string): Promise<Session> {
   return { id: basename(dir), dir, meta, aligned, moments: Array.isArray(moments) ? moments : null, transcript };
 }
 
-// Session folders sit in recordings/<id>/, kid answers in recordings/kids/<letter>/.
-export async function loadQuestionnaire(sessionDir: string, letter: string): Promise<Questionnaire | null> {
-  const kids = join(dirname(sessionDir), 'kids');
+// Session folders sit in <root>/<id>/, kid answers in <root>/kids/<letter>/.
+export async function loadQuestionnaireAt(root: string, letter: string): Promise<Questionnaire | null> {
+  const kids = join(root, 'kids');
   return (await readJson<Questionnaire>(join(kids, letter, 'questionnaire.json')))
     ?? (await readJson<Questionnaire>(join(kids, letter.toLowerCase(), 'questionnaire.json')));
+}
+
+export function loadQuestionnaire(sessionDir: string, letter: string): Promise<Questionnaire | null> {
+  return loadQuestionnaireAt(dirname(sessionDir), letter);
 }

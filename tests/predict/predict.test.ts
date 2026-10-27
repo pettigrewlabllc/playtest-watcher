@@ -1,0 +1,94 @@
+import { describe, it, expect } from 'vitest';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { predictSession, PREDICTORS } from '../../src/predict/predict.ts';
+import { trainPlayer, venvAvailable } from '../../src/predict/model.ts';
+import { buildPersona } from '../../src/predict/persona.ts';
+import { ev, failStream, moment, recordingClient, tempRoot, writeSession } from './helpers.ts';
+
+// Stage 1 is calm; stage 2 plants a long fail streak.
+function target() {
+  const events = [ev(0, 'progress', { level: 1 })];
+  let ms = 1000;
+  for (let k = 0; k < 6; k++) { events.push(ev(ms, 'attempt', {}, 'slice')); ms += 1000; events.push(ev(ms, 'success', {}, 'slice')); ms += 1000; }
+  events.push(ev(ms, 'progress', { level: 2 })); ms += 1000;
+  for (let k = 0; k < 8; k++) { events.push(ev(ms, 'attempt', {}, 'slice')); ms += 500; events.push(ev(ms, 'fail', {}, 'miss')); ms += 500; }
+  events.push(ev(ms, 'success', {}, 'slice'));
+  return events;
+}
+
+async function world() {
+  const root = await tempRoot();
+  const trainDirs = [];
+  for (const [i, g] of ['g1', 'g2', 'g3'].entries()) {
+    const { events, moments } = failStream(i);
+    trainDirs.push(await writeSession(root, `a-${g}-learn`, { game: g, events, moments }));
+  }
+  await mkdir(join(root, 'kids', 'A'), { recursive: true });
+  await writeFile(join(root, 'kids', 'A', 'questionnaire.json'), JSON.stringify({ kid: 'A', answers: { 1: 'a', 6: 'b' }, scores: {} }));
+  return { root, trainDirs };
+}
+
+describe('predictSession (prompted predictors)', () => {
+  it('runs baseline, questionnaire and persona with their own inputs and cleans the output', async () => {
+    const { root, trainDirs } = await world();
+    const client = recordingClient();
+    await buildPersona('A', trainDirs, client, { root });
+    const tdir = await writeSession(root, 'ref-g4', { kid: 'ref', game: 'g4', round: 'reference', events: target() });
+    client.calls.length = 0;
+    const canned = recordingClient({ prediction: { items: [
+      { stage: '2', event_type: 'miss', label: 'frustrated', p: 0.9, why: 'streak' },
+      { stage: '2', event_type: 'miss', label: 'stuck', p: 0.5, why: 'x' },
+      { stage: '2', event_type: 'miss', label: 'bored', p: 0.2, why: 'x' },
+      { stage: '9', event_type: 'miss', label: 'frustrated', p: 0.9, why: 'no such stage' },
+      { stage: '1', event_type: 'slice', label: 'none', p: 0.9, why: 'none is not a reaction' },
+    ] } });
+    const res = await predictSession('A', tdir, canned, ['baseline', 'questionnaire', 'persona'], { root });
+    expect(Object.keys(res)).toEqual(['baseline', 'questionnaire', 'persona']);
+    const [b, q, p] = canned.calls;
+    expect(b.text).toMatch(/aged 8 to 14/);
+    expect(b.text).not.toContain('You start a new game');
+    expect(q.text).toContain('You start a new game. What do you do first?');
+    expect(q.text).toContain('Poke around');
+    expect(p.text).toContain('fake: a steady player');
+    expect(b.text).toContain('stage 2');
+    for (const name of ['baseline', 'questionnaire', 'persona'] as const) {
+      const items = res[name].items;
+      expect(res[name]).toMatchObject({ predictor: name, target: 'ref-g4' });
+      expect(items.map(i => i.label)).toEqual(['frustrated', 'stuck']);   // max 2 per stage, best p first; bad stage and none dropped
+      expect(items.every(i => i.stage === '2')).toBe(true);
+    }
+    expect(PREDICTORS).toEqual(['baseline', 'questionnaire', 'persona', 'model']);
+  });
+
+  it('never reads the player\'s own moments from the target, only another session\'s screen notes', async () => {
+    const { root, trainDirs } = await world();
+    const mine = { ...moment('s1', 0, 1000, 'stuck', 0.9), game_context: 'SENTINEL_OWN', evidence: { face: 'SENTINEL_OWN', voice: '', hands: '', screen: 'SENTINEL_OWN' } };
+    const theirs = { ...moment('s2', 0, 1000, 'stuck', 0.9), evidence: { face: 'FACE_OTHER', voice: '', hands: '', screen: 'SCREEN_OTHER' } };
+    const own = await writeSession(root, 'a-g5-check', { kid: 'A', game: 'g5', round: 'check', events: target(), moments: [mine] });
+    const other = await writeSession(root, 'b-g5-learn', { kid: 'B', game: 'g5', events: target(), moments: [theirs] });
+    const client = recordingClient();
+    await buildPersona('A', trainDirs, client, { root });
+    client.calls.length = 0;
+    await predictSession('A', own, client, ['baseline', 'questionnaire', 'persona'], { root });
+    expect(client.calls.map(c => c.text).join('\n')).not.toContain('SENTINEL_OWN');
+    client.calls.length = 0;
+    await predictSession('A', other, client, ['baseline'], { root });
+    expect(client.calls[0].text).toContain('SCREEN_OTHER');
+    expect(client.calls[0].text).not.toContain('FACE_OTHER');
+    expect(client.calls[0].text).not.toMatch(/\bstuck\b.*0\.9/);
+  });
+});
+
+describe.skipIf(!venvAvailable())('model predictor (needs analysis/.venv)', () => {
+  it('predicts frustrated at the stage with the planted fail streak and not at the calm one', async () => {
+    const { root, trainDirs } = await world();
+    await trainPlayer('A', trainDirs, { root });
+    const tdir = await writeSession(root, 'ref-g4', { kid: 'ref', game: 'g4', round: 'reference', events: target() });
+    const res = await predictSession('A', tdir, recordingClient(), ['model'], { root });
+    const items = res.model.items;
+    expect(items.some(i => i.stage === '2' && i.label === 'frustrated')).toBe(true);
+    expect(items.some(i => i.stage === '1')).toBe(false);
+    for (const i of items) expect(i.p).toBeGreaterThanOrEqual(0.35);
+  }, 120_000);
+});

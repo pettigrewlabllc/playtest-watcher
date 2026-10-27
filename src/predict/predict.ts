@@ -1,0 +1,189 @@
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { basename, join } from 'node:path';
+import type { MetaClient } from '../meta/client.ts';
+import { LABELS, loadQuestionnaireAt } from './inputs.ts';
+import type { Aligned, AlignedEvent, Label, Moment } from './inputs.ts';
+import { stagesOf } from './stages.ts';
+import { buildRows, okMoments, writeRowsCsv } from './rows.ts';
+import { MODEL } from './persona.ts';
+import { playerDir, predictRows, recordingsRoot } from './model.ts';
+import type { Opts } from './model.ts';
+import { QUESTIONS } from '../server/questionnaire.ts';
+import { mmss } from '../watch/explain.ts';
+
+export const PREDICTORS = ['baseline', 'questionnaire', 'persona', 'model'] as const;
+export type Predictor = typeof PREDICTORS[number];
+export type PredictedItem = { stage: string; event_type: string; label: string; p: number; why: string };
+export type Prediction = { predictor: string; target: string; items: PredictedItem[] };
+
+const MAX_PER_STAGE = 2;
+const MODEL_STAGE_MEAN = 0.35;
+const MODEL_ROW_P = 0.7;
+const REACTIONS = LABELS.filter(l => l !== 'none');
+
+export const PREDICTION_SCHEMA = {
+  name: 'prediction',
+  schema: {
+    type: 'object', additionalProperties: false, required: ['items'],
+    properties: { items: { type: 'array', items: {
+      type: 'object', additionalProperties: false, required: ['stage', 'event_type', 'label', 'p', 'why'],
+      properties: { stage: { type: 'string' }, event_type: { type: 'string' }, label: { type: 'string', enum: [...REACTIONS] }, p: { type: 'number' }, why: { type: 'string' } },
+    } } },
+  },
+};
+
+type Target = { id: string; game: string; aligned: Aligned; screenNotes: { ms: number; note: string }[] };
+
+// Reads aligned.json and session.json only. moments.json is opened only when the target belongs to a different
+// player (or none), and then only the screen notes are used, never labels: a player's own moments never feed their prediction.
+async function loadTarget(dir: string, letter: string): Promise<Target> {
+  const aligned = JSON.parse(await readFile(join(dir, 'aligned.json'), 'utf8')) as Aligned;
+  let meta: { kid?: string; game?: string } = {};
+  try { meta = JSON.parse(await readFile(join(dir, 'session.json'), 'utf8')); } catch { /* optional */ }
+  let screenNotes: Target['screenNotes'] = [];
+  if (String(meta.kid ?? '').toLowerCase() !== letter.toLowerCase()) {
+    try {
+      const moments = JSON.parse(await readFile(join(dir, 'moments.json'), 'utf8')) as Moment[];
+      screenNotes = okMoments(moments).filter(m => m.evidence.screen).map(m => ({ ms: m.startMs, note: m.evidence.screen }));
+    } catch { /* no moments */ }
+  }
+  return { id: basename(dir), game: meta.game ?? 'unknown', aligned, screenNotes };
+}
+
+type StageSummary = { stage: string; startMs: number; endMs: number; kinds: Record<string, number>; types: Record<string, number>; screen: string[] };
+
+function summarize(t: Target): StageSummary[] {
+  const events = t.aligned.events;
+  const stages = stagesOf(events);
+  const out: StageSummary[] = [];
+  events.forEach((e, i) => {
+    let s = out[out.length - 1];
+    if (!s || s.stage !== stages[i]) { s = { stage: stages[i], startMs: e.ms, endMs: e.ms, kinds: {}, types: {}, screen: [] }; out.push(s); }
+    s.endMs = e.ms;
+    s.kinds[e.kind] = (s.kinds[e.kind] ?? 0) + 1;
+    s.types[e.type] = (s.types[e.type] ?? 0) + 1;
+  });
+  for (const n of t.screenNotes) {
+    const s = [...out].reverse().find(x => x.startMs <= n.ms) ?? out[0];
+    if (s && s.screen.length < 3) s.screen.push(n.note);
+  }
+  return out;
+}
+
+function targetText(t: Target, stages: StageSummary[]): string {
+  const lines = stages.map(s => {
+    const kinds = Object.entries(s.kinds).map(([k, n]) => `${k} x${n}`).join(', ');
+    const types = Object.entries(s.types).map(([k, n]) => `${k} x${n}`).join(', ');
+    return `- stage ${s.stage} (${mmss(s.startMs)} to ${mmss(s.endMs)}): ${kinds}. Event types: ${types}.` + (s.screen.length ? ` On screen: ${s.screen.join(' / ')}` : '');
+  });
+  return [`GAME: ${t.game}. A playthrough of it, stage by stage (stage = the game's own level or wave):`, ...lines].join('\n');
+}
+
+const TASK = [
+  'Predict how this child will react to the playthrough. A reaction is one of: confused, stuck, bored, frustrated, delighted.',
+  `Give at most ${MAX_PER_STAGE} predicted reactions per stage, each with the stage exactly as written, an event_type taken from that stage's event types (the kind of event it would happen around), the label, p (your probability that it really happens, 0 to 1) and a one-sentence why. Predict nothing for a stage where you expect no notable reaction. Do not invent facts about the child beyond what is given.`,
+].join('\n');
+
+function questionnaireText(answers: Record<string, string>): string {
+  const lines = QUESTIONS.flatMap(q => {
+    const a = answers[String(q.id)];
+    if (a !== 'a' && a !== 'b') return [];
+    return [`Q: ${q.text}\nA: ${a === 'a' ? q.a : q.b}`];
+  });
+  return lines.length ? lines.join('\n') : '(no answers recorded)';
+}
+
+function clean(items: PredictedItem[] | undefined, stages: StageSummary[]): PredictedItem[] {
+  const byStage = new Map(stages.map(s => [s.stage, s]));
+  const kept: PredictedItem[] = [];
+  for (const it of items ?? []) {
+    const s = byStage.get(String(it.stage));
+    if (!s || !REACTIONS.includes(it.label as Label)) continue;
+    const types = Object.entries(s.types).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+    kept.push({
+      stage: s.stage, label: it.label, p: Math.max(0, Math.min(1, Number(it.p) || 0)), why: String(it.why ?? ''),
+      event_type: types.includes(it.event_type) ? it.event_type : (types[0] ?? ''),
+    });
+  }
+  const out: PredictedItem[] = [];
+  for (const stage of new Set(stages.map(s => s.stage))) {   // a stage name can recur (a revisit); cap per name
+    out.push(...kept.filter(i => i.stage === stage).sort((a, b) => b.p - a.p).slice(0, MAX_PER_STAGE));
+  }
+  return out;
+}
+
+async function modelPredictor(letter: string, t: Target, o: Opts): Promise<PredictedItem[]> {
+  // labels are irrelevant to prediction; null moments keeps the target's own moments out of the rows
+  const rows = buildRows(t.id, t.game, t.aligned, null);
+  const csv = join(playerDir(letter, o), `target-${t.id}.csv`);
+  await mkdir(playerDir(letter, o), { recursive: true });
+  await writeRowsCsv(rows, csv);
+  const probs = await predictRows(letter, csv, o);
+  const byI = new Map(rows.map(r => [r.i, r]));
+  const items = new Map<string, PredictedItem>();
+  const put = (stage: string, type: string, label: string, p: number, why: string) => {
+    const key = `${stage}|${type}|${label}`;
+    const prev = items.get(key);
+    if (!prev || prev.p < p) items.set(key, { stage, event_type: type, label, p, why });
+  };
+  const stageOrder = [...new Set(probs.map(r => r.stage))];
+  for (const stage of stageOrder) {
+    const rs = probs.filter(r => r.stage === stage);
+    const mean = Object.fromEntries(LABELS.map(l => [l, rs.reduce((s, r) => s + r.p[l], 0) / rs.length])) as Record<Label, number>;
+    const best = LABELS.reduce((a, b) => (mean[b] > mean[a] ? b : a));
+    if (best !== 'none' && mean[best] >= MODEL_STAGE_MEAN) {
+      const top = rs.reduce((a, b) => (b.p[best] > a.p[best] ? b : a));
+      put(stage, byI.get(top.i)?.type ?? '', best, mean[best], `model: mean ${best} probability ${mean[best].toFixed(2)} over ${rs.length} events`);
+    }
+    for (const r of rs) {
+      for (const l of REACTIONS) if (r.p[l] >= MODEL_ROW_P) put(stage, byI.get(r.i)?.type ?? '', l, r.p[l], `model: ${l} probability ${r.p[l].toFixed(2)} at one event`);
+    }
+  }
+  return [...items.values()];
+}
+
+export async function predictSession(
+  letter: string, targetSessionDir: string, client: MetaClient, predictors: readonly Predictor[] = PREDICTORS, o: Opts = {},
+): Promise<Record<Predictor, Prediction>> {
+  const t = await loadTarget(targetSessionDir, letter);
+  const stages = summarize(t);
+  const world = targetText(t, stages);
+  const out = {} as Record<Predictor, Prediction>;
+
+  for (const name of predictors) {
+    let items: PredictedItem[];
+    if (name === 'model') {
+      items = await modelPredictor(letter, t, o);
+    } else {
+      let who: string;
+      if (name === 'baseline') who = 'WHO THEY ARE: a child aged 8 to 14. Nothing else is known.';
+      else if (name === 'questionnaire') {
+        const q = await loadQuestionnaireAt(recordingsRoot(o), letter);
+        who = `WHO THEY ARE: a child aged 8 to 14. Before playing, they answered a short questionnaire about how they like to play:\n${questionnaireText(q?.answers ?? {})}`;
+      } else {
+        let persona: string;
+        try { persona = await readFile(join(playerDir(letter, o), 'persona.json'), 'utf8'); }
+        catch { throw new Error(`no persona for ${letter}; run: npm run predict -- persona ${letter}`); }
+        who = `WHO THEY ARE: a child aged 8 to 14. A persona built from watching them play other games (JSON):\n${persona}`;
+      }
+      const res = await client.respond<{ items: PredictedItem[] }>({
+        model: MODEL, kind: `predict:${letter}:${name}:${t.id}`, schema: PREDICTION_SCHEMA, maxOutputTokens: 4000,
+        content: [{ type: 'input_text', text: [who, '', world, '', TASK].join('\n') }],
+      });
+      items = clean(res.data.items, stages);
+    }
+    out[name] = { predictor: name, target: t.id, items };
+  }
+  return out;
+}
+
+export async function writePredictions(dir: string, preds: Partial<Record<Predictor, Prediction>>): Promise<string[]> {
+  await mkdir(dir, { recursive: true });
+  const files: string[] = [];
+  for (const [name, p] of Object.entries(preds)) {
+    const f = join(dir, `${name}.json`);
+    await writeFile(f, JSON.stringify(p, null, 2));
+    files.push(f);
+  }
+  return files;
+}
