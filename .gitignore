@@ -1,0 +1,10 @@
+node_modules/
+.env*
+!.env.example
+recordings/
+*.mov
+*.mp4
+*.webm
+*.m4a
+*.wav
+.DS_Store
