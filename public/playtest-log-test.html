@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>playtest-log test</title>
+<button data-pw="main-action" id="go">Tap me</button>
+<script src="/playtest-log.js"></script>
+<script>
+  PlaytestLog.screen('test');
+  PlaytestLog.log('attempt', { kind: 'attempt', n: 1 });
+  PlaytestLog.text('hint-1', 42);
+  document.getElementById('go').onclick = () => PlaytestLog.log('success', { kind: 'success' });
+</script>
