@@ -8,3 +8,4 @@ recordings/
 *.m4a
 *.wav
 .DS_Store
+.claude/
