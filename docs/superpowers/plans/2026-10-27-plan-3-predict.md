@@ -59,6 +59,7 @@ type Row = { session: string; game: string; i: number; ms: number; stage: string
 - `label`: the label of the `ok` moment (confidence ≥ 0.5) whose window covers `ms`, else `none`. With no `moments.json`: `frustrated` if `fail_streak ≥ 3`, `stuck` on `idle` events, else `none`, and every row gets `weak_labels: 1`.
 - `text_chars_on_screen`: sum of `chars` of `text_shown` events not yet closed.
 - [ ] Tests on a hand-written 30-event session: each feature's value at chosen indexes; stage changes on `progress`; labels from overlapping moments; weak-label fallback. Commit.
+- Changed during build: `Row` also carries `weak_labels: 0|1` (a CSV column, not a model feature). `stageOf` returns the bare field value as a string (`'3'`, `'w3'`) and `'start'` before any progress event; the `progress` event itself already belongs to the new stage. Overlapping moments: highest confidence wins. Weak labels check `frustrated` before `stuck`. Input types (`Aligned`, `Moment`, `Transcript`, `loadSession`) live in `src/predict/inputs.ts`, copied from Plan 2; reconcile at merge. `text_closed` is matched to `text_shown` by `data.id`, else first-in-first-out.
 
 ### Task 2: Fingerprint and said-vs-did
 
@@ -73,6 +74,7 @@ type PlayerFingerprint = { letter: string; sessions: string[]; mean: Fingerprint
 - Definitions are exactly spec section 3a. `read_share`: `text_closed` at least `chars / 15` seconds after its `text_shown`.
 - `did` maps fingerprint fields onto the seven questionnaire axes on the same -1..+1 scale (explore: `explore_share` z-scored against all players then clamped; read: `read_share`; persist: `fail_streak_before_negative` and `recovery_s`; pace: `attempts_per_min` and `hesitation_new_s`; social: `talk_per_min`; challenge and look: `null` unless derivable, never invented). `gaps` lists axes where `|said - did| ≥ 0.75`.
 - [ ] Tests on synthetic sessions with known answers for every field; an events-only session yields nulls where data is missing, never NaN. Commit.
+- Changed during build: `playerFingerprint(letter, sessionDirs, population?)` takes an optional list of other players' mean fingerprints for the z-scores; with fewer than 3 it falls back to fixed priors for ages 8 to 14 (`PRIORS` in `fingerprint.ts`). Every mappable axis is z-scored this way, not just explore. Sign follows the questionnaire (-1 is the A end: explore, read, stick with it, show, fast), so a high explore z gives a negative `did.explore`. `fail_streak_before_negative` is the max streak inside the first frustrated/bored moment's window (weak-label session: the streak at the first weakly labeled row). A `first_touch` counts as main when `data.main === true` or `data.target` starts with `main`; this is a convention Plan 1's snippet doesn't yet set, so the games need `data-pw="main..."` on the main action. `said` is read from `recordings/kids/<letter>/questionnaire.json` next to the session folders.
 
 ### Task 3: Python reaction model
 
@@ -84,6 +86,7 @@ type PlayerFingerprint = { letter: string; sessions: string[]; mean: Fingerprint
 - `features.py`: one-hot `kind`; numeric features as-is; `game`, `session`, `type` are **not** features (the model must transfer across games).
 - CV: leave-one-session-out. Model choice: `HistGradientBoostingClassifier(class_weight='balanced', max_depth=3)` vs `LogisticRegression(class_weight='balanced', max_iter=2000)` on standardized features; choose HGB only if its mean macro-F1 beats logreg by ≥ 0.02.
 - [ ] pytest: a synthetic stream with a planted rule ("frustrated when fail_streak ≥ 4, else none", 3 sessions × 400 rows) is recovered with macro-F1 > 0.8 and `fail_streak` is the top importance; a dataset with one class only exits with a clear error; `predict.py` output rows match input rows. Commit.
+- Changed during build: the venv installed cleanly on Python 3.15 (scikit-learn 1.9.1, pandas 3.1.0), no 3.12 fallback needed. With a single training session there is no CV: `folds` is empty, the mean scores are `null`, and logreg is chosen. A CV fold whose training split has one class predicts that class. Wrapper options take `{ root }` to point at a temp recordings dir; default `recordings/`. Model files go in `recordings/players/<letter>/model/`, rows in `players/<letter>/rows.csv`.
 
 **Node wrapper (`model.ts`):** `trainPlayer(letter, sessionDirs)` writes rows and calls `train.py`; `predictRows(letter, rowsCsv)` calls `predict.py`. Vitest with the real venv (skipped with a clear message if the venv is absent).
 
