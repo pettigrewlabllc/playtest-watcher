@@ -22,7 +22,7 @@ extract bond-swap origin/claude/bond-swap
 trap 'kill 0' INT TERM
 (cd "$WS/factor-slicer/.claude/worktrees/playtest-log/www" && python3 -m http.server 3057 --bind 0.0.0.0 >/dev/null 2>&1) &
 (cd "$WS/bond-swap/.claude/worktrees/playtest-log/www" && python3 -m http.server 3050 --bind 0.0.0.0 >/dev/null 2>&1) &
-(cd "$WS/hoard-keeper/.claude/worktrees/playtest-log" && npx vite --host 0.0.0.0 >/dev/null 2>&1) &
+(cd "$WS/hoard-keeper/.claude/worktrees/playtest-log-b9" && npx vite --host 0.0.0.0 >/dev/null 2>&1) &
 IP=$(ipconfig getifaddr en0 || echo localhost)
 echo "Factor Slicer  http://$IP:3057/"
 echo "Bond Swap      http://$IP:3050/index.html"
