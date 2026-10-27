@@ -147,7 +147,8 @@ function buildReport(id, want, streams, recs, samples, micPeak) {
     // Screen share only sends frames when the screen changes, so it gets no fps rule.
     if (target && avg < target * 0.9) problems.push(`${k} averaged ${avg.toFixed(1)} of ${target} fps`);
     if (target && lowSecs > 5) problems.push(`${k} below half speed for ${lowSecs}s`);
-    if (discardPct != null && discardPct > 1) problems.push(`${k} discarded ${discardPct.toFixed(1)}% of frames`);
+    // Chrome skips screen frames when nothing changes, so discards there are expected.
+    if (k !== 'screen' && discardPct != null && discardPct > 1) problems.push(`${k} discarded ${discardPct.toFixed(1)}% of frames`);
   }
   summary.mic = { bytes: recs.mic.stats().bytes, peak: +micPeak.toFixed(3) };
   if (micPeak < 0.01) problems.push('mic heard nothing');
