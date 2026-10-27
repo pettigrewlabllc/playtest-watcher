@@ -122,6 +122,7 @@ type Prediction = { predictor: string; target: string; items: { stage: string; e
 
 **Produces:** `playerTypes(fingerprints, k?)`: standardize fingerprint fields, k-means (k = min(3, players - 1), deterministic seed), returns centroids with plain names from their most extreme fields, and `nearestType(fp)`. With fewer than 6 players it returns types with `confidence: 'illustrative'`.
 - [ ] Tests on synthetic fingerprints in two obvious clusters. Commit.
+- Changed during build: `nearestType` takes the fitted model too, `nearestType(model, fp)`, since it needs the centroids and scaling. Missing fingerprint fields count as the average (z = 0). Types are named from their two most extreme standardized fields (|z| >= 0.5). Initialisation is farthest-point from the first player, so results depend on player order but are repeatable. `confidence` is on the result, not each type.
 
 ### Task 8: CLI, freezing, forget
 
