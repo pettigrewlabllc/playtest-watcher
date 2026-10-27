@@ -19,6 +19,25 @@ export function fakeRespond(schemaName: string | undefined): { data: unknown; us
       data: { fixes: [{ title: 'Fake fix', why: 'Fake reason', evidence_moment_ids: [], severity: 'medium', suggestion: 'Fake suggestion' }] },
     };
   }
+  if (schemaName === 'lens') {
+    return { usage, data: { observations: [{ claim: 'fake: tends to keep trying after a miss', evidence: ['attempts_per_min'] }] } };
+  }
+  if (schemaName === 'persona') {
+    return {
+      usage,
+      data: {
+        summary: 'fake: a steady player who tries things before reading',
+        tolerances: { fail_streak: 4, recovery_s: 3, idle_before_bored_s: 20 },
+        reads: 'fake: skims text', explores: 'fake: some side paths',
+        delights: ['fake: a clean combo'], confuses: ['fake: unlabeled menus'],
+        tells: { stuck: 'fake: goes quiet', bored: 'fake: looks away', delighted: 'fake: laughs' },
+        said_vs_did: [], predictions_guidance: 'fake: expect retries, not quits',
+      },
+    };
+  }
+  if (schemaName === 'prediction') {
+    return { usage, data: { items: [{ stage: 'start', event_type: 'fail', label: 'frustrated', p: 0.5, why: 'fake: repeated misses' }] } };
+  }
   return { usage, data: {} };
 }
 

@@ -28,3 +28,44 @@ export async function writeSession(root: string, id: string, o: {
   if (o.transcript) await writeFile(join(dir, 'transcript.json'), JSON.stringify(o.transcript));
   return dir;
 }
+
+import { createMetaClient } from '../../src/meta/client.ts';
+import type { MetaClient } from '../../src/meta/client.ts';
+
+export type Call = { kind: string; schema?: string; text: string };
+
+// Fake-mode client that records every respond() prompt; `canned` overrides the response for a schema name.
+export function recordingClient(canned: Record<string, unknown | ((text: string, kind: string) => unknown)> = {}): MetaClient & { calls: Call[] } {
+  const base = createMetaClient({ live: false, budgetUsd: 1, spendLog: '/dev/null' });
+  const calls: Call[] = [];
+  const client = {
+    ...base,
+    calls,
+    async respond(req: Parameters<MetaClient['respond']>[0]) {
+      const text = req.content.map(c => ('text' in c ? c.text : '')).join('\n');
+      calls.push({ kind: req.kind, schema: req.schema?.name, text });
+      const c = req.schema ? canned[req.schema.name] : undefined;
+      if (c !== undefined) {
+        const data = typeof c === 'function' ? (c as (t: string, k: string) => unknown)(text, req.kind) : c;
+        return { data: data as never, text: JSON.stringify(data), usage: { input_tokens: 1, output_tokens: 1 } };
+      }
+      return base.respond(req);
+    },
+  };
+  return client as MetaClient & { calls: Call[] };
+}
+
+// Deterministic run-of-fails stream: runs of 1..6 fails, a frustrated moment on every run of 4+. Same as the model test.
+export function failStream(seed: number, runs = 40) {
+  const events: AlignedEvent[] = [];
+  const moments: Moment[] = [];
+  let ms = 0;
+  for (let r = 0; r < runs; r++) {
+    const len = 1 + ((r * 7 + seed * 3) % 6);
+    const start = ms;
+    for (let k = 0; k < len; k++) { events.push(ev(ms, 'attempt')); ms += 500; events.push(ev(ms, 'fail')); ms += 500; }
+    if (len >= 4) moments.push(moment(`m${seed}-${r}`, start + 3000, ms, 'frustrated', 0.9));
+    events.push(ev(ms, 'success')); ms += 1000;
+  }
+  return { events, moments };
+}

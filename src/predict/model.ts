@@ -21,8 +21,10 @@ export type Importance = { feature: string; importance: number };
 export type TrainResult = { modelDir: string; cv: CvReport; importances: Importance[]; rows: number; weakLabels: boolean };
 export type RowProbs = { i: number; stage: string; p: Record<Label, number> };
 
-type Opts = { root?: string };
-export const playerDir = (letter: string, o: Opts = {}) => join(o.root ?? join(REPO, 'recordings'), 'players', letter);
+// root: the recordings dir. dir: an explicit player output dir (leave-one-game-out folds use one so they never touch the real model).
+export type Opts = { root?: string; dir?: string };
+export const recordingsRoot = (o: Opts = {}) => o.root ?? join(REPO, 'recordings');
+export const playerDir = (letter: string, o: Opts = {}) => o.dir ?? join(recordingsRoot(o), 'players', letter);
 
 async function python(script: string, args: string[]): Promise<void> {
   if (!venvAvailable()) throw new Error(`python venv missing at ${PYTHON}; run: uv venv analysis/.venv && uv pip install -p analysis/.venv -r analysis/requirements.txt`);
