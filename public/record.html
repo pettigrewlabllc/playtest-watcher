@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Playtest recorder</title>
+<style>
+  body { font: 15px system-ui, sans-serif; margin: 16px; background: #111; color: #eee; }
+  fieldset { border: 1px solid #333; border-radius: 8px; margin: 0 0 12px; }
+  label { display: inline-block; margin: 4px 14px 4px 0; }
+  select, button, input { font: inherit; }
+  .pick button { padding: 6px 12px; margin-right: 4px; background: #222; color: #eee; border: 1px solid #444; border-radius: 6px; }
+  .pick button.on { background: #2563eb; border-color: #2563eb; }
+  .big { font-size: 22px; padding: 10px 26px; border-radius: 8px; border: 0; }
+  #go { background: #16a34a; color: #fff; } #stopBtn { background: #dc2626; color: #fff; }
+  .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+  .pane { background: #222; padding: 6px; border-radius: 6px; }
+  .pane video { width: 100%; aspect-ratio: 16/9; background: #000; }
+  #clock { font-size: 40px; font-variant-numeric: tabular-nums; margin-left: 16px; }
+  #status { margin: 10px 0; }
+  .row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  #qr canvas { background: #fff; padding: 6px; border-radius: 6px; }
+  code { background: #222; padding: 2px 6px; border-radius: 4px; word-break: break-all; }
+  pre { background: #222; padding: 8px; }
+  .muted { color: #999; }
+</style>
+</head>
+<body>
+<h1>Playtest recorder</h1>
+
+<section id="setup">
+  <fieldset><legend>Session</legend>
+    <div class="pick" data-field="kid">Kid <button>A</button><button>B</button><button>C</button><button>D</button></div>
+    <div class="pick" data-field="game">Game <button>factor-slicer</button><button>bond-swap</button><button>hoard-keeper</button><button>current-cut</button></div>
+    <div class="pick" data-field="round">Round <button>learn</button><button>check</button><button>reference</button></div>
+    <div class="pick" data-field="device">Device <button>ipad</button><button>laptop</button></div>
+  </fieldset>
+  <fieldset><legend>Sources</legend>
+    <label>Face camera <select id="face"></select></label>
+    <label>Hands camera <select id="hands"></select></label>
+    <label>Mic <select id="mic"></select></label>
+    <p class="muted">For the iPad: plug it in, open QuickTime, File > New Movie Recording, pick the iPad as the camera, then share that QuickTime window. For the laptop: share the game window.</p>
+  </fieldset>
+  <button id="ready" class="big">Get ready</button>
+</section>
+
+<section id="live" hidden>
+  <div class="row">
+    <div>
+      <div>Session <code id="sid"></code></div>
+      <div id="gameLink"></div>
+      <div id="status"></div>
+    </div>
+    <div id="qr"></div>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <button id="go" class="big">Start</button>
+    <button id="stopBtn" class="big" hidden>Stop</button>
+    <span id="clock">10:00</span>
+  </div>
+  <div class="grid">
+    <div class="pane"><b>Face</b><video id="v-face" muted playsinline></video></div>
+    <div class="pane"><b>Hands</b><video id="v-hands" muted playsinline></video></div>
+    <div class="pane"><b>Screen</b><video id="v-screen" muted playsinline></video></div>
+  </div>
+  <meter id="level" min="0" max="1" style="width:100%;margin-top:8px"></meter>
+  <pre id="summary" hidden></pre>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<script src="/recorder.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const store = {
+  get: k => { try { return localStorage.getItem('pw.' + k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem('pw.' + k, v); } catch {} },
+};
+const SESSION_MS = 10 * 60 * 1000;
+// Where each game is served during playtests. The iPad opens these over Wi-Fi, so they use the laptop's LAN address.
+const GAME_PORTS = { 'factor-slicer': 3057, 'bond-swap': 3050, 'hoard-keeper': 3054 };
+const sel = {};
+
+document.querySelectorAll('.pick').forEach(group => {
+  const field = group.dataset.field;
+  const buttons = [...group.querySelectorAll('button')];
+  const choose = v => { sel[field] = v; buttons.forEach(b => b.classList.toggle('on', b.textContent === v)); store.set(field, v); };
+  buttons.forEach(b => b.onclick = () => choose(b.textContent));
+  const saved = store.get(field);
+  if (saved && buttons.some(b => b.textContent === saved)) choose(saved);
+});
+
+async function fillDevices() {
+  const { cameras, mics } = await PW.listDevices();
+  for (const [s, list, key] of [[$('face'), cameras, 'face'], [$('hands'), cameras, 'hands'], [$('mic'), mics, 'mic']]) {
+    s.innerHTML = list.map(d => `<option value="${d.deviceId}">${d.label || d.deviceId.slice(0, 8)}</option>`).join('');
+    const saved = store.get(key);
+    if (saved && list.some(d => d.deviceId === saved)) s.value = saved;
+    s.onchange = () => store.set(key, s.value);
+  }
+  if (!store.get('face')) { const c = cameras.find(c => /MacBook|FaceTime/i.test(c.label)); if (c) $('face').value = c.deviceId; }
+  if (!store.get('hands')) { const c = cameras.find(c => !/MacBook|FaceTime/i.test(c.label)); if (c) $('hands').value = c.deviceId; }
+  if (!store.get('mic')) { const m = mics.find(m => /Anker|PowerConf/i.test(m.label)); if (m) $('mic').value = m.deviceId; }
+}
+
+let session = null, streams = null, recs = null, startedAt = 0, timer = null, poll = null;
+
+async function ready() {
+  for (const f of ['kid', 'game', 'round', 'device']) if (!sel[f]) return alert(`Pick a ${f}.`);
+  if ($('face').value === $('hands').value) return alert('Pick two different cameras.');
+  streams = {
+    face: await PW.openCamera($('face').value, { width: 1280, height: 720, fps: 30 }),
+    hands: await PW.openCamera($('hands').value, { width: 640, height: 480, fps: 30 }),
+    screen: await PW.openScreen(),
+    mic: await PW.openMic($('mic').value),
+  };
+  for (const k of ['face', 'hands', 'screen']) { const v = $('v-' + k); v.srcObject = streams[k]; await v.play(); }
+  const ctx = new AudioContext(), an = ctx.createAnalyser(), buf = new Float32Array(an.fftSize);
+  ctx.createMediaStreamSource(streams.mic).connect(an);
+  setInterval(() => { an.getFloatTimeDomainData(buf); $('level').value = Math.max(...buf.map(Math.abs)); }, 150);
+
+  const r = await fetch('/api/sessions', { method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ kid: sel.kid, game: sel.game, round: sel.round, device: sel.device }) });
+  session = (await r.json()).id;
+  $('sid').textContent = session;
+  await showGameLink();
+  $('setup').hidden = true; $('live').hidden = false;
+  poll = setInterval(refreshStatus, 2000);
+  refreshStatus();
+}
+
+async function showGameLink() {
+  if (sel.game === 'current-cut') {
+    $('gameLink').innerHTML = `Run on this laptop: <code>godot --path game -- --playtest=${session} --pw=http://localhost:3058</code>`;
+    return;
+  }
+  const { lanIps } = await (await fetch('/api/info')).json();
+  const host = sel.device === 'ipad' ? (lanIps[0] || 'localhost') : 'localhost';
+  const url = `http://${host}:${GAME_PORTS[sel.game]}/?playtest=${session}&pw=${encodeURIComponent(`http://${host}:3058`)}`;
+  $('gameLink').innerHTML = `Game link: <code>${url}</code>`;
+  if (sel.device === 'ipad' && window.QRCode) {
+    const c = document.createElement('canvas');
+    $('qr').replaceChildren(c);
+    QRCode.toCanvas(c, url, { width: 180 });
+  }
+}
+
+async function refreshStatus() {
+  const s = await (await fetch(`/api/sessions/${session}/summary`)).json();
+  $('status').textContent = s.eventCount ? `Game events received: ${s.eventCount}` : 'Waiting for the game to send events...';
+}
+
+function start() {
+  recs = {};
+  startedAt = Date.now();
+  for (const k of Object.keys(streams)) recs[k] = PW.startTrackRecorder(session, k, streams[k]);
+  $('go').hidden = true; $('stopBtn').hidden = false;
+  let beeped = false;
+  timer = setInterval(() => {
+    const left = SESSION_MS - (Date.now() - startedAt);
+    const s = Math.abs(Math.round(left / 1000));
+    $('clock').textContent = `${left < 0 ? '+' : ''}${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    // Time's up, but keep recording so a kid mid-level isn't cut off.
+    if (left <= 0 && !beeped) { beeped = true; beep(); $('clock').style.color = '#f59e0b'; }
+  }, 250);
+}
+
+function beep() {
+  const a = new AudioContext(), o = a.createOscillator();
+  o.connect(a.destination); o.frequency.value = 880; o.start(); o.stop(a.currentTime + 0.4);
+}
+
+async function stop() {
+  $('stopBtn').disabled = true;
+  clearInterval(timer);
+  const stoppedAt = Date.now();
+  await Promise.all(Object.values(recs).map(r => r.stop()));
+  const tracks = {};
+  for (const [k, r] of Object.entries(recs)) {
+    const t = streams[k].getTracks()[0];
+    tracks[k] = { startedAt: r.startedAt, mimeType: r.mimeType, settings: t.getSettings(), ...r.stats() };
+  }
+  Object.values(streams).forEach(s => s.getTracks().forEach(t => t.stop()));
+  await fetch(`/api/sessions/${session}/json/manifest`, { method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: session, startedAt, stoppedAt, tracks, game: { url: $('gameLink').textContent } }) });
+  clearInterval(poll);
+  const s = await (await fetch(`/api/sessions/${session}/summary`)).json();
+  const errors = Object.entries(tracks).filter(([, t]) => t.error).map(([k, t]) => `${k}: ${t.error}`);
+  $('summary').hidden = false;
+  $('summary').textContent = [
+    `Recorded ${((stoppedAt - startedAt) / 60000).toFixed(1)} minutes.`,
+    `Game events: ${s.eventCount}${s.eventCount ? '' : '  <- no events arrived, check the game link'}`,
+    ...Object.entries(s.files).map(([f, b]) => `${f}: ${(b / 1e6).toFixed(1)} MB`),
+    ...(errors.length ? ['UPLOAD ERRORS:', ...errors] : []),
+  ].join('\n');
+}
+
+$('ready').onclick = () => ready().catch(e => alert('Could not start: ' + e.message));
+$('go').onclick = start;
+$('stopBtn').onclick = () => stop().catch(e => alert('Stop failed: ' + e.message));
+fillDevices().catch(e => alert('Devices: ' + e.message));
+</script>
+</body>
+</html>
