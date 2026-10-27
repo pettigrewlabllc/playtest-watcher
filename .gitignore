@@ -9,3 +9,6 @@ recordings/
 *.wav
 .DS_Store
 .claude/
+analysis/.venv/
+__pycache__/
+.pytest_cache/
