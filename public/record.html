@@ -76,7 +76,7 @@ const store = {
 };
 const SESSION_MS = 10 * 60 * 1000;
 // Where each game is served during playtests. The iPad opens these over Wi-Fi, so they use the laptop's LAN address.
-const GAME_PORTS = { 'factor-slicer': 3057, 'bond-swap': 3050, 'hoard-keeper': 3054 };
+const GAME_PATHS = { 'factor-slicer': ':3057/', 'bond-swap': ':3050/index.html', 'hoard-keeper': ':3054/' };
 const sel = {};
 
 document.querySelectorAll('.pick').forEach(group => {
@@ -134,7 +134,7 @@ async function showGameLink() {
   }
   const { lanIps } = await (await fetch('/api/info')).json();
   const host = sel.device === 'ipad' ? (lanIps[0] || 'localhost') : 'localhost';
-  const url = `http://${host}:${GAME_PORTS[sel.game]}/?playtest=${session}&pw=${encodeURIComponent(`http://${host}:3058`)}`;
+  const url = `http://${host}${GAME_PATHS[sel.game]}?playtest=${session}&pw=${encodeURIComponent(`http://${host}:3058`)}`;
   $('gameLink').innerHTML = `Game link: <code>${url}</code>`;
   if (sel.device === 'ipad' && window.QRCode) {
     const c = document.createElement('canvas');
