@@ -64,8 +64,10 @@ export function createStore(root: string) {
 
     async appendEvents(id: string, events: GameEvent[], serverT: number): Promise<number> {
       const ok = events.filter(e => e && typeof e.t === 'number' && typeof e.type === 'string');
+      // A stale game tab can keep sending to an old or deleted session; never recreate one from events.
+      const d = dir(id);
+      try { await stat(join(d, 'session.json')); } catch { throw Object.assign(new Error(`no such session: ${id}`), { status: 404 }); }
       if (ok.length === 0) return 0;
-      await mkdir(dir(id), { recursive: true });
       await appendFile(join(dir(id), 'events.jsonl'), ok.map(e => JSON.stringify({ ...e, serverT })).join('\n') + '\n');
       return ok.length;
     },
