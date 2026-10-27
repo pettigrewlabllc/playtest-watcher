@@ -203,6 +203,14 @@ Every trait is an estimate with a range, not a label. With little data it's shru
 7. **More fidelity measures.** Besides recall and precision: per-label AUC, Cohen's kappa against real moments, a distribution check of predicted versus real reaction mix (TinyTroupe-style), and a **ranking check**: each kid ranks the games they played in the debrief, and the model's predicted enjoyment must put them in the same order (ranks are more reliable than ratings, Yannakakis and Togelius).
 8. **Name what's ours.** Frustration tolerance, recovery, reading and persistence follow established estimators. Exploration drive, challenge appetite, stamina and expressiveness are our own, and the write-up says so. Player types cite Drachen et al. 2009 for why they need hundreds of players.
 
+### What the first debriefs taught us (2026-10-27)
+
+The kids' own words changed what some events mean. One kid's single "explore" event was an accidental tap ("What's the compendium? I hit that accidentally"). Another's "gave up" on a question was curiosity ("I just wanted to see what would happen"). A third misread a UI element as a timer that wasn't one. So:
+
+- **Debriefs can relabel intent.** `recordings/kids/<letter>/debriefs.json` holds answers per game, and an answer can carry an `intent` (accidental, curiosity, misread) tied to an event type. Trait estimators discount accidental events (exploration drive), and the persona reports the corrected reading.
+- **Debriefs give the "why" logs can't.** Strategies ("I found the first multiple and counted from there"), misreadings and discovered mechanics ("holding my finger down kept the streak alive") go to the persona's evidence and to the fix list as **said** evidence, marked as the kid's words.
+- **Fun scores and rankings** from debriefs are the ground truth for the ranking check.
+
 ### What this changes in Plan 3
 
 Fingerprint becomes the trait estimators with ranges and game adjustment (plus the new learning rate, persistence, challenge appetite and stamina traits); the reaction model becomes the pooled model; the persona prompts take traits with ranges and must cite them; the debrief and mood feed the said-versus-did comparison.
