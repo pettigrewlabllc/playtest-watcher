@@ -4,7 +4,8 @@ import type { Aligned } from './align.ts';
 import type { Candidate } from './candidates.ts';
 import { run } from './ffmpeg.ts';
 
-const PANEL_H = 360;
+// 480 high keeps a kid's face readable for expressions; 360 lost too much.
+const PANEL_H = 480;
 const BLACK_W = 480;
 const FPS = 5;
 const PANELS = ['face', 'hands', 'screen'] as const;

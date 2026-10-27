@@ -53,9 +53,16 @@
     <div id="qr"></div>
   </div>
   <div class="row" style="margin-top:10px">
+    <span class="pick" id="mood">Coming in: <button>tired</button><button>normal</button><button>wound up</button></span>
     <button id="go" class="big">Start</button>
     <button id="stopBtn" class="big" hidden>Stop</button>
     <span id="clock">10:00</span>
+  </div>
+  <p class="muted">Remind them to say what they're thinking as they play.</p>
+  <div id="debrief" hidden>
+    <b>Before you stop, ask out loud and let them answer:</b>
+    <ol><li>From 1 to 5, how fun was that?</li><li>What was the hardest part?</li><li>Would you play it again tomorrow?</li></ol>
+    <button id="debriefBtn">I'm asking now</button> <span id="debriefNote" class="muted"></span>
   </div>
   <div class="grid">
     <div class="pane"><b>Face</b><video id="v-face" muted playsinline></video></div>
@@ -148,7 +155,19 @@ async function refreshStatus() {
   $('status').textContent = s.eventCount ? `Game events received: ${s.eventCount}` : 'Waiting for the game to send events...';
 }
 
+// Operator notes go into the session's own event log, on the server's clock like everything else.
+function note(type, data) {
+  return fetch(`/events/${session}`, { method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify([{ t: Date.now(), type, data: { kind: 'note', ...data } }]) });
+}
+
+document.querySelectorAll('#mood button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#mood button').forEach(x => x.classList.toggle('on', x === b));
+  if (session) note('operator_mood', { mood: b.textContent });
+});
+
 function start() {
+  $('debrief').hidden = false;
   recs = {};
   startedAt = Date.now();
   for (const k of Object.keys(streams)) recs[k] = PW.startTrackRecorder(session, k, streams[k]);
@@ -195,6 +214,7 @@ async function stop() {
 
 $('ready').onclick = () => ready().catch(e => alert('Could not start: ' + e.message));
 $('go').onclick = start;
+$('debriefBtn').onclick = () => { note('debrief_start', {}); $('debriefBtn').disabled = true; $('debriefNote').textContent = 'Marked. Stop when they\'re done answering.'; };
 $('stopBtn').onclick = () => stop().catch(e => alert('Stop failed: ' + e.message));
 fillDevices().catch(e => alert('Devices: ' + e.message));
 </script>
