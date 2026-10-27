@@ -97,6 +97,7 @@ type PlayerFingerprint = { letter: string; sessions: string[]; mean: Fingerprint
 - One synthesis call, schema `persona`: `{ summary, tolerances: { fail_streak, recovery_s, idle_before_bored_s }, reads, explores, delights: string[], confuses: string[], tells: { stuck, bored, delighted }, said_vs_did: string[], predictions_guidance: string }`, keeping the lens observations under `lenses`.
 - Validation: drop any observation whose evidence ids don't exist (log how many). The markdown never uses the word "personality".
 - [ ] Tests with the fake client: four calls in order, evidence validation drops fabricated ids, markdown renders and contains no "personality". Commit.
+- Changed during build: moment ids are qualified as `<sessionId>:<momentId>` (ids like `c001` repeat across sessions); evidence must use that form or a `Fingerprint` field name, and an observation with any unknown evidence item, or none, is dropped. Options are `{ root?, dir?, log? }` (`dir` is an explicit player output dir, used by leave-one-game-out folds). The word "personality" is scrubbed to "play style" in anything the model returns, as a belt on top of the prompt wording. Fake client now answers `lens`, `persona`, `prediction`. `inputs.ts` now re-exports the Plan 2 types (`Aligned`, `AlignedEvent`, `Moment`, `Label`, `LABELS`, `Transcript`) from `src/watch/`.
 
 ### Task 5: Four predictors
 

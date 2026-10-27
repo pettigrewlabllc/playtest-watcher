@@ -1,27 +1,15 @@
-// Input shapes written by Plans 1 and 2. Copied from the Plan 2 doc so predict doesn't import watch code; reconcile at merge.
+// Input shapes written by Plans 1 and 2; the watch types are re-exported from src/watch.
 import { readFile } from 'node:fs/promises';
 import { join, dirname, basename } from 'node:path';
+import type { Aligned } from '../watch/align.ts';
+import type { Moment } from '../watch/explain.ts';
+import type { Transcript } from '../watch/transcribe.ts';
 
-export type Label = 'confused' | 'stuck' | 'bored' | 'frustrated' | 'delighted' | 'none';
-export const LABELS: Label[] = ['confused', 'stuck', 'bored', 'frustrated', 'delighted', 'none'];
+export { LABELS } from '../watch/explain.ts';
+export type { Label, Moment } from '../watch/explain.ts';
+export type { Aligned, AlignedEvent } from '../watch/align.ts';
+export type { Transcript } from '../watch/transcribe.ts';
 
-export type AlignedEvent = { ms: number; type: string; kind: string; data: Record<string, unknown> };
-export type Aligned = {
-  t0: number; durationMs: number;
-  tracks: Partial<Record<'face' | 'hands' | 'screen', { mp4: string; offsetMs: number; width: number; height: number }>>;
-  audio?: { wavChunks: { file: string; startMs: number }[]; offsetMs: number };
-  events: AlignedEvent[];
-  gameClockSkewMs?: number;
-};
-export type Moment = {
-  id: string; startMs: number; endMs: number; triggers: string[]; label: Label; confidence: number;
-  evidence: { face: string; voice: string; hands: string; screen: string };
-  game_context: string; fix_hint: string; status: 'ok' | 'unanalyzed';
-};
-export type Transcript = {
-  turns: { startMs: number; endMs: number; speaker: string; text: string; who: 'kid' | 'adult' | 'unknown' }[];
-  kidSpeaker: string | null;
-};
 export type SessionMeta = { id?: string; kid: string; game: string; round: 'learn' | 'replay' | 'check' | 'reference' | string };
 export type Questionnaire = { kid: string; answers: Record<string, string>; scores: Record<string, number | null> };
 
