@@ -153,6 +153,49 @@ The seven questionnaire axes map onto fingerprint fields (explore/finish to expl
 
 Python 3 with scikit-learn, pandas and joblib, in `analysis/` with its own `requirements.txt`. Everything else stays Node.
 
+## 3b. Player model v1 (the definition the persona rests on)
+
+Added 2026-10-27 after the first four real sessions. The persona is **computed**, not written by a model. Muse does two jobs only: **perception** (labelling what a kid felt in a clip, transcribing what they said) and **narration** (writing the computed model up in words). It never invents a number, and every sentence it writes cites a trait or a moment.
+
+### Four layers
+
+1. **Observations.** Game events (all sessions), labelled moments (Muse Spark, with confidence), transcript turns, the operator's mood tap, the spoken debrief, the questionnaire. Each observation keeps its session, game and time.
+2. **Traits.** About ten defined quantities, each computed by a fixed estimator, each carrying an estimate, an uncertainty, how many observations it rests on, and which game(s) it came from. Traits are **game-adjusted**: a raw number is compared with the other kids on the same game (three kids play every game), because a fail streak in Factor Slicer and one in Hoard Keeper don't mean the same thing.
+3. **Reaction model.** Predicts P(reaction | situation) from game-agnostic situation features. Trained on **all kids together with a per-kid adjustment** (partial pooling), because one kid's three sessions are too few to fit alone, and the pooled part is what lets a kid's model transfer to a game they haven't played.
+4. **Narrative.** Muse Wonder turns layers 2 and 3 into the readable persona (the three expert lenses, then a synthesis). It is the presentation, not the source of truth.
+
+### Traits
+
+| Trait | What it means | Estimator | Evidence |
+|---|---|---|---|
+| **Frustration tolerance** | How many failures in a row before they get upset | Logistic curve of P(frustrated or stuck moment within 10 s) against current fail streak; report k50, the streak where it crosses 0.5 | fail events, moments |
+| **Recovery** | How fast they try again after failing | Median seconds from a fail to the next attempt; plus P(idle or quit within 15 s of a fail) | events |
+| **Learning rate** | How quickly they get better within a game | Per run or level, error rate (fails per attempt) against run index; fit a power curve, report the exponent and the first-to-last improvement | runs, fails, attempts |
+| **Persistence** | Whether they keep going when it's going badly | Share of runs that start within 20 s of a failed run; total time on a game after their worst run | progress events |
+| **Exploration drive** | Pull toward things off the main path | Explore events per minute, game-adjusted; seconds before the first explore event | explore events |
+| **Reading** | Whether they read text or skip it | P(text stays open long enough to read it at about 15 characters a second), by text length | text_shown/closed |
+| **Pace** | Fast and impulsive versus careful | Attempts per minute (game-adjusted); median pause before acting on something new | attempts, new_thing |
+| **Challenge appetite** | What happens when it gets easy | P(bored moment) during success streaks of 5 or more, and when no new_thing for 60 s | successes, moments |
+| **Stamina** | How engagement changes over 10 minutes | Slope of negative-moment rate and of attempts per minute across the session, read alongside the mood tap | moments, events, mood |
+| **Expressiveness** | Which channels show their reactions | Share of moments where face, voice and hands carried evidence; talk per minute | moment evidence, transcript |
+
+Each trait also has a **said** value where the questionnaire or debrief speaks to it, so the model reports where a kid's own view and their play disagree (one kid said he walks away after losing a lot, then started 11 runs in 9 minutes).
+
+### Uncertainty and updating
+
+Every trait is an estimate with a range, not a label. With little data it's shrunk toward the average of all kids on that game (empirical-Bayes style: the less evidence, the closer to the group), and the range shows it. Each new session updates every trait it has evidence for. The persona page shows the range, and the narrative may not call a trait strong or weak when the range spans the middle.
+
+### Reaction model (replaces the per-kid-only model in 3a)
+
+- Rows: one per game event, from all kids' learning sessions.
+- Features: the situation features from 3a (fail streak, seconds since success, seconds since progress, attempts in the last 30 s, new thing in the last 10 s, text on screen, time in session, explore and help so far, event kind), **plus** the kid's trait estimates, **plus** a per-kid indicator interacting with fail streak and time since success.
+- Model: L2-regularised multinomial logistic regression, so the per-kid terms are shrunk toward the shared model when a kid has little data. Gradient boosting stays as a challenger and is used only if it wins leave-one-game-out by a clear margin.
+- Holding out a game holds out every kid's rows for that game from training, not just the kid being predicted, so the model never sees the target game.
+
+### What this changes in Plan 3
+
+Fingerprint becomes the trait estimators with ranges and game adjustment (plus the new learning rate, persistence, challenge appetite and stamina traits); the reaction model becomes the pooled model; the persona prompts take traits with ranges and must cite them; the debrief and mood feed the said-versus-did comparison.
+
 ## 4. Capture setup and the two-camera risk
 
 Joel has two cameras and a mic. Two USB cameras on one Mac usually work in Chrome, but they can fail when both share one USB bus at high resolution, and Chrome sometimes reports two identical camera names.
