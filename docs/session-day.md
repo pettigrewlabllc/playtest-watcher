@@ -28,6 +28,8 @@ One kid, one game, 10 minutes. Run through this every time.
 
 Check sessions happen only after the predictions are frozen (Mon Nov 2). Before that, record one **reference** playthrough of each game yourself.
 
+**Replay round:** two kids replay one of their learning games on a later day (round `replay`, 10 minutes). It measures how consistent a kid is with themselves, which is the ceiling a prediction is scored against.
+
 ## Notes
 
 - Bond Swap's prototype shows test ads. If one interrupts a kid, that's fine. It shows up in the log and we'll ignore that stretch.
