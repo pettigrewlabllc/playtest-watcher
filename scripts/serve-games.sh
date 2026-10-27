@@ -18,14 +18,17 @@ extract bond-swap origin/claude/bond-swap
 
 (cd "$WS/factor-slicer/.claude/worktrees/playtest-log" && PROTOTYPE_DIR="$CACHE/factor-slicer" npm run -s prototype)
 (cd "$WS/bond-swap/.claude/worktrees/playtest-log" && PROTOTYPE_DIR="$CACHE/bond-swap" npm run -s prototype)
+(cd "$WS/current-cut/.claude/worktrees/playtest-log" && mkdir -p build/web && godot --headless --path game --export-release "Web" ../build/web/index.html >/dev/null 2>&1)
 
 trap 'kill 0' INT TERM
 (cd "$WS/factor-slicer/.claude/worktrees/playtest-log/www" && python3 -m http.server 3057 --bind 0.0.0.0 >/dev/null 2>&1) &
 (cd "$WS/bond-swap/.claude/worktrees/playtest-log/www" && python3 -m http.server 3050 --bind 0.0.0.0 >/dev/null 2>&1) &
+(cd "$WS/current-cut/.claude/worktrees/playtest-log/build/web" && python3 -m http.server 3059 --bind 0.0.0.0 >/dev/null 2>&1) &
 (cd "$WS/hoard-keeper/.claude/worktrees/playtest-log-b9" && npx vite --host 0.0.0.0 >/dev/null 2>&1) &
 IP=$(ipconfig getifaddr en0 || echo localhost)
 echo "Factor Slicer  http://$IP:3057/"
 echo "Bond Swap      http://$IP:3050/index.html"
 echo "Hoard Keeper   http://$IP:3054/"
-echo "Current Cut    cd \"$WS/current-cut/.claude/worktrees/playtest-log\" && godot --path game -- --playtest=<id> --pw=http://localhost:3058"
+echo "Current Cut    http://$IP:3059/index.html  (iPad)"
+echo "Current Cut    laptop: cd \"$WS/current-cut/.claude/worktrees/playtest-log\" && godot --path game -- --playtest=<id> --pw=http://localhost:3058"
 wait

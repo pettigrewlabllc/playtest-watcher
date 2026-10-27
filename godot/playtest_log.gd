@@ -1,6 +1,7 @@
 extends Node
 ## Playtest Watcher event logger (autoload "PlaytestLog"). GDScript twin of playtest-watcher/public/playtest-log.js.
-## Off unless the command line has `-- --playtest=<sessionId> --pw=<watcher url>`; when off, every call is a no-op.
+## Off unless the command line has `-- --playtest=<sessionId> --pw=<watcher url>` (or, in a web build, the page URL has
+## `?playtest=<sessionId>&pw=<watcher url>`); when off, every call is a no-op.
 ## Copy this file into a game unchanged. Canonical copy: playtest-watcher/godot/playtest_log.gd.
 
 const IDLE_MS := 8000
@@ -20,7 +21,10 @@ var _closing := false
 
 
 func _ready() -> void:
-	if not configure(OS.get_cmdline_user_args()):
+	var args := OS.get_cmdline_user_args()
+	if OS.has_feature("web"):
+		args = web_args(str(JavaScriptBridge.eval("location.search", true)))
+	if not configure(args):
 		set_process(false)
 		set_process_input(false)
 		return
@@ -30,6 +34,16 @@ func _ready() -> void:
 	add_child(http)
 	get_tree().auto_accept_quit = false
 	log_event("logger_start", {"kind": "progress", "url": "res://", "w": get_viewport().size.x, "h": get_viewport().size.y})
+
+
+## Turns a page query string (?playtest=...&pw=...) into the same args the desktop build gets.
+func web_args(search: String) -> PackedStringArray:
+	var out := PackedStringArray()
+	for pair in search.trim_prefix("?").split("&", false):
+		var kv := pair.split("=", true, 1)
+		if kv.size() == 2 and (kv[0] == "playtest" or kv[0] == "pw"):
+			out.append("--%s=%s" % [kv[0], kv[1].uri_decode()])
+	return out
 
 
 ## Reads --playtest=<id> and --pw=<url> from the args. Returns whether logging is on.

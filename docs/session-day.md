@@ -13,7 +13,7 @@ One kid, one game, 10 minutes. Run through this every time.
 2. **Start the games:** `./scripts/serve-games.sh` in `playtest-watcher`. It prints each game's address. Leave it running.
 3. **iPad:** plug it into the Mac. QuickTime > File > New Movie Recording > click the arrow next to record > pick the iPad as the camera. Leave that window open.
 4. **Recorder:** open http://localhost:3058/record.html in Chrome. Pick kid, game, round (learn, check, or reference for your own playthrough) and device. Check the face camera is the MacBook, hands is the Anker, mic is the Anker. Click **Get ready**, and share the QuickTime window (iPad) or the game window (laptop).
-5. **Open the game:** on the iPad, scan the QR code on the recorder page. For Current Cut, run the command the recorder shows. The status line should switch to "Game events received: N" within a few seconds of the first tap. If it stays on "Waiting", check the iPad is on the same Wi-Fi.
+5. **Open the game:** on the iPad, scan the QR code on the recorder page. Current Cut runs on the iPad too (a web build); its laptop command is a fallback. The status line should switch to "Game events received: N" within a few seconds of the first tap. If it stays on "Waiting", check the iPad is on the same Wi-Fi.
 6. **Start**, then the kid plays. At 10:00 it beeps and keeps recording. Stop when they reach a natural break.
 7. **Stop.** Check the summary: about 10 minutes, every track has megabytes, events are in the hundreds, no upload errors.
 

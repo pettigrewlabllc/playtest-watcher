@@ -76,7 +76,7 @@ const store = {
 };
 const SESSION_MS = 10 * 60 * 1000;
 // Where each game is served during playtests. The iPad opens these over Wi-Fi, so they use the laptop's LAN address.
-const GAME_PATHS = { 'factor-slicer': ':3057/', 'bond-swap': ':3050/index.html', 'hoard-keeper': ':3054/' };
+const GAME_PATHS = { 'factor-slicer': ':3057/', 'bond-swap': ':3050/index.html', 'hoard-keeper': ':3054/', 'current-cut': ':3059/index.html' };
 const sel = {};
 
 document.querySelectorAll('.pick').forEach(group => {
@@ -128,7 +128,7 @@ async function ready() {
 }
 
 async function showGameLink() {
-  if (sel.game === 'current-cut') {
+  if (sel.game === 'current-cut' && sel.device === 'laptop') {
     $('gameLink').innerHTML = `Run on this laptop: <code>godot --path game -- --playtest=${session} --pw=http://localhost:3058</code>`;
     return;
   }
