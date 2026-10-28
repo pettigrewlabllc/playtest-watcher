@@ -97,6 +97,14 @@ document.querySelectorAll('.pick').forEach(group => {
   if (saved && buttons.some(b => b.textContent === saved)) choose(saved);
 });
 
+// Face: the USB camera (the Anker) at the kid's eye level. Hands: the MacBook's Desk View, looking down at the iPad.
+function defaultCameras(cameras) {
+  const builtIn = c => /MacBook|FaceTime|Desk View|iPhone|iPad/i.test(c.label);
+  const face = cameras.find(c => /Anker|PowerConf/i.test(c.label)) || cameras.find(c => c.label && !builtIn(c));
+  const hands = cameras.find(c => /Desk View/i.test(c.label));
+  return { face: face && face.deviceId, hands: hands && hands.deviceId };
+}
+
 async function fillDevices() {
   const { cameras, mics } = await PW.listDevices();
   for (const [s, list, key] of [[$('face'), cameras, 'face'], [$('hands'), cameras, 'hands'], [$('mic'), mics, 'mic']]) {
@@ -105,8 +113,12 @@ async function fillDevices() {
     if (saved && list.some(d => d.deviceId === saved)) s.value = saved;
     s.onchange = () => store.set(key, s.value);
   }
-  if (!store.get('face')) { const c = cameras.find(c => /MacBook|FaceTime/i.test(c.label)); if (c) $('face').value = c.deviceId; }
-  if (!store.get('hands')) { const c = cameras.find(c => !/MacBook|FaceTime/i.test(c.label)); if (c) $('hands').value = c.deviceId; }
+  // Camera roles changed (face = USB camera, hands = Desk View): picks saved under the old roles are dropped once.
+  const roles = defaultCameras(cameras);
+  const fresh = store.get('cameraRoles') !== '2';
+  if (fresh || !store.get('face')) { if (roles.face) { $('face').value = roles.face; store.set('face', roles.face); } }
+  if (fresh || !store.get('hands')) { if (roles.hands) { $('hands').value = roles.hands; store.set('hands', roles.hands); } }
+  store.set('cameraRoles', '2');
   if (!store.get('mic')) { const m = mics.find(m => /Anker|PowerConf/i.test(m.label)); if (m) $('mic').value = m.deviceId; }
 }
 
@@ -209,7 +221,7 @@ async function stop() {
   const tracks = {};
   for (const [k, r] of Object.entries(recs)) {
     const t = streams[k].getTracks()[0];
-    tracks[k] = { startedAt: r.startedAt, mimeType: r.mimeType, settings: t.getSettings(), ...r.stats() };
+    tracks[k] = { startedAt: r.startedAt, mimeType: r.mimeType, label: t.label, settings: t.getSettings(), ...r.stats() };
   }
   Object.values(streams).forEach(s => s.getTracks().forEach(t => t.stop()));
   await fetch(`/api/sessions/${session}/json/manifest`, { method: 'POST', headers: { 'content-type': 'application/json' },
