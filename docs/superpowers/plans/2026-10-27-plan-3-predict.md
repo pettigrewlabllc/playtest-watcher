@@ -144,3 +144,5 @@ type Prediction = { predictor: string; target: string; items: { stage: string; e
 - Server: add read-only `GET /api/sessions/:id/file/<name>` for whitelisted names (`aligned.json`, `moments.json`, `fixes.md`, `transcript.json`, `hands.mp4`, `screen.mp4`, `clips/blurred/<id>.mp4`) and `GET /api/players` (scoreboard + personas). **Never** `face.webm`, `face.mp4` or unblurred clips. Tests assert those are 404.
 - Copy on these pages goes through `joel-voice` and Joel's sign-off.
 - [ ] Verify in the browser at 1280 px with a synthetic session; screenshot for Joel. Commit.
+
+Changed during build (review fixes, 2026-10-27): the prompted predictors say "a child aged N" with N from `recordings/kids.json` (the age only; the name is never read into a prompt), falling back to "aged 8 to 14" when there is no age. Questionnaire and persona get the same age line as baseline, so each richer predictor still has at least what baseline has.

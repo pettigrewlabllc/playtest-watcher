@@ -61,6 +61,18 @@ describe('predictSession (prompted predictors)', () => {
     expect(PREDICTORS).toEqual(['null', 'baseline', 'questionnaire', 'persona', 'model']);
   });
 
+  it('tells the prompted predictors the kid\'s age from kids.json, and nothing else from it', async () => {
+    const { root } = await world();
+    await writeFile(join(root, 'kids.json'), JSON.stringify({ A: { name: 'Zebedee', learn: ['g1'], check: 'g4', age: 11 } }));
+    const tdir = await writeSession(root, 'ref-g4', { kid: 'ref', game: 'g4', round: 'reference', events: target() });
+    const client = recordingClient();
+    await predictSession('A', tdir, client, ['baseline', 'questionnaire'], { root });
+    const [b, q] = client.calls;
+    expect(b.text).toContain('WHO THEY ARE: a child aged 11. Nothing else is known.');
+    expect(q.text).toContain('a child aged 11.');
+    for (const c of client.calls) { expect(c.text).not.toContain('Zebedee'); expect(c.text).not.toContain('8 to 14'); }
+  });
+
   it('null predicts every label at every stage under the same 2-per-stage cap, without a model call', async () => {
     const { root } = await world();
     const tdir = await writeSession(root, 'ref-g4', { kid: 'ref', game: 'g4', round: 'reference', events: target() });

@@ -92,6 +92,16 @@ const TASK = [
   `Give at most ${MAX_PER_STAGE} predicted reactions per stage, each with the stage exactly as written, an event_type taken from that stage's event types (the kind of event it would happen around), the label, p (your probability that it really happens, 0 to 1) and a one-sentence why. Predict nothing for a stage where you expect no notable reaction. Do not invent facts about the child beyond what is given.`,
 ].join('\n');
 
+// Only the age is read from kids.json, never the name. Unknown: the study's range.
+async function childLine(root: string, letter: string): Promise<string> {
+  try {
+    const kids = JSON.parse(await readFile(join(root, 'kids.json'), 'utf8')) as Record<string, { age?: unknown }>;
+    const age = (kids[letter.toUpperCase()] ?? kids[letter.toLowerCase()])?.age;
+    if (typeof age === 'number' && Number.isFinite(age) && age > 0) return `a child aged ${Math.round(age)}`;
+  } catch { /* no kids.json */ }
+  return 'a child aged 8 to 14';
+}
+
 function questionnaireText(answers: Record<string, string>): string {
   const lines = QUESTIONS.flatMap(q => {
     const a = answers[String(q.id)];
@@ -206,15 +216,16 @@ export async function predictSession(
       items = capPerStage(stages.flatMap(st => REACTIONS.map(label => ({ stage: st.stage, event_type: topType(st), label, p: 1 / REACTIONS.length, why: 'null: every label at every stage' }))));
     } else {
       let who: string;
-      if (name === 'baseline') who = 'WHO THEY ARE: a child aged 8 to 14. Nothing else is known.';
+      const child = await childLine(recordingsRoot(o), letter);
+      if (name === 'baseline') who = `WHO THEY ARE: ${child}. Nothing else is known.`;
       else if (name === 'questionnaire') {
         const q = await loadQuestionnaireAt(recordingsRoot(o), letter);
-        who = `WHO THEY ARE: a child aged 8 to 14. Before playing, they answered a short questionnaire about how they like to play:\n${questionnaireText(q?.answers ?? {})}`;
+        who = `WHO THEY ARE: ${child}. Before playing, they answered a short questionnaire about how they like to play:\n${questionnaireText(q?.answers ?? {})}`;
       } else {
         let persona: string;
         try { persona = await readFile(join(playerDir(letter, o), 'persona.json'), 'utf8'); }
         catch { throw new Error(`no persona for ${letter}; run: npm run predict -- persona ${letter}`); }
-        who = `WHO THEY ARE: a child aged 8 to 14. A persona built from watching them play other games (JSON):\n${persona}`;
+        who = `WHO THEY ARE: ${child}. A persona built from watching them play other games (JSON):\n${persona}`;
       }
       const res = await client.respond<{ items: PredictedItem[] }>({
         model: MODEL, kind: `predict:${letter}:${name}:${t.id}`, schema: PREDICTION_SCHEMA, maxOutputTokens: 4000,
