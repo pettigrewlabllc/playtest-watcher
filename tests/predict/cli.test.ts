@@ -127,7 +127,7 @@ describe.skipIf(!venvAvailable())('runCommand (fake client, temp root)', () => {
     await writeSession(root, 'ref-g4', { kid: 'ref', game: 'g4', round: 'reference', events: [ev(0, 'progress', { level: 1 }), ev(500, 'attempt'), ev(900, 'fail')] });
     const lines: string[] = [];
     const deps = { root, client: recordingClient(), out: (l: string) => lines.push(l), commit: async () => {}, docFile: join(root, 'frozen.md') };
-    for (const argv of [['fingerprint', 'c'], ['train', 'c'], ['persona', 'c'], ['predict', 'c', 'ref-g4'], ['logo', 'c'], ['freeze', 'c', 'ref-g4', 'check-1'], ['traits'], ['reaction']]) await runCommand(argv, deps);
+    for (const argv of [['fingerprint', 'c'], ['train', 'c'], ['persona', 'c'], ['predict', 'c', 'ref-g4'], ['logo', 'c'], ['freeze', 'c', 'ref-g4', 'check-1'], ['traits'], ['reaction'], ['predict', 'c', 'ref-g4']]) await runCommand(argv, deps);
     const text = lines.join('\n');
     expect(text).toMatch(/train C: \d+ rows/);
     expect(text).toMatch(/held out g1/);
@@ -137,6 +137,7 @@ describe.skipIf(!venvAvailable())('runCommand (fake client, temp root)', () => {
     expect(text).toMatch(/reaction: 3 leave-one-game-out folds/);
     expect(text).toMatch(/ traits +macro-F1/);
     expect(await exists(join(root, 'group', 'reaction', 'models.joblib'))).toBe(true);
+    expect(await exists(join(root, 'predictions', 'ref-g4__C', 'model-traits.json'))).toBe(true);
     expect(await exists(join(root, 'players', 'C', 'fingerprint.json'))).toBe(true);
     expect(await exists(join(root, 'predictions', 'ref-g4__C', 'model.json'))).toBe(true);
     await expect(runCommand(['bogus'], deps)).rejects.toThrow(/unknown command/);

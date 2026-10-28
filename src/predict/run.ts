@@ -6,12 +6,14 @@ import type { MetaClient } from '../meta/client.ts';
 import { playerFingerprint } from './fingerprint.ts';
 import { trainPlayer, playerDir, recordingsRoot } from './model.ts';
 import { buildPersona } from './persona.ts';
-import { predictSession, writePredictions, PREDICTORS } from './predict.ts';
+import { predictSession, writePredictions, PREDICTORS, MODEL_VARIANTS } from './predict.ts';
+import type { AnyPredictor } from './predict.ts';
+import { existsSync } from 'node:fs';
 import { logo, scoreboard } from './score.ts';
 import type { Agg, Score } from './score.ts';
 import { freeze } from './freeze.ts';
 import { listSessions, loadStudy, playerSessions, sameKid } from './study.ts';
-import { buildGroupModel } from './traits.ts';
+import { buildGroupModel, groupDir } from './traits.ts';
 import { fitReaction } from './reaction.ts';
 import type { Trait } from './traits.ts';
 
@@ -87,10 +89,12 @@ export async function runCommand(argv: string[], deps: Deps = {}): Promise<void>
     const letter = needLetter();
     const target = rest[1];
     if (!target) throw new Error(`predict needs a target session id\n${USAGE}`);
-    const preds = await predictSession(letter, join(root, target), client(), PREDICTORS, { root });
+    // the simulated-playthrough variants join when the group model exists (npm run predict -- traits, then reaction)
+    const names: AnyPredictor[] = [...PREDICTORS, ...(existsSync(join(groupDir({ root }), 'reaction', 'models.joblib')) ? MODEL_VARIANTS : [])];
+    const preds = await predictSession(letter, join(root, target), client(), names, { root });
     const dir = join(root, 'predictions', `${target}__${letter}`);
     await writePredictions(dir, preds);
-    for (const p of PREDICTORS) out(`  ${p}: ${preds[p].items.length} predicted reactions`);
+    for (const p of names) out(`  ${p}: ${preds[p]!.items.length} predicted reactions`);
     out(`written to ${dir}`);
   } else if (cmd === 'freeze') {
     const letter = needLetter();

@@ -6,13 +6,21 @@ import type { Aligned, AlignedEvent, Label, Moment } from './inputs.ts';
 import { stagesOf } from './stages.ts';
 import { buildRows, okMoments, writeRowsCsv } from './rows.ts';
 import { MODEL } from './persona.ts';
-import { playerDir, predictRows, recordingsRoot } from './model.ts';
-import type { Opts } from './model.ts';
+import { playerDir, predictRows, python, recordingsRoot } from './model.ts';
+import type { Opts, RowProbs } from './model.ts';
+import { groupDir } from './traits.ts';
 import { QUESTIONS } from '../server/questionnaire.ts';
 import { mmss } from '../watch/explain.ts';
 
 export const PREDICTORS = ['baseline', 'questionnaire', 'persona', 'model'] as const;
 export type Predictor = typeof PREDICTORS[number];
+// The player model's simulated-playthrough predictors (spec 3b), one per reaction-model variant.
+export const MODEL_VARIANTS = ['model-traits', 'model-kid'] as const;
+export type Variant = typeof MODEL_VARIANTS[number];
+export type AnyPredictor = Predictor | Variant;
+export const ALL_PREDICTORS: readonly AnyPredictor[] = [...PREDICTORS, ...MODEL_VARIANTS];
+// group: the folder holding afm.json and reaction/models.joblib (default recordings/group); sims: simulations per variant.
+export type PredictOpts = Opts & { group?: string; sims?: number };
 export type PredictedItem = { stage: string; event_type: string; label: string; p: number; why: string };
 export type Prediction = { predictor: string; target: string; items: PredictedItem[] };
 
@@ -112,14 +120,8 @@ function clean(items: PredictedItem[] | undefined, stages: StageSummary[]): Pred
   return out;
 }
 
-async function modelPredictor(letter: string, t: Target, o: Opts): Promise<PredictedItem[]> {
-  // labels are irrelevant to prediction; null moments keeps the target's own moments out of the rows
-  const rows = buildRows(t.id, t.game, t.aligned, null);
-  const csv = join(playerDir(letter, o), `target-${t.id}.csv`);
-  await mkdir(playerDir(letter, o), { recursive: true });
-  await writeRowsCsv(rows, csv);
-  const probs = await predictRows(letter, csv, o);
-  const byI = new Map(rows.map(r => [r.i, r]));
+// Per stage: the label with the highest mean probability if it isn't none and reaches 0.35, plus any single event at 0.7.
+export function itemsFromProbs(probs: RowProbs[], typeOf: (i: number) => string, source = 'model'): PredictedItem[] {
   const items = new Map<string, PredictedItem>();
   const put = (stage: string, type: string, label: string, p: number, why: string) => {
     const key = `${stage}|${type}|${label}`;
@@ -133,24 +135,70 @@ async function modelPredictor(letter: string, t: Target, o: Opts): Promise<Predi
     const best = LABELS.reduce((a, b) => (mean[b] > mean[a] ? b : a));
     if (best !== 'none' && mean[best] >= MODEL_STAGE_MEAN) {
       const top = rs.reduce((a, b) => (b.p[best] > a.p[best] ? b : a));
-      put(stage, byI.get(top.i)?.type ?? '', best, mean[best], `model: mean ${best} probability ${mean[best].toFixed(2)} over ${rs.length} events`);
+      put(stage, typeOf(top.i), best, mean[best], `${source}: mean ${best} probability ${mean[best].toFixed(2)} over ${rs.length} events`);
     }
     for (const r of rs) {
-      for (const l of REACTIONS) if (r.p[l] >= MODEL_ROW_P) put(stage, byI.get(r.i)?.type ?? '', l, r.p[l], `model: ${l} probability ${r.p[l].toFixed(2)} at one event`);
+      for (const l of REACTIONS) if (r.p[l] >= MODEL_ROW_P) put(stage, typeOf(r.i), l, r.p[l], `${source}: ${l} probability ${r.p[l].toFixed(2)} at one event`);
     }
   }
   return [...items.values()];
 }
 
+async function modelPredictor(letter: string, t: Target, o: Opts): Promise<PredictedItem[]> {
+  // labels are irrelevant to prediction; null moments keeps the target's own moments out of the rows
+  const rows = buildRows(t.id, t.game, t.aligned, null);
+  const csv = join(playerDir(letter, o), `target-${t.id}.csv`);
+  await mkdir(playerDir(letter, o), { recursive: true });
+  await writeRowsCsv(rows, csv);
+  const probs = await predictRows(letter, csv, o);
+  const byI = new Map(rows.map(r => [r.i, r]));
+  return itemsFromProbs(probs, i => byI.get(i)?.type ?? '');
+}
+
+function readProbs(text: string): (RowProbs & { type: string })[] {
+  const [header, ...lines] = text.trim().split('\n');
+  const cols = header.split(',');
+  const at = (name: string) => cols.indexOf(name);
+  return lines.filter(Boolean).map(line => {
+    const cells = line.split(',');   // stage and type are game event names: no commas
+    const p = {} as Record<Label, number>;
+    for (const l of LABELS) p[l] = Number(cells[at(`p_${l}`)]);
+    return { i: Number(cells[at('i')]), stage: cells[at('stage')], type: cells[at('type')], p };
+  });
+}
+
+// Simulates the kid's own playthrough of the target (analysis/simulate.py) under both reaction-model variants.
+// Reads only the target's aligned.json and session.json, never its moments.
+export async function simulateVariants(letter: string, targetSessionDir: string, o: PredictOpts = {}): Promise<Record<Variant, Prediction>> {
+  const group = o.group ?? groupDir(o);
+  const id = basename(targetSessionDir);
+  const out = join(playerDir(letter, o), `sim-${id}`);
+  await mkdir(out, { recursive: true });
+  await python('simulate.py', ['--models', join(group, 'reaction'), '--afm', join(group, 'afm.json'), '--kid', letter,
+    '--target', targetSessionDir, '--out', out, '--n', String(o.sims ?? 200)]);
+  const res = {} as Record<Variant, Prediction>;
+  for (const v of MODEL_VARIANTS) {
+    const probs = readProbs(await readFile(join(out, `probs-${v.replace('model-', '')}.csv`), 'utf8'));
+    const byI = new Map(probs.map(r => [r.i, r.type]));
+    res[v] = { predictor: v, target: id, items: itemsFromProbs(probs, i => byI.get(i) ?? '', `${v} (simulated)`) };
+  }
+  return res;
+}
+
 export async function predictSession(
-  letter: string, targetSessionDir: string, client: MetaClient, predictors: readonly Predictor[] = PREDICTORS, o: Opts = {},
-): Promise<Record<Predictor, Prediction>> {
+  letter: string, targetSessionDir: string, client: MetaClient, predictors: readonly AnyPredictor[] = PREDICTORS, o: PredictOpts = {},
+): Promise<Record<Predictor, Prediction> & Partial<Record<Variant, Prediction>>> {
   const t = await loadTarget(targetSessionDir, letter);
   const stages = summarize(t);
   const world = targetText(t, stages);
-  const out = {} as Record<Predictor, Prediction>;
+  const out = {} as Record<Predictor, Prediction> & Partial<Record<Variant, Prediction>>;
 
+  if (predictors.some(p => (MODEL_VARIANTS as readonly string[]).includes(p))) {
+    const sim = await simulateVariants(letter, targetSessionDir, o);
+    for (const v of MODEL_VARIANTS) if (predictors.includes(v)) out[v] = sim[v];
+  }
   for (const name of predictors) {
+    if ((MODEL_VARIANTS as readonly string[]).includes(name)) continue;
     let items: PredictedItem[];
     if (name === 'model') {
       items = await modelPredictor(letter, t, o);
@@ -177,7 +225,7 @@ export async function predictSession(
   return out;
 }
 
-export async function writePredictions(dir: string, preds: Partial<Record<Predictor, Prediction>>): Promise<string[]> {
+export async function writePredictions(dir: string, preds: Partial<Record<AnyPredictor, Prediction>>): Promise<string[]> {
   await mkdir(dir, { recursive: true });
   const files: string[] = [];
   for (const [name, p] of Object.entries(preds)) {

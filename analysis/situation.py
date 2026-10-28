@@ -1,6 +1,7 @@
 """Session loading and the event bookkeeping shared by traits and simulation. Mirrors src/predict/rows.ts."""
 import json
 import re
+from collections import deque
 from pathlib import Path
 
 LABELS = ["confused", "stuck", "bored", "frustrated", "delighted", "none"]
@@ -114,7 +115,7 @@ class Stepper:
     def __init__(self):
         self.fail_streak, self.last_fail, self.no_success = 0, -float("inf"), 0
         self.last_success, self.last_progress, self.explore, self.help = 0, 0, 0, 0
-        self.attempts, self.new_things, self.open_text = [], [], []
+        self.attempts, self.new_things, self.open_text = deque(), deque(), []
 
     def step(self, e, i=0):
         k, t = e["kind"], e["ms"]
@@ -146,10 +147,14 @@ class Stepper:
             at = next((j for j, o in enumerate(self.open_text) if o[0] == tid), None) if tid else (0 if self.open_text else None)
             if at is not None:
                 self.open_text.pop(at)
+        while self.attempts and self.attempts[0] <= t - 30000:
+            self.attempts.popleft()
+        while self.new_things and self.new_things[0] < t - 10000:
+            self.new_things.popleft()
         return {"fail_streak": self.fail_streak, "s_since_success": (t - self.last_success) / 1000,
                 "s_since_progress": (t - self.last_progress) / 1000,
-                "attempts_30s": sum(1 for a in self.attempts if t - 30000 < a <= t),
-                "new_thing_10s": int(any(t - 10000 <= n <= t for n in self.new_things)),
+                "attempts_30s": len(self.attempts),
+                "new_thing_10s": int(bool(self.new_things)),
                 "text_chars_on_screen": sum(c for _, c in self.open_text), "s_in_session": t / 1000,
                 "explore_so_far": self.explore, "help_so_far": self.help, "rapid_retry": rapid,
                 "attempts_no_success": self.no_success}
