@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import numpy as np
+
 
 def ev(ms, kind, type_=None, **data):
     return {"ms": ms, "type": type_ or kind, "kind": kind, "data": {"kind": kind, **data}}
@@ -50,3 +52,23 @@ def runs(n_runs, per_run, gap_ms=1000, fail_every=0, start=0, restart_ms=5000, e
         events.append(ev(ms + 100, "progress", "run_end"))
         ms += restart_ms
     return events, ms
+
+
+def frustration_session(tolerance, seed, runs_=40, spacing=1500):
+    """Runs of 1..7 fails; a frustrated moment starts right after the fail that reaches `tolerance` and lasts the run."""
+    rng = np.random.default_rng(seed)
+    events, moments, ms = [], [], 0
+    for r in range(runs_):
+        events.append(ev(ms, "progress", "run_start"))
+        ms += 200
+        upset = None
+        for k in range(int(rng.integers(1, 8))):
+            events += [ev(ms, "attempt"), ev(ms + 100, "fail")]
+            if k + 1 == tolerance:
+                upset = ms + 600
+            ms += spacing
+        events += [ev(ms, "attempt"), ev(ms + 100, "success")]
+        if upset is not None:
+            moments.append(moment(f"m{r}", upset, ms, "frustrated"))
+        ms += 3000
+    return events, moments

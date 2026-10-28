@@ -9,7 +9,7 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).parent))
 import traits  # noqa: E402
-from helpers import ev, moment, runs, write_kid, write_session  # noqa: E402
+from helpers import ev, frustration_session, moment, runs, write_kid, write_session  # noqa: E402
 
 
 def compute(root, dirs, afm=None):
@@ -66,26 +66,6 @@ def test_reading(tmp_path):
     a = write_session(tmp_path, "sa", "A", "g", e)
     r = tr(compute(tmp_path, [a]), "A", "reading", "g")
     assert abs(r["value"] - 2 / 3) < 1e-9 and r["n"] == 3
-
-
-def frustration_session(tolerance, seed):
-    """Runs of 1..7 fails; a frustrated moment starts right after the fail that reaches `tolerance` and lasts the run."""
-    rng = np.random.default_rng(seed)
-    events, moments, ms = [], [], 0
-    for r in range(40):
-        events.append(ev(ms, "progress", "run_start"))
-        ms += 200
-        upset = None
-        for k in range(int(rng.integers(1, 8))):
-            events += [ev(ms, "attempt"), ev(ms + 100, "fail")]
-            if k + 1 == tolerance:
-                upset = ms + 600
-            ms += 1500
-        events += [ev(ms, "attempt"), ev(ms + 100, "success")]
-        if upset is not None:
-            moments.append(moment(f"m{r}", upset, ms, "frustrated"))
-        ms += 3000
-    return events, moments
 
 
 def test_frustration_tolerance_k50(tmp_path):

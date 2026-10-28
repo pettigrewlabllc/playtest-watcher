@@ -12,10 +12,11 @@ import type { Agg, Score } from './score.ts';
 import { freeze } from './freeze.ts';
 import { listSessions, loadStudy, playerSessions, sameKid } from './study.ts';
 import { buildGroupModel } from './traits.ts';
+import { fitReaction } from './reaction.ts';
 import type { Trait } from './traits.ts';
 
 const REPO = resolve(import.meta.dirname, '..', '..');
-export const COMMANDS = ['fingerprint', 'train', 'persona', 'predict', 'freeze', 'logo', 'scoreboard', 'traits'] as const;
+export const COMMANDS = ['fingerprint', 'train', 'persona', 'predict', 'freeze', 'logo', 'scoreboard', 'traits', 'reaction'] as const;
 const USAGE = `usage: npm run predict -- <command> [--live]
   fingerprint <letter>
   train <letter>
@@ -24,7 +25,8 @@ const USAGE = `usage: npm run predict -- <command> [--live]
   freeze <letter> <targetSessionId> <checkLabel>
   logo <letter>
   scoreboard
-  traits            (AFM and trait estimators for every kid, from all learn sessions)`;
+  traits            (AFM and trait estimators for every kid, from all learn sessions)
+  reaction          (pooled reaction model, both variants and baselines, leave-one-game-out)`;
 
 type Deps = { root?: string; client?: MetaClient; out?: (line: string) => void; commit?: (file: string, message: string) => Promise<void>; docFile?: string };
 
@@ -125,6 +127,15 @@ export async function runCommand(argv: string[], deps: Deps = {}): Promise<void>
       for (const gap of k.gaps) out(`  said vs did, ${gap.axis}: ${gap.note}`);
     }
     out(`written to ${g.dir}`);
+  } else if (cmd === 'reaction') {
+    const r = await fitReaction({ root });
+    const f = (n: number | null | undefined) => (n == null ? '  -  ' : n.toFixed(2).padStart(5));
+    out(`reaction: ${r.folds.length} leave-one-game-out folds${r.weak_labels ? ' (weak labels: some sessions have no moments.json)' : ''}`);
+    for (const name of [...r.variants, ...r.baselines]) {
+      const m = r.pooled[name];
+      if (!m) continue;
+      out(`  ${name.padEnd(10)} macro-F1 ${f(m.macro_f1)}  kappa ${f(m.kappa)}  mix distance ${f(m.mix_tvd)}  AUC ${Object.entries(m.auc).map(([l, a]) => `${l} ${a.toFixed(2)}`).join(', ') || '-'}`);
+    }
   } else {
     throw new Error(`unknown command "${cmd ?? ''}"\n${USAGE}`);
   }
