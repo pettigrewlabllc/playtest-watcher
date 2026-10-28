@@ -12,6 +12,16 @@ The deliverable is a measured result, not a claim: across 4 kids and 4 held-out 
 
 **Framing rule.** This is a *player behavior model for game design*, built from how a kid plays. It is never called a personality profile or personality analysis, anywhere: code, copy, video, or submission. The hackathon lists "Personality Analyzers" as an anti-project.
 
+### Positioning (from the 2026-10-27 demand check)
+
+Keyword data (`docs/seo/ideas/playtest-watcher-2026-10-27.md` in the workspace) puts the buyers where **playtesting** (about 2,900 US searches a month, with paid clicks) meets **synthetic users / AI user testing** (small volume, the highest bids in the set, $8 to $73 a click). The synthetic-user products make their testers up, and independent reviews say those testers behave unrealistically. So:
+
+- **What we are:** AI playtesters built from your real players. The headline functions are `target_persona` and `predict_playtest` (spec 3c). Building personas from runs is what makes them believable, and the measured fidelity (replay ceiling, frozen predictions, Joel's labels) is the proof the made-up kind can't offer.
+- **The front door:** a player persona template and "a few play logs in, a starter persona out" (tier 0), because persona searches are mostly people looking for templates.
+- **Supporting, not headline:** game analytics and emotion detection (crowded or no buyers) are features inside the playtest report.
+- **First market and founder story:** families and small studios making kids' games. Search can't show that demand; the local-first privacy design is why that market would trust it.
+- **Demo order:** a real kid's session and its moments and fix list (grounding), then the personas built from those runs, then a new build tested against them with predictions frozen in advance and scored, with honest results either way. The fidelity scorecard is the differentiator against the synthetic-user tools, so it stays in the video whatever it shows.
+
 ### The experiment
 
 Four games, four kids. Every kid plays three games for 10 minutes each (learning sessions). Each kid sits out a different game, so every game is predicted and checked exactly once.
