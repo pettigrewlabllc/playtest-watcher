@@ -6,7 +6,7 @@ import type { MetaClient } from '../meta/client.ts';
 import { playerFingerprint } from './fingerprint.ts';
 import { trainPlayer, playerDir, recordingsRoot } from './model.ts';
 import { buildPersona } from './persona.ts';
-import { predictSession, writePredictions, PREDICTORS, MODEL_VARIANTS } from './predict.ts';
+import { predictSession, writePredictions, PREDICTORS, MODEL_VARIANTS, ALL_PREDICTORS } from './predict.ts';
 import type { AnyPredictor } from './predict.ts';
 import { existsSync } from 'node:fs';
 import { logo, scoreboard } from './score.ts';
@@ -15,10 +15,12 @@ import { freeze } from './freeze.ts';
 import { listSessions, loadStudy, playerSessions, sameKid } from './study.ts';
 import { buildGroupModel, groupDir } from './traits.ts';
 import { fitReaction } from './reaction.ts';
+import { reliability, reliabilityLine } from './reliability.ts';
+import type { Scoreboard } from './score.ts';
 import type { Trait } from './traits.ts';
 
 const REPO = resolve(import.meta.dirname, '..', '..');
-export const COMMANDS = ['fingerprint', 'train', 'persona', 'predict', 'freeze', 'logo', 'scoreboard', 'traits', 'reaction'] as const;
+export const COMMANDS = ['fingerprint', 'train', 'persona', 'predict', 'freeze', 'logo', 'scoreboard', 'traits', 'reaction', 'reliability'] as const;
 const USAGE = `usage: npm run predict -- <command> [--live]
   fingerprint <letter>
   train <letter>
@@ -28,14 +30,32 @@ const USAGE = `usage: npm run predict -- <command> [--live]
   logo <letter>
   scoreboard
   traits            (AFM and trait estimators for every kid, from all learn sessions)
-  reaction          (pooled reaction model, both variants and baselines, leave-one-game-out)`;
+  reaction          (pooled reaction model, both variants and baselines, leave-one-game-out)
+  reliability       (Cohen's kappa between Joel's hand labels and Muse's)`;
 
 type Deps = { root?: string; client?: MetaClient; out?: (line: string) => void; commit?: (file: string, message: string) => Promise<void>; docFile?: string };
 
 const pct = (n: number | null | undefined) => (n == null ? '  -  ' : `${(n * 100).toFixed(0)}%`.padStart(5));
 const fmt = (n: number | null) => (n == null ? '-' : Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2));
 export const traitLine = (t: Trait) => (t.value == null ? 'n/a' : `${fmt(t.value)} [${fmt(t.lo)}, ${fmt(t.hi)}] n=${t.n}${t.adjusted ? '' : ' (not adjusted)'}`);
-const aggLine = (a: Agg | Score | null) => (a ? `recall ${pct(a.recall)}  precision ${pct(a.precision)}  mix ${pct(a.mix_similarity)}` : 'no data');
+const num2 = (n: number | null | undefined) => (n == null ? '  -  ' : n.toFixed(2).padStart(5));
+const aucText = (a: Record<string, number> | undefined) => (a && Object.keys(a).length ? Object.entries(a).map(([l, v]) => `${l} ${v.toFixed(2)}`).join(', ') : '-');
+const aggLine = (a: Agg | Score | null) => (a ? `recall ${pct(a.recall)}  precision ${pct(a.precision)}  mix ${pct(a.mix_similarity)}  kappa ${num2(a.kappa)}  AUC ${aucText(a.auc)}` : 'no data');
+
+// Reliability first, above every prediction score.
+export function scoreboardLines(sb: Scoreboard): string[] {
+  const lines = reliabilityLine(sb.reliability).split('\n');
+  for (const [letter, p] of Object.entries(sb.players)) {
+    lines.push(`${letter}  replay ceiling: ${p.ceiling ? `recall ${pct(p.ceiling.recall)}` : 'none'}`);
+    for (const name of ALL_PREDICTORS) {
+      const r = p.predictors[name];
+      if (!r) continue;
+      lines.push(`  ${name.padEnd(13)} LOGO ${aggLine(r.logo)} | check ${aggLine(r.check)} | normalized ${pct(r.logo_normalized)} / ${pct(r.check_normalized)}`);
+    }
+    if (p.ranking) lines.push(`  ranking check (Kendall tau vs their own order ${p.ranking.order.join(' > ')}): ${MODEL_VARIANTS.map(v => `${v} ${num2(p.ranking!.tau[v])}`).join(', ')}`);
+  }
+  return lines;
+}
 
 function pickClient(live: boolean): MetaClient {
   // Two keys on purpose: --live here, and PW_LIVE=1 plus MODEL_API_KEY in the environment.
@@ -101,28 +121,26 @@ export async function runCommand(argv: string[], deps: Deps = {}): Promise<void>
     const [, target, label] = rest;
     if (!target || !label) throw new Error(`freeze needs a target session id and a check label\n${USAGE}`);
     const r = await freeze(letter, target, label, client(), { root, commit: deps.commit, docFile: deps.docFile });
-    out(`frozen ${label}: ${PREDICTORS.map(p => `${p} ${r.hashes[p].slice(0, 12)}`).join(', ')}`);
+    out(`frozen ${label}: ${Object.entries(r.hashes).map(([p, h]) => `${p} ${h!.slice(0, 12)}`).join(', ')}`);
   } else if (cmd === 'logo') {
     const letter = needLetter();
     const r = await logo(letter, client(), { root, log: out });
+    out(reliabilityLine(await reliability(root)));
     for (const f of r.folds) {
       out(`held out ${f.game}`);
-      for (const p of PREDICTORS) if (f.scores[p]) out(`  ${p.padEnd(13)} ${aggLine(f.scores[p]!)}`);
+      for (const p of ALL_PREDICTORS) if (f.scores[p]) out(`  ${p.padEnd(13)} ${aggLine(f.scores[p]!)}`);
     }
     out('mean');
-    for (const p of PREDICTORS) if (r.mean[p]) out(`  ${p.padEnd(13)} ${aggLine(r.mean[p]!)}`);
+    for (const p of ALL_PREDICTORS) if (r.mean[p]) out(`  ${p.padEnd(13)} ${aggLine(r.mean[p]!)}`);
   } else if (cmd === 'scoreboard') {
     const study = await loadStudy(root);
     if (!Object.keys(study.players).length) throw new Error(`no players in ${join(root, 'study.json')}`);
     const sb = await scoreboard(study, { root, client: client(), log: out });
     await writeFile(join(root, 'scoreboard.json'), JSON.stringify(sb, null, 2));
-    for (const [letter, p] of Object.entries(sb.players)) {
-      out(`${letter}  replay ceiling: ${p.ceiling ? `recall ${pct(p.ceiling.recall)}` : 'none'}`);
-      for (const name of PREDICTORS) {
-        const r = p.predictors[name];
-        out(`  ${name.padEnd(13)} LOGO ${aggLine(r.logo)} | check ${aggLine(r.check)} | normalized ${pct(r.logo_normalized)} / ${pct(r.check_normalized)}`);
-      }
-    }
+    for (const line of scoreboardLines(sb)) out(line);
+  } else if (cmd === 'reliability') {
+    const r = await reliability(root);
+    for (const line of reliabilityLine(r).split('\n')) out(line);
   } else if (cmd === 'traits') {
     const g = await buildGroupModel({ root });
     for (const [letter, k] of Object.entries(g.traits.kids)) {

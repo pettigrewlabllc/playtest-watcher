@@ -29,6 +29,9 @@ describe('scorePrediction', () => {
     expect(s.recall).toBeCloseTo(2 / 3);
     expect(s.precision).toBeCloseTo(2 / 3);
     expect(s.mix_similarity).toBeCloseTo(2 / 3);
+    expect(s.mix_distance).toBeCloseTo(1 / 3);
+    expect(s.kappa).toBeCloseTo(4 / 7);                 // stage-level: stuck, frustrated, bored vs stuck, frustrated, delighted
+    expect(s.auc).toEqual({ stuck: 1, frustrated: 1, delighted: 0.5 });
   });
 
   it('counts the same label at an adjacent stage only with the same event type', async () => {
@@ -49,6 +52,7 @@ describe('scorePrediction', () => {
     const dir = await writeSession(root, 'real', { events, moments: [] });
     const s = await scorePrediction(pred([]), dir);
     expect(s.recall).toBeNull(); expect(s.precision).toBeNull(); expect(s.mix_similarity).toBeNull();
+    expect(s.kappa).toBeNull(); expect(s.auc).toEqual({}); expect(s.mix_distance).toBeNull();
   });
 });
 
@@ -147,4 +151,53 @@ describe('scoreboard', () => {
       expect(row.logo).not.toBeNull();
     }
   }, 240_000);
+});
+
+describe.skipIf(!venvAvailable())('player-model variants in leave-one-game-out (needs analysis/.venv)', () => {
+  it('scores model-traits and model-kid per fold from a group model that never saw the held-out game, and checks the ranking', async () => {
+    const root = await tempRoot();
+    for (const [k, kid] of ['A', 'B'].entries()) for (const [i, g] of ['g1', 'g2'].entries()) {
+      const { events: e, moments: m } = failStream(i + 3 * k);
+      const withAttempts = e.flatMap(x => (x.kind === 'success' ? [ev(x.ms - 1, 'attempt'), x] : [x]));
+      await writeSession(root, `${kid.toLowerCase()}-${g}-learn`, { kid, game: g, events: withAttempts, moments: m });
+    }
+    await mkdir(join(root, 'kids', 'a'), { recursive: true });
+    await writeFile(join(root, 'kids', 'a', 'ranking.json'), JSON.stringify({ order: ['g2', 'g1'] }));
+    const rep = await logo('A', recordingClient(), { root, log: () => {}, sims: 10 });
+    for (const f of rep.folds) {
+      expect(f.scores['model-traits']).toBeDefined();
+      expect(f.scores['model-kid']).toBeDefined();
+      expect(typeof f.enjoyment?.['model-traits']).toBe('number');
+      const groups = await readdir(join(root, 'group', 'logo'));
+      const dir = groups.find(n => n.startsWith(`${f.game}-`))!;
+      const csv = await readFile(join(root, 'group', 'logo', dir, 'all_rows.csv'), 'utf8');
+      expect(csv).not.toContain(`a-${f.game}-learn`);
+      expect(csv).not.toContain(`b-${f.game}-learn`);   // every kid's rows for the held-out game stay out
+    }
+    expect(rep.mean['model-kid']).toBeDefined();
+    const { rankingCheck } = await import('../../src/predict/score.ts');
+    const r = await rankingCheck('A', rep, root);
+    expect(r?.order).toEqual(['g2', 'g1']);
+    expect([1, -1, 0]).toContain(r?.tau['model-traits']);
+  }, 240_000);
+});
+
+describe('scoreboard lines', () => {
+  it('prints reliability above every prediction score', async () => {
+    const { scoreboardLines } = await import('../../src/predict/run.ts');
+    const sb = {
+      reliability: { n: 10, kappa: 0.42, agreement: 0.6, below_gate: true, gate: 0.6, per_label: {}, sessions: [] },
+      players: { A: { ceiling: null, ranking: { order: ['g1', 'g2'], tau: { 'model-traits': 1, 'model-kid': -1 }, n: 2 }, predictors: {
+        baseline: { logo: { recall: 0.5, precision: 0.5, mix_similarity: 0.5, kappa: 0.1, auc: { frustrated: 0.7 } }, check: null, logo_normalized: null, check_normalized: null },
+        'model-traits': { logo: { recall: 0.4, precision: 0.3, mix_similarity: 0.6, kappa: 0.2, auc: {} }, check: null, logo_normalized: null, check_normalized: null },
+      } } },
+    };
+    const lines = scoreboardLines(sb as never);
+    expect(lines[0]).toMatch(/kappa 0\.42/);
+    expect(lines[1]).toMatch(/WARNING.*below 0\.6/);
+    expect(lines.findIndex(l => /baseline/.test(l))).toBeGreaterThan(1);
+    expect(lines.join('\n')).toMatch(/model-traits .*kappa  0\.20/);
+    expect(lines.join('\n')).toMatch(/frustrated 0\.70/);
+    expect(lines.at(-1)).toMatch(/ranking check .*model-traits  1\.00, model-kid -1\.00/);
+  });
 });
