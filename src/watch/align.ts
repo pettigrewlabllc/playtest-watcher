@@ -25,23 +25,29 @@ function median(xs: number[]): number {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
+// Event time is the game's own clock (t), moved onto the server clock by the session's median t - serverT.
+// serverT alone is only the batch arrival time (batches go out every 500 ms), so it sets the skew and nothing else.
 export async function parseEvents(dir: string, t0: number): Promise<{ events: AlignedEvent[]; skew?: number }> {
   let raw = '';
   try { raw = await readFile(join(dir, 'events.jsonl'), 'utf8'); } catch { return { events: [] }; }
-  const events: AlignedEvent[] = [];
-  const skews: number[] = [];
+  const parsed: { t?: number; serverT: number; type: string; data: Record<string, unknown> }[] = [];
   for (const line of raw.split('\n')) {
     if (!line.trim()) continue;
     try {
       const e = JSON.parse(line);
       if (typeof e.serverT !== 'number' || typeof e.type !== 'string') continue;
       const data = e.data && typeof e.data === 'object' ? e.data : {};
-      events.push({ ms: e.serverT - t0, type: e.type, kind: typeof data.kind === 'string' ? data.kind : 'other', data });
-      if (typeof e.t === 'number') skews.push(e.t - e.serverT);
+      parsed.push({ t: typeof e.t === 'number' ? e.t : undefined, serverT: e.serverT, type: e.type, data });
     } catch { /* skip malformed line */ }
   }
+  const skews = parsed.flatMap(e => (e.t === undefined ? [] : [e.t - e.serverT]));
+  const skew = skews.length ? median(skews) : undefined;
+  const events: AlignedEvent[] = parsed.map(e => ({
+    ms: (e.t !== undefined && skew !== undefined ? e.t - skew : e.serverT) - t0,
+    type: e.type, kind: typeof e.data.kind === 'string' ? e.data.kind : 'other', data: e.data,
+  }));
   events.sort((a, b) => a.ms - b.ms);
-  return { events, skew: skews.length ? median(skews) : undefined };
+  return { events, skew };
 }
 
 export async function align(dir: string): Promise<Aligned> {
