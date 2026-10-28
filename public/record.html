@@ -204,7 +204,7 @@ function uploadFailed(track, err) {
   failedTracks.push(track);
   console.warn(err);
   const at = $('clock').textContent;
-  $('uploadWarn').textContent = `Upload failed: ${failedTracks.join(', ')} (at ${at} on the clock). That track stops saving from here; the others are still recording. Check the laptop is still running the watcher.`;
+  $('uploadWarn').textContent = `The ${failedTracks.join(' and ')} track stopped saving at ${at}. The rest are still recording. Check the watcher is still running on the laptop.`;
   $('uploadWarn').hidden = false;
 }
 
