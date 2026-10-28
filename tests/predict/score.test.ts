@@ -200,13 +200,15 @@ describe('scoreboard lines', () => {
     const { scoreboardLines } = await import('../../src/predict/run.ts');
     const sb = {
       reliability: { n: 10, kappa: 0.42, agreement: 0.6, below_gate: true, gate: 0.6, per_label: {}, sessions: [] },
-      players: { A: { ceiling: null, transfer: { recall: 0.3, precision: 0.2, mix_similarity: 0.4, kappa: 0.15, auc: {} }, ranking: { order: ['g1', 'g2'], tau: { 'model-traits': 1, 'model-kid': -1 }, n: 2 }, predictors: {
-        baseline: { logo: { recall: 0.5, precision: 0.5, mix_similarity: 0.5, kappa: 0.1, auc: { frustrated: 0.7 } }, check: null, logo_normalized: null, check_normalized: null },
+      players: { A: { ceiling: null, paired: { baseline: { hits: 2, misses: 2, vs_null: { both: 1, only_this: 1, only_null: 0, neither: 2 } } }, transfer: { recall: 0.3, precision: 0.2, mix_similarity: 0.4, kappa: 0.15, auc: {} }, ranking: { order: ['g1', 'g2'], tau: { 'model-traits': 1, 'model-kid': -1 }, n: 2 }, predictors: {
+        baseline: { logo: { recall: 0.5, precision: 0.5, mix_similarity: 0.5, kappa: 0.1, auc: { frustrated: 0.7 } }, check: { recall: 0.5, precision: 0.5, mix_similarity: 0.5, kappa: 0.33, real: 4, predicted: 4, hits: 2, matched: 2 }, logo_normalized: null, check_normalized: null },
         'model-traits': { logo: { recall: 0.4, precision: 0.3, mix_similarity: 0.6, kappa: 0.2, auc: {} }, check: null, logo_normalized: null, check_normalized: null },
       } } },
     };
     const lines = scoreboardLines(sb as never);
     expect(lines[0]).toMatch(/kappa 0\.42/);
+    expect(lines[2]).toMatch(/PRIMARY \(pre-registered\): stage-level kappa .*matched budget/);
+    expect(lines[3]).toMatch(/A baseline +kappa  0\.33  hit 2 \/ missed 2  vs null: both 1, only this 1, only null 0, neither 2/);
     expect(lines[1]).toMatch(/WARNING.*below 0\.6/);
     expect(lines.findIndex(l => /baseline/.test(l))).toBeGreaterThan(1);
     expect(lines.join('\n')).toMatch(/model-traits .*kappa  0\.20/);

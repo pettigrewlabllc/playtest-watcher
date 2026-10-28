@@ -25,6 +25,7 @@ export type Score = {
   // stage level: kappa between the top predicted label and the most common real label per stage ('none' when empty);
   // per-label AUC of the item p (0 when absent) for "this label happens at this stage"; mix_distance = 1 - mix_similarity
   kappa?: number | null; auc?: Record<string, number>; mix_distance?: number | null;
+  hit_ids?: string[];   // the real moments a predicted reaction matched, for paired counts between predictors
 };
 export type RealMoment = { id: string; label: Label; stage: string; event_type: string; confidence: number };
 type Item = Pick<PredictedItem, 'stage' | 'event_type' | 'label'>;
@@ -56,7 +57,8 @@ export function scoreItems(items: Item[], real: RealMoment[], stageOrder: string
     const a = idx(it.stage), b = idx(m.stage);
     return a >= 0 && b >= 0 && Math.abs(a - b) === 1 && it.event_type === m.event_type;
   };
-  const hits = real.filter(m => items.some(it => match(it, m))).length;
+  const hitIds = real.filter(m => items.some(it => match(it, m))).map(m => m.id);
+  const hits = hitIds.length;
   const matched = items.filter(it => real.some(m => match(it, m))).length;
 
   const mix = (labels: string[]) => {
@@ -73,7 +75,7 @@ export function scoreItems(items: Item[], real: RealMoment[], stageOrder: string
   const st = stageLevel(items as (Item & { p?: number })[], real, stageOrder);
   return {
     recall: ratio(hits, real.length), precision: ratio(matched, items.length), mix_similarity, real: real.length, predicted: items.length, hits, matched,
-    kappa: st.kappa, auc: st.auc, mix_distance: mix_similarity === null ? null : 1 - mix_similarity,
+    kappa: st.kappa, auc: st.auc, mix_distance: mix_similarity === null ? null : 1 - mix_similarity, hit_ids: hitIds,
   };
 }
 
@@ -282,8 +284,25 @@ export type PredictorRow = { logo: Agg | null; check: Score | null; logo_normali
 // reliability comes first: no prediction score means much until Joel's labels agree with Muse's (kappa >= 0.6)
 export type Scoreboard = {
   reliability: Reliability;
-  players: Record<string, { ceiling: Score | null; predictors: Partial<Record<AnyPredictor, PredictorRow>>; ranking: Ranking | null; transfer?: Agg | null }>;
+  players: Record<string, {
+    ceiling: Score | null; predictors: Partial<Record<AnyPredictor, PredictorRow>>; ranking: Ranking | null; transfer?: Agg | null;
+    paired?: Partial<Record<AnyPredictor, Paired>> | null;   // the check session, per predictor (pre-registered presentation)
+  }>;
 };
+
+export type Paired = { hits: number; misses: number; vs_null: { both: number; only_this: number; only_null: number; neither: number } };
+
+// Paired hit/miss counts over one session's real moments: each predictor against null on the same moments.
+export function pairedCounts(scores: Partial<Record<AnyPredictor, Score>>): Partial<Record<AnyPredictor, Paired>> {
+  const base = new Set(scores.null?.hit_ids ?? []);
+  const out: Partial<Record<AnyPredictor, Paired>> = {};
+  for (const [name, sc] of Object.entries(scores) as [AnyPredictor, Score][]) {
+    const mine = new Set(sc.hit_ids ?? []);
+    const both = [...mine].filter(id => base.has(id)).length;
+    out[name] = { hits: mine.size, misses: sc.real - mine.size, vs_null: { both, only_this: mine.size - both, only_null: base.size - both, neither: sc.real - mine.size - base.size + both } };
+  }
+  return out;
+}
 
 function checkLabel(study: Study, letter: string, game: string): string {
   for (const [label, c] of Object.entries(study.checks ?? {})) if (c.letter === letter && c.game === game) return label;
@@ -343,7 +362,11 @@ export async function scoreboard(
       const norm = (r: number | null | undefined) => (r != null && ceiling?.recall ? r / ceiling.recall : null);
       rows[name] = { logo: lg, check, logo_normalized: norm(lg?.recall), check_normalized: norm(check?.recall) };
     }
-    out.players[letter] = { ceiling, predictors: rows, ranking: report ? await rankingCheck(letter, report, root) : null, transfer: report?.transfer?.mean ?? null };
+    const checks = Object.fromEntries(Object.entries(rows).flatMap(([n, r]) => (r?.check ? [[n, r.check]] : []))) as Partial<Record<AnyPredictor, Score>>;
+    out.players[letter] = {
+      ceiling, predictors: rows, ranking: report ? await rankingCheck(letter, report, root) : null, transfer: report?.transfer?.mean ?? null,
+      paired: Object.keys(checks).length ? pairedCounts(checks) : null,
+    };
   }
   return out;
 }
