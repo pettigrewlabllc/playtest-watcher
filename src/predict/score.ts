@@ -205,12 +205,16 @@ export async function logo(
       try { await trainPlayer(letter, train.map(s => s.dir), fold); modelOk = true; }
       catch (e) { log(`logo ${letter}: no model for fold ${game}: ${(e as Error).message}`); }
     }
-    if (!existsSync(join(dir, 'persona.json'))) await buildPersona(letter, train.map(s => s.dir), client, { ...fold, log });
-    // the player-model variants use a group model fitted without this game: no kid's rows for it, traits recomputed without it
+    // the player-model variants and the persona's traits come from a group model fitted without this game:
+    // no kid's rows for it, traits recomputed without it
     let group: string | null = null;
     if (withVariants) {
       try { group = await foldGroupModel(root, game); }
       catch (e) { log(`logo ${letter}: no group model for fold ${game}: ${(e as Error).message}`); }
+    }
+    if (!existsSync(join(dir, 'persona.json'))) {
+      const traits = group ? JSON.parse(await readFile(join(group, 'traits.json'), 'utf8')) : null;
+      await buildPersona(letter, train.map(s => s.dir), client, { ...fold, log, traits });
     }
     const predictors: AnyPredictor[] = [...(o.predictors ?? PREDICTORS).filter(p => p !== 'model' || modelOk), ...(group ? MODEL_VARIANTS : [])];
 

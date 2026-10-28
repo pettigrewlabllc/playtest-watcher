@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { buildPersona, renderPersonaMd } from '../../src/predict/persona.ts';
 import { ev, failStream, moment, recordingClient, tempRoot, writeSession } from './helpers.ts';
@@ -70,5 +70,56 @@ describe('buildPersona', () => {
     expect(md).not.toMatch(/personalit/i);
     expect(JSON.stringify(p)).not.toMatch(/personalit/i);
     expect(renderPersonaMd(p)).toBe(md);
+  });
+});
+
+describe('buildPersona with the player model', () => {
+  const t = (value: number | null, lo: number | null, hi: number | null, extra = {}) => ({ value, lo, hi, n: 30, games: ['g1'], adjusted: true, source: 's', ...extra });
+  const traits = {
+    k: 5, level: 0.9, traits: {},
+    kids: { A: {
+      letter: 'A', age: 9, sessions: ['a-g1-learn'], games: ['g1'], said: {}, gaps: [{ axis: 'persist', trait: 'persistence', said: 1, did: 0.3, lo: 0.1, hi: 0.5, note: 'said less persist than most; plays with more persistence' }],
+      intents: [{ session: 'a-g1-learn', type: 'compendium_open', intent: 'accidental' }],
+      traits: {
+        recovery: { ...t(-0.6, -0.9, -0.2), per_game: { g1: t(1.2, 1.0, 1.5, { raw: 1.1, group_mean: 1.8 }) } },
+        pace: { ...t(0.4, -1.0, 1.9), per_game: { g1: t(20, 18, 23, { raw: 20, group_mean: 19 }) } },
+        stamina: { ...t(null, null, null), per_game: {} },
+      },
+    } },
+  };
+
+  it('gives the lenses traits with ranges and the spans rule, the kid\'s own words, mood taps and intent corrections; trait names count as evidence', async () => {
+    const root = await tempRoot();
+    const { events, moments } = failStream(1, 12);
+    const dir = await writeSession(root, 'a-g1-learn', { game: 'g1', events: [ev(0, 'operator_mood', { mood: 'sleepy' }, 'operator_mood'), ...events], moments });
+    await mkdir(join(root, 'kids', 'a'), { recursive: true });
+    await writeFile(join(root, 'kids', 'a', 'debriefs.json'), JSON.stringify([
+      { game: 'g1', session: 'a-g1-learn', answers: [{ q: 'How fun?', a: '4', fun: 4 }, { q: 'The Compendium?', a: 'I hit that accidentally.', intent: 'accidental' }] },
+      { game: 'g9', session: 'a-g9-learn', answers: [{ q: 'How fun?', a: 'HELD-OUT GAME WORDS' }] },
+    ]));
+    const client = recordingClient({ lens: () => ({ observations: [{ claim: 'quick to retry', evidence: ['recovery'] }, { claim: 'bogus', evidence: ['not_a_trait'] }] }) });
+    const p = await buildPersona('A', [dir], client, { root, traits: traits as never });
+    const text = client.calls[0].text;
+    expect(text).toContain('TRAITS');
+    expect(text).toMatch(/recovery: -0\.60 \[-0\.90, -0\.20\]/);
+    expect(text).toMatch(/g1 1\.20 \[1\.00, 1\.50\]/);
+    expect(text).toMatch(/range spans the group mean/);
+    expect(text).toMatch(/stamina: no data/);
+    expect(text).toContain('"I hit that accidentally."');
+    expect(text).toMatch(/SAID/);
+    expect(text).not.toContain('HELD-OUT GAME WORDS');
+    expect(text).toMatch(/g1: sleepy/);
+    expect(text).toMatch(/compendium_open .*accidental/);
+    expect(text).toContain('said less persist than most');
+    expect(p.lenses['game designer']).toEqual([{ claim: 'quick to retry', evidence: ['recovery'] }]);
+    expect(client.calls[3].text).toContain('TRAITS');
+    expect(client.calls[3].text).toMatch(/said/i);
+  });
+
+  it('still works with no traits file at all', async () => {
+    const { root, dirs } = await setup();
+    const client = recordingClient();
+    await buildPersona('A', dirs, client, { root, traits: null });
+    expect(client.calls[0].text).toMatch(/TRAITS[^\n]*\n\(not computed yet/);
   });
 });

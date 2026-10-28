@@ -4,10 +4,13 @@ import type { MetaClient } from '../meta/client.ts';
 import { mmss } from '../watch/explain.ts';
 import { loadSession } from './inputs.ts';
 import type { Session } from './inputs.ts';
-import { okMoments } from './rows.ts';
+import { loadDebriefs, okMoments, resolveIntents } from './rows.ts';
+import type { Debrief } from './rows.ts';
+import { kidTraits, loadTraits } from './traits.ts';
+import type { KidTraits, Trait, TraitsFile } from './traits.ts';
 import { playerFingerprint } from './fingerprint.ts';
 import type { PlayerFingerprint } from './fingerprint.ts';
-import { playerDir } from './model.ts';
+import { playerDir, recordingsRoot } from './model.ts';
 import type { Importance, Opts } from './model.ts';
 
 export const MODEL = 'muse-wonder-1.0';
@@ -71,8 +74,56 @@ async function loadImportances(letter: string, o: Opts): Promise<Importance[]> {
   try { return JSON.parse(await readFile(join(playerDir(letter, o), 'model', 'importances.json'), 'utf8')); } catch { return []; }
 }
 
-function dossier(fp: PlayerFingerprint, importances: Importance[], moments: string[]): string {
+const f2 = (n: number | null | undefined) => (n == null ? '?' : Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2));
+const range = (t: Trait) => `${f2(t.value)} [${f2(t.lo)}, ${f2(t.hi)}]`;
+
+export const TRAIT_RULE = 'Every trait is an estimate with a 90% range. Do not call a trait high or low, strong or weak, when its range spans the group mean: for the top-level value (a difference from the other kids on the same game) that is 0; for a game, it is that game\'s group mean. With no other kid on a game there is no group: give the number, do not rank it. A trait with no data says nothing; leave it out.';
+
+function traitLines(k: KidTraits | null): string[] {
+  if (!k) return ['(not computed yet: run npm run predict -- traits)'];
+  const out: string[] = [];
+  for (const [name, t] of Object.entries(k.traits)) {
+    const per = Object.entries(t.per_game ?? {}).filter(([, g]) => g.value != null).map(([game, g]) =>
+      `${game} ${range(g)}${g.adjusted ? ` (group mean on ${game} ${f2(g.group_mean as number)})` : ' (no other kid on this game)'}`);
+    if (t.value == null && !per.length) { out.push(`${name}: no data`); continue; }
+    const top = t.value == null ? 'no comparison with other kids' : `${range(t)} vs the group (0 = the group mean), n=${t.n}`;
+    out.push(`${name}: ${top}; per game: ${per.join('; ') || 'none'}. ${t.source}`);
+  }
+  for (const g of k.gaps) out.push(`said vs did (${g.axis} -> ${g.trait}): ${g.note}`);
+  return out;
+}
+
+type Words = { said: string[]; mood: string[]; intents: string[] };
+
+// Debriefs for these sessions only (a leave-one-game-out fold never sees the held-out game's answers).
+function kidWords(sessions: Session[], debriefs: Debrief[], known: KidTraits['intents'] = []): Words {
+  const ids = new Set(sessions.map(s => s.id));
+  const games = new Set(sessions.map(s => s.meta.game));
+  const mine = debriefs.filter(d => (d.session ? ids.has(d.session) : games.has(d.game)));
+  const q = (x: string) => `"${String(x).replace(/"/g, "'")}"`;
+  const said = mine.flatMap(d => d.answers.map(a => `${d.game}: asked ${q(a.q)}, said ${q(a.a)}${a.intent ? ` [intent: ${a.intent}]` : ''}`));
+  const mood = sessions.flatMap(s => s.aligned.events.filter(e => e.type === 'operator_mood').map(e => `${s.meta.game}: ${String(e.data.mood ?? '')}`));
+  const intents: string[] = [];
+  for (const s of sessions) {
+    const resolved = { ...Object.fromEntries(known.filter(k => k.session === s.id).map(k => [k.type, k.intent])), ...resolveIntents(mine, s.id, s.meta.game, s.aligned.events) };
+    for (const [type, intent] of Object.entries(resolved)) {
+      intents.push(`${s.meta.game}: the ${type} events were ${intent}, by the kid's own account${intent === 'accidental' ? ' (exploration drive already leaves them out)' : ''}`);
+    }
+    for (const d of mine.filter(x => x.session === s.id)) for (const a of d.answers) {
+      if (a.intent && !a.event && !Object.keys(resolved).length) {
+        intents.push(`${s.meta.game}: the kid called something ${a.intent} (${q(a.a)}) but no event type could be tied to it`);
+      }
+    }
+  }
+  return { said, mood, intents };
+}
+
+function dossier(fp: PlayerFingerprint, importances: Importance[], moments: string[], k: KidTraits | null = null, words: Words = { said: [], mood: [], intents: [] }): string {
   return [
+    'TRAITS (computed from play by fixed estimators; cite a trait by its name):', ...traitLines(k), TRAIT_RULE,
+    'SAID (the kid\'s own words in the debrief after each game, quoted; anything you take from here is what they said, not what they did):', words.said.length ? words.said.join('\n') : '(no debrief)',
+    'MOOD TAPS (the operator\'s read of the kid just before each session):', words.mood.length ? words.mood.join('\n') : '(none)',
+    'INTENT CORRECTIONS (what the kid said an event meant):', words.intents.length ? words.intents.join('\n') : '(none)',
     'FINGERPRINT (mean over all sessions; null means no data):', JSON.stringify(fp.mean),
     'FINGERPRINT PER GAME:', JSON.stringify(fp.perGame),
     'SAID VS DID GAPS (said = questionnaire, did = behaviour, both -1..+1):', fp.gaps.length ? fp.gaps.map(g => g.note).join('\n') : '(none)',
@@ -82,25 +133,29 @@ function dossier(fp: PlayerFingerprint, importances: Importance[], moments: stri
 }
 
 export async function buildPersona(
-  letter: string, sessionDirs: string[], client: MetaClient, o: Opts & { log?: (line: string) => void } = {},
+  letter: string, sessionDirs: string[], client: MetaClient, o: Opts & { log?: (line: string) => void; traits?: TraitsFile | null } = {},
 ): Promise<Persona> {
   const log = o.log ?? console.log;
   const sessions = await Promise.all(sessionDirs.map(loadSession));
   const fp = await playerFingerprint(letter, sessionDirs);
   const importances = await loadImportances(letter, o);
-  const body = dossier(fp, importances, momentLines(sessions));
+  const kid = kidTraits(o.traits === undefined ? await loadTraits({ root: recordingsRoot(o) }) : o.traits, letter);
+  const words = kidWords(sessions, await loadDebriefs(recordingsRoot(o), letter), kid?.intents);
+  const body = dossier(fp, importances, momentLines(sessions), kid, words);
 
   const validMoments = new Set(sessions.flatMap(s => (s.moments ?? []).map(m => momentRef(s, m.id))));
   const validFields = new Set(Object.keys(fp.mean));
-  const valid = (e: string) => validMoments.has(e) || validFields.has(e);
+  const validTraits = new Set(Object.keys(kid?.traits ?? {}).filter(n => kid!.traits[n].value != null || Object.values(kid!.traits[n].per_game ?? {}).some(g => g.value != null)));
+  const valid = (e: string) => validMoments.has(e) || validFields.has(e) || validTraits.has(e);
 
   const lenses = {} as Record<LensName, Observation[]>;
   let dropped = 0;
   for (const lens of LENSES) {
     const prompt = [
       `Player ${letter} is a child playing prototype games. ${lens.ask}`,
-      'Every observation needs evidence: each evidence item must be either a moment id exactly as written in brackets below, or a fingerprint field name. Do not invent ids. Say only what the evidence supports.',
+      'Every observation needs evidence: each evidence item must be a moment id exactly as written in brackets below, a fingerprint field name, or a trait name. Do not invent ids. Say only what the evidence supports. When a claim rests on the kid\'s own words, say so ("they said...").',
       `Fingerprint field names: ${[...validFields].join(', ')}.`,
+      `Trait names: ${[...validTraits].join(', ') || '(none with data)'}.`,
       '', body,
     ].join('\n');
     const res = await client.respond<{ observations: Observation[] }>({
@@ -119,7 +174,7 @@ export async function buildPersona(
 
   const synth = [
     `Player ${letter} is a child playing prototype games. Three experts read their play. Combine the observations below into one persona that a forecaster can use to predict this child's reactions to a game they have not played.`,
-    'Give tolerances as numbers: fail_streak is how many fails in a row before they sour, recovery_s is seconds from a fail to trying again, idle_before_bored_s is seconds of doing nothing before they are bored. Make tells concrete (what face, voice and hands do). In said_vs_did, call out where the questionnaire differs from play. In predictions_guidance, say in plain words what to expect and what not to expect. Every claim must come from the observations or the data; do not invent backstory or feelings.',
+    'Give tolerances as numbers: fail_streak is how many fails in a row before they sour, recovery_s is seconds from a fail to trying again, idle_before_bored_s is seconds of doing nothing before they are bored. Make tells concrete (what face, voice and hands do). In said_vs_did, call out where the questionnaire or the debrief differs from play, quoting their words. ' + TRAIT_RULE + ' In predictions_guidance, say in plain words what to expect and what not to expect. Every claim must come from the observations or the data; do not invent backstory or feelings.',
     '', 'EXPERT OBSERVATIONS (observations):', JSON.stringify(lenses), '', body,
   ].join('\n');
   const res = await client.respond<Omit<Persona, 'letter' | 'lenses' | 'dropped_observations'>>({

@@ -201,3 +201,21 @@ describe('scoreboard lines', () => {
     expect(lines.at(-1)).toMatch(/ranking check .*model-traits  1\.00, model-kid -1\.00/);
   });
 });
+
+describe.skipIf(!venvAvailable())('persona traits in leave-one-game-out (needs analysis/.venv)', () => {
+  it('gives each fold persona traits computed without the held-out game', async () => {
+    const root = await tempRoot();
+    for (const [i, g] of ['g1', 'g2'].entries()) {
+      const { events: e, moments: m } = failStream(i);
+      await writeSession(root, `a-${g}-learn`, { kid: 'A', game: g, events: e, moments: m });
+    }
+    const client = recordingClient();
+    await logo('A', client, { root, log: () => {}, sims: 5 });
+    const lensCalls = client.calls.filter(c => c.schema === 'lens');
+    expect(lensCalls.length).toBe(6);
+    // fold 1 holds out g1: its trait lines name g2 only
+    expect(lensCalls[0].text).toMatch(/per game: g2 /);
+    expect(lensCalls[0].text).not.toMatch(/per game: g1 /);
+    expect(lensCalls[3].text).toMatch(/per game: g1 /);
+  }, 240_000);
+});
