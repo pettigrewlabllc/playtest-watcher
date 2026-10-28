@@ -93,14 +93,15 @@ describe('predictSession (prompted predictors)', () => {
 });
 
 describe.skipIf(!venvAvailable())('model predictor (needs analysis/.venv)', () => {
-  it('predicts frustrated at the stage with the planted fail streak and not at the calm one', async () => {
+  it('ranks frustrated first at the stage with the planted fail streak, on the 2-per-stage budget', async () => {
     const { root, trainDirs } = await world();
     await trainPlayer('A', trainDirs, { root });
     const tdir = await writeSession(root, 'ref-g4', { kid: 'ref', game: 'g4', round: 'reference', events: target() });
     const res = await predictSession('A', tdir, recordingClient(), ['model'], { root });
     const items = res.model.items;
-    expect(items.some(i => i.stage === '2' && i.label === 'frustrated')).toBe(true);
-    expect(items.some(i => i.stage === '1')).toBe(false);
-    for (const i of items) expect(i.p).toBeGreaterThanOrEqual(0.35);
+    const at = (st: string) => items.filter(i => i.stage === st);
+    expect(at('2')[0].label).toBe('frustrated');
+    for (const st of ['1', '2']) expect(at(st).length).toBeLessThanOrEqual(2);
+    expect(at('2')[0].p).toBeGreaterThan(Math.max(0, ...at('1').filter(i => i.label === 'frustrated').map(i => i.p)));
   }, 120_000);
 });
