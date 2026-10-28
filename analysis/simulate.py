@@ -67,7 +67,9 @@ def outcome_types(events, pr):
 
 def simulate(events, game, kid, afm, model, n=N_SIMS, seed=0, draws=None):
     """Mean label probabilities per event (len(events) x 6) over n simulated playthroughs, and the mean success rate."""
-    pr = pairs(events)
+    resolvable = resolvable_types(events)
+    # only attempt types whose successes the game logs are resampled; the rest replay as they happened
+    pr = {j: v for j, v in pairs(events).items() if events[j]["type"] in resolvable}
     types = outcome_types(events, pr)
     attempts = sorted(pr)
     rng = np.random.default_rng(seed)
@@ -82,7 +84,6 @@ def simulate(events, game, kid, afm, model, n=N_SIMS, seed=0, draws=None):
     drop = {m: flip_kind[k][0] for k, (a, j, follow) in flip_kind.items() for m in follow}
 
     stages = stages_of(events)
-    resolvable = resolvable_types(events)
     steppers = [Stepper(resolvable) for _ in range(n)]
     prev = np.array(["none"] * n, dtype=object)
     prev_end = np.zeros(n)
@@ -143,7 +144,8 @@ def main(argv=None):
     game, kid = str(meta.get("game", "unknown")), args.kid.upper()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    draws = np.random.default_rng(1).random((args.n, len(pairs(events))))
+    resolvable = resolvable_types(events)
+    draws = np.random.default_rng(1).random((args.n, sum(1 for j in pairs(events) if events[j]["type"] in resolvable)))
     summary = {"kid": kid, "game": game, "target": Path(args.target).name, "n": args.n, "variants": {}}
     for variant, model in models.items():
         P, info = simulate(events, game, kid, afm, model, n=args.n, draws=draws)

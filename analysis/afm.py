@@ -51,8 +51,11 @@ def pair_attempts(df: pd.DataFrame) -> pd.DataFrame:
             k = (same or cands)[0]
             used.add(k)
             out.append(dict(session=str(session), kid=str(r["kid"]), game=str(r["game"]), block=int(r["block"]),
-                            practice=p, y=1 if recs[k]["kind"] == "success" else 0))
-    return pd.DataFrame(out, columns=["session", "kid", "game", "block", "practice", "y"])
+                            practice=p, type=str(r["type"]), y=1 if recs[k]["kind"] == "success" else 0))
+    att = pd.DataFrame(out, columns=["session", "kid", "game", "block", "practice", "type", "y"])
+    # an attempt type no kid ever succeeds at on a game is one whose successes the game doesn't log; leave it out
+    ok = att.groupby(["game", "type"])["y"].transform("max") == 1 if len(att) else att["y"].astype(bool)
+    return att[ok].reset_index(drop=True)
 
 
 def design(att, kids, games):

@@ -43,8 +43,8 @@ export function resolveIntents(debriefs: Debrief[], sessionId: string, game: str
 const SAME_FAILURE_MS = 50;
 const PAIR_MS = 2000;
 
-// Attempt types that ever get an outcome (a success or fail within 2 s, before the next attempt). Only these count
-// toward wheel-spinning: Hoard Keeper's query_step attempts never log one, so they would count forever.
+// Attempt types whose success is ever logged (a success within 2 s, before the next attempt). Only these count toward
+// wheel-spinning: Hoard Keeper's audit logs a wrong answer but never a right one, so its query_step attempts would count forever.
 export function resolvableTypes(events: AlignedEvent[]): Set<string> {
   const out = new Set<string>();
   events.forEach((e, j) => {
@@ -52,7 +52,8 @@ export function resolvableTypes(events: AlignedEvent[]): Set<string> {
     for (let k = j + 1; k < events.length; k++) {
       const o = events[k];
       if (o.kind === 'attempt' || o.ms - e.ms > PAIR_MS) break;
-      if (o.kind === 'success' || o.kind === 'fail') { out.add(e.type); break; }
+      if (o.kind === 'success') { out.add(e.type); break; }
+      if (o.kind === 'fail') break;
     }
   });
   return out;

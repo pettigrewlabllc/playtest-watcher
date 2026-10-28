@@ -49,8 +49,9 @@ def test_pairs_attempts_with_the_next_outcome_within_2s():
         dict(session="s", kid="A", game="g", i=9, ms=9700, kind="fail", type="swap", block=2),
     ])
     att = afm.pair_attempts(df)
-    assert list(att["y"]) == [1, 0, 0]            # the 5 s attempt is unresolved; swap pairs with its own type
-    assert list(att["practice"]) == [0, 1, 3]     # unresolved attempts still count as practice
+    # the 5 s attempt is unresolved; swap pairs with its own type but no swap ever succeeds, so swaps are left out
+    assert list(att["y"]) == [1, 0]
+    assert list(att["practice"]) == [0, 1]        # unresolved attempts still count as practice
 
 
 def test_planted_fast_and_slow_learner(tmp_path):
