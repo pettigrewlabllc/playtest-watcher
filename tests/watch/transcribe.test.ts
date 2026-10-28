@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { writeFile, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { transcribe, keywordsFor } from '../../src/watch/transcribe.ts';
+import { applyKidSpeaker, transcribe, keywordsFor } from '../../src/watch/transcribe.ts';
+import { parseArgs } from '../../src/watch/run.ts';
 import { createMetaClient, type MetaClient } from '../../src/meta/client.ts';
 import { tmp } from './helpers.ts';
 
@@ -64,5 +65,31 @@ describe('transcribe', () => {
     const kw = keywordsFor('hoard-keeper', [{ ms: 0, type: 'molecule_bonded', kind: 'progress', data: {} }, { ms: 1, type: 'audit_start', kind: 'progress', data: {} }]);
     expect(kw).toEqual(expect.arrayContaining(['hoard keeper', 'molecule', 'bonded', 'audit']));
     expect(kw).not.toContain('start');
+  });
+
+  it('logs talk time per speaker for each chunk, longest first, so the kid speaker can be checked', async () => {
+    const dir = await setup();
+    const lines: string[] = [];
+    await transcribe(dir, stub([
+      [{ speaker: 'A', startMs: 1000, endMs: 2000, text: 'hm' }, { speaker: 'B', startMs: 3000, endMs: 9000, text: 'what' }],
+      [{ speaker: 'A', startMs: 500, endMs: 8000, text: 'oh' }],
+    ]), { log: l => lines.push(l) });
+    expect(lines).toEqual([
+      'transcribe chunk 0 (mic_000.wav): B 6.0 s (kid), A 1.0 s',
+      'transcribe chunk 1 (mic_001.wav): A 7.5 s (kid)',
+    ]);
+  });
+
+  it('--kid-speaker writes session.json and relabels an existing transcript without a new API call', async () => {
+    const dir = await setup({ game: 'g', kid: 'a' });
+    await transcribe(dir, stub([[{ speaker: 'A', startMs: 0, endMs: 100, text: 'me' }, { speaker: 'B', startMs: 200, endMs: 9000, text: 'mum' }], []]));
+    const r = await applyKidSpeaker(dir, 'A');
+    expect(r.relabelled).toBe(true);
+    expect(JSON.parse(await readFile(join(dir, 'session.json'), 'utf8'))).toEqual({ game: 'g', kid: 'a', kidSpeaker: 'A' });
+    const t = JSON.parse(await readFile(join(dir, 'transcript.json'), 'utf8'));
+    expect(t.kidSpeaker).toBe('A');
+    expect(t.turns.map((x: { who: string }) => x.who)).toEqual(['kid', 'adult']);
+    await expect(applyKidSpeaker(dir, '../x')).rejects.toThrow(/speaker label/);
+    expect(parseArgs(['20261027-221910-d-bond-swap-learn', '--kid-speaker', 'B'])).toMatchObject({ id: '20261027-221910-d-bond-swap-learn', kidSpeaker: 'B' });
   });
 });
