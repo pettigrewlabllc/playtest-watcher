@@ -43,6 +43,7 @@ describe.skipIf(!venvAvailable())('freeze (needs analysis/.venv)', () => {
     }
     const doc = await readFile(docFile, 'utf8');
     expect(doc).toContain('check-1');
+    expect(doc).toContain('Pre-registered analysis');
     expect(doc).toContain('2026-11-01');
     expect(doc).not.toMatch(/\bC\b/);
     expect(doc).not.toMatch(/ref-g4|kids/);

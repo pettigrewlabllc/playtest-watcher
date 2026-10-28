@@ -42,9 +42,23 @@ const num2 = (n: number | null | undefined) => (n == null ? '  -  ' : n.toFixed(
 const aucText = (a: Record<string, number> | undefined) => (a && Object.keys(a).length ? Object.entries(a).map(([l, v]) => `${l} ${v.toFixed(2)}`).join(', ') : '-');
 const aggLine = (a: Agg | Score | null) => (a ? `recall ${pct(a.recall)}  precision ${pct(a.precision)}  mix ${pct(a.mix_similarity)}  kappa ${num2(a.kappa)}  AUC ${aucText(a.auc)}` : 'no data');
 
-// Reliability first, above every prediction score.
+// Reliability first, then the pre-registered primary metric (docs/frozen-predictions.md), then everything else.
 export function scoreboardLines(sb: Scoreboard): string[] {
   const lines = reliabilityLine(sb.reliability).split('\n');
+  lines.push('PRIMARY (pre-registered): stage-level kappa on the check session, at a matched budget of 2 reactions per stage. Paired hits over the same real moments, against null.');
+  for (const [letter, p] of Object.entries(sb.players)) {
+    let any = false;
+    for (const name of ALL_PREDICTORS) {
+      const c = p.predictors[name]?.check;
+      if (!c) continue;
+      any = true;
+      const pr = p.paired?.[name];
+      const pair = pr ? `  hit ${pr.hits} / missed ${pr.misses}  vs null: both ${pr.vs_null.both}, only this ${pr.vs_null.only_this}, only null ${pr.vs_null.only_null}, neither ${pr.vs_null.neither}` : '';
+      lines.push(`  ${letter} ${name.padEnd(13)} kappa ${num2(c.kappa)}${pair}`);
+    }
+    if (!any) lines.push(`  ${letter}: no check session scored yet`);
+  }
+  lines.push('Secondary:');
   for (const [letter, p] of Object.entries(sb.players)) {
     lines.push(`${letter}  replay ceiling: ${p.ceiling ? `recall ${pct(p.ceiling.recall)}` : 'none'}`);
     for (const name of ALL_PREDICTORS) {
