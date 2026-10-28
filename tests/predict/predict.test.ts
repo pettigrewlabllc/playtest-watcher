@@ -58,7 +58,19 @@ describe('predictSession (prompted predictors)', () => {
       expect(items.map(i => i.label)).toEqual(['frustrated', 'stuck']);   // max 2 per stage, best p first; bad stage and none dropped
       expect(items.every(i => i.stage === '2')).toBe(true);
     }
-    expect(PREDICTORS).toEqual(['baseline', 'questionnaire', 'persona', 'model']);
+    expect(PREDICTORS).toEqual(['null', 'baseline', 'questionnaire', 'persona', 'model']);
+  });
+
+  it('null predicts every label at every stage under the same 2-per-stage cap, without a model call', async () => {
+    const { root } = await world();
+    const tdir = await writeSession(root, 'ref-g4', { kid: 'ref', game: 'g4', round: 'reference', events: target() });
+    const client = recordingClient();
+    const res = await predictSession('A', tdir, client, ['null'], { root });
+    expect(client.calls).toHaveLength(0);
+    const items = res.null.items;
+    expect([...new Set(items.map(i => i.stage))]).toEqual(['1', '2']);
+    for (const st of ['1', '2']) expect(items.filter(i => i.stage === st)).toHaveLength(2);
+    expect(new Set(items.map(i => i.p))).toEqual(new Set([1 / 5]));
   });
 
   it('never reads the player\'s own moments from the target, only another session\'s screen notes', async () => {

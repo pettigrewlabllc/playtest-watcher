@@ -31,9 +31,9 @@ type Item = Pick<PredictedItem, 'stage' | 'event_type' | 'label'>;
 const ratio = (n: number, d: number) => (d > 0 ? n / d : null);
 
 // Stage and event type of a real moment: the stage at the middle of its window, the event closest to that middle.
-export function realMoments(aligned: { events: { ms: number; type: string; kind: string; data: Record<string, unknown> }[] }, moments: Parameters<typeof okMoments>[0]): { real: RealMoment[]; stageOrder: string[] } {
+export function realMoments(aligned: { events: { ms: number; type: string; kind: string; data: Record<string, unknown> }[] }, moments: Parameters<typeof okMoments>[0], game = ''): { real: RealMoment[]; stageOrder: string[] } {
   const events = aligned.events;
-  const stages = stagesOf(events);
+  const stages = stagesOf(events, game);
   const real = okMoments(moments).map(m => {
     const mid = (m.startMs + m.endMs) / 2;
     let at = -1;
@@ -111,7 +111,7 @@ function stageLevel(items: (Item & { p?: number })[], real: RealMoment[], stageO
 
 async function loadReal(dir: string) {
   const s = await loadSession(dir);
-  return realMoments(s.aligned, s.moments);
+  return realMoments(s.aligned, s.moments, s.meta.game);
 }
 
 export async function scorePrediction(pred: Pick<Prediction, 'items'>, realSessionDir: string): Promise<Score> {

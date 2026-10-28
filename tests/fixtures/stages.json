@@ -1,0 +1,554 @@
+[
+ {
+  "game": "bond-swap",
+  "events": [
+   {
+    "ms": 0,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "map"
+    }
+   },
+   {
+    "ms": 1,
+    "type": "level_start",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "level": 1
+    }
+   },
+   {
+    "ms": 2,
+    "type": "swap",
+    "kind": "attempt",
+    "data": {
+     "kind": "attempt",
+     "level": 1
+    }
+   },
+   {
+    "ms": 3,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "result"
+    }
+   },
+   {
+    "ms": 4,
+    "type": "level_end",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "level": 1
+    }
+   },
+   {
+    "ms": 5,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "map"
+    }
+   },
+   {
+    "ms": 6,
+    "type": "level_start",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "level": 2
+    }
+   }
+  ],
+  "stages": [
+   "start",
+   "level 1",
+   "level 1",
+   "level 1",
+   "level 1",
+   "level 1",
+   "level 2"
+  ]
+ },
+ {
+  "game": "current-cut",
+  "events": [
+   {
+    "ms": 0,
+    "type": "level_start",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "level": "cave-3"
+    }
+   }
+  ],
+  "stages": [
+   "level cave-3"
+  ]
+ },
+ {
+  "game": "factor-slicer",
+  "events": [
+   {
+    "ms": 0,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "title"
+    }
+   },
+   {
+    "ms": 1,
+    "type": "run_start",
+    "kind": "progress",
+    "data": {
+     "kind": "progress"
+    }
+   },
+   {
+    "ms": 1,
+    "type": "wave_start",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "wave": 1,
+     "blade": 2
+    }
+   },
+   {
+    "ms": 2,
+    "type": "slice",
+    "kind": "attempt",
+    "data": {
+     "kind": "attempt",
+     "blade": 2
+    }
+   },
+   {
+    "ms": 3,
+    "type": "wave_start",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "wave": 2,
+     "blade": 3
+    }
+   },
+   {
+    "ms": 4,
+    "type": "run_end",
+    "kind": "progress",
+    "data": {
+     "kind": "progress"
+    }
+   },
+   {
+    "ms": 5,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "game-over"
+    }
+   },
+   {
+    "ms": 6,
+    "type": "run_start",
+    "kind": "progress",
+    "data": {
+     "kind": "progress"
+    }
+   },
+   {
+    "ms": 6,
+    "type": "wave_start",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "wave": 1,
+     "blade": 2
+    }
+   }
+  ],
+  "stages": [
+   "start",
+   "start",
+   "blade 2",
+   "blade 2",
+   "blade 3",
+   "blade 3",
+   "blade 3",
+   "blade 3",
+   "blade 2"
+  ],
+  "runs": [
+   0,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   2,
+   2
+  ]
+ },
+ {
+  "game": "hoard-keeper",
+  "events": [
+   {
+    "ms": 0,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "who"
+    }
+   },
+   {
+    "ms": 1,
+    "type": "rush_start",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "season": 1
+    }
+   },
+   {
+    "ms": 2,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "rush"
+    }
+   },
+   {
+    "ms": 3,
+    "type": "rush_end",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "score": 2
+    }
+   },
+   {
+    "ms": 4,
+    "type": "audit_start",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "index": 1,
+     "of": 2
+    }
+   },
+   {
+    "ms": 5,
+    "type": "audit_answer",
+    "kind": "fail",
+    "data": {
+     "kind": "fail",
+     "correct": false
+    }
+   },
+   {
+    "ms": 6,
+    "type": "audit_start",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "index": 2,
+     "of": 2
+    }
+   },
+   {
+    "ms": 7,
+    "type": "audit_answer",
+    "kind": "fail",
+    "data": {
+     "kind": "fail"
+    }
+   },
+   {
+    "ms": 8,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "shop"
+    }
+   },
+   {
+    "ms": 9,
+    "type": "upgrade_unlocked",
+    "kind": "new_thing",
+    "data": {
+     "kind": "new_thing",
+     "name": "Pad"
+    }
+   },
+   {
+    "ms": 10,
+    "type": "rush_start",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "season": 2
+    }
+   }
+  ],
+  "stages": [
+   "start",
+   "season 1 rush",
+   "season 1 rush",
+   "season 1 rush",
+   "season 1 audit-1",
+   "season 1 audit-1",
+   "season 1 audit-2",
+   "season 1 shop",
+   "season 1 shop",
+   "season 1 shop",
+   "season 2 rush"
+  ]
+ },
+ {
+  "game": "something-new",
+  "events": [
+   {
+    "ms": 0,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "title"
+    }
+   },
+   {
+    "ms": 1,
+    "type": "progress",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "wave": "w3"
+    }
+   },
+   {
+    "ms": 2,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "run"
+    }
+   },
+   {
+    "ms": 3,
+    "type": "chapter",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "two"
+    }
+   }
+  ],
+  "stages": [
+   "start",
+   "w3",
+   "w3",
+   "two"
+  ]
+ },
+ {
+  "game": "bond-swap",
+  "events": [
+   {
+    "ms": 0,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "1"
+    }
+   },
+   {
+    "ms": 1,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "run"
+    }
+   },
+   {
+    "ms": 2,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "game-over"
+    }
+   }
+  ],
+  "stages": [
+   "start",
+   "start",
+   "start"
+  ]
+ },
+ {
+  "game": "factor-slicer",
+  "events": [
+   {
+    "ms": 0,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "1"
+    }
+   },
+   {
+    "ms": 1,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "run"
+    }
+   },
+   {
+    "ms": 2,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "game-over"
+    }
+   }
+  ],
+  "stages": [
+   "start",
+   "start",
+   "start"
+  ]
+ },
+ {
+  "game": "hoard-keeper",
+  "events": [
+   {
+    "ms": 0,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "1"
+    }
+   },
+   {
+    "ms": 1,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "run"
+    }
+   },
+   {
+    "ms": 2,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "game-over"
+    }
+   }
+  ],
+  "stages": [
+   "start",
+   "start",
+   "start"
+  ]
+ },
+ {
+  "game": "current-cut",
+  "events": [
+   {
+    "ms": 0,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "1"
+    }
+   },
+   {
+    "ms": 1,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "run"
+    }
+   },
+   {
+    "ms": 2,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "game-over"
+    }
+   }
+  ],
+  "stages": [
+   "start",
+   "start",
+   "start"
+  ]
+ },
+ {
+  "game": "unknown",
+  "events": [
+   {
+    "ms": 0,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "1"
+    }
+   },
+   {
+    "ms": 1,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "run"
+    }
+   },
+   {
+    "ms": 2,
+    "type": "screen",
+    "kind": "progress",
+    "data": {
+     "kind": "progress",
+     "name": "game-over"
+    }
+   }
+  ],
+  "stages": [
+   "start",
+   "start",
+   "start"
+  ]
+ }
+]

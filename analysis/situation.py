@@ -87,32 +87,74 @@ def in_window(session, e, end=None):
     return 0 <= e["ms"] <= (play_end_ms(session) if end is None else end)
 
 
-STAGE_FIELDS = ("level", "wave", "season", "name")
+FALLBACK_FIELDS = ("level", "wave", "season", "name")
 ROW_COLUMNS = ["session", "game", "i", "ms", "stage", "kind", "type", "fail_streak", "s_since_success", "s_since_progress",
                "attempts_30s", "new_thing_10s", "text_chars_on_screen", "s_in_session", "explore_so_far", "help_so_far",
                "label", "weak_labels", "kid", "block", "prev_label", "s_since_moment", "rapid_retry", "attempts_no_success", "intent"]
 
 
-def _stage_field(e):
-    if e.get("kind") != "progress":
+def _num(v):
+    if isinstance(v, bool):
         return None
-    for f in STAGE_FIELDS:
-        v = (e.get("data") or {}).get(f)
-        if isinstance(v, bool):
-            continue
-        if isinstance(v, float) and v.is_integer():
-            v = int(v)
-        if isinstance(v, (str, int, float)):
-            return str(v)
+    if isinstance(v, float) and v.is_integer():
+        v = int(v)
+    if isinstance(v, (int, float)) or (isinstance(v, str) and v != ""):
+        return str(v)
     return None
 
 
-def stages_of(events):
-    cur, out = "start", []
+def _level_start(e, st):
+    lv = _num((e.get("data") or {}).get("level"))
+    return f"level {lv}" if e.get("type") == "level_start" and lv is not None else None
+
+
+def _factor_slicer(e, st):
+    b = _num((e.get("data") or {}).get("blade"))
+    return f"blade {b}" if e.get("type") == "wave_start" and b is not None else None
+
+
+def _hoard_keeper(e, st):
+    d, t = e.get("data") or {}, e.get("type")
+    if t == "rush_start" and _num(d.get("season")) is not None:
+        st["season"], st["audit"] = _num(d.get("season")), None
+        return f"season {st['season']} rush"
+    if st.get("season") is None:
+        return None
+    if t == "audit_start" and _num(d.get("index")) is not None:
+        st["audit"], st["of"] = int(float(d["index"])), d.get("of")
+        return f"season {st['season']} audit-{st['audit']}"
+    if t == "audit_answer" and st.get("audit") is not None and st["of"] is not None and st["audit"] == int(float(st["of"])):
+        st["audit"] = None
+        return f"season {st['season']} shop"
+    return None
+
+
+def _fallback(e, st):
+    if e.get("kind") != "progress" or e.get("type") == "screen":
+        return None
+    for f in FALLBACK_FIELDS:
+        v = _num((e.get("data") or {}).get(f))
+        if v is not None:
+            return v
+    return None
+
+
+STAGE_MAPS = {"bond-swap": _level_start, "current-cut": _level_start, "factor-slicer": _factor_slicer, "hoard-keeper": _hoard_keeper}
+
+
+def stage_info_of(events, game=""):
+    """(key, run) per event: the game's own content unit, never a screen name. Mirrors src/predict/stages.ts."""
+    step, st, key, run, out = STAGE_MAPS.get(game, _fallback), {}, "start", 0, []
     for e in events:
-        cur = _stage_field(e) or cur
-        out.append(cur)
+        if e.get("type") == "run_start":
+            run += 1
+        key = step(e, st) or key
+        out.append((key, run))
     return out
+
+
+def stages_of(events, game=""):
+    return [k for k, _ in stage_info_of(events, game)]
 
 
 PAIR_MS = 2000
@@ -196,7 +238,7 @@ def build_rows(session, intents=None, moments="from_session"):
     weak = ms_ is None
     real = ok_moments(ms_)
     ended = sorted(real, key=lambda m: m["endMs"])
-    stages, blocks = stages_of(events), blocks_of(events)
+    stages, blocks = stages_of(events, session["game"]), blocks_of(events)
     st, rows = Stepper(resolvable_types(events)), []
     end = play_end_ms(session)
     for i, e in enumerate(events):

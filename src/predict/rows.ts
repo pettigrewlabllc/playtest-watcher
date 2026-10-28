@@ -87,7 +87,7 @@ export type RowOpts = { kid?: string; intents?: Record<string, string> };
 
 export function buildRows(session: string, game: string, aligned: Aligned, moments: Moment[] | null, o: RowOpts = {}): Row[] {
   const events = aligned.events;
-  const stages = stagesOf(events);
+  const stages = stagesOf(events, game);
   const blocks = blocksOf(events);
   const ended = okMoments(moments).slice().sort((a, b) => a.endMs - b.endMs);
   const end = playEndMs(aligned);
