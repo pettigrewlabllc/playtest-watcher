@@ -186,3 +186,14 @@ describe('recording window', () => {
     expect(rows[0].explore_so_far).toBe(1);   // state still counts what came before the window
   });
 });
+
+describe('wheel-spinning count', () => {
+  it('counts only attempt types that ever get an outcome (Hoard Keeper query steps never do)', async () => {
+    const root = await tempRoot();
+    const evs = [ev(0, 'attempt', {}, 'file_item'), ev(100, 'fail', {}, 'file_item'), ev(1000, 'attempt', {}, 'query_step'),
+      ev(2000, 'attempt', {}, 'query_step'), ev(3000, 'attempt', {}, 'file_item')];
+    const dir = await writeSession(root, 's', { events: evs, moments: [] });
+    const rows = await sessionRows(dir);
+    expect(rows.map(r => r.attempts_no_success)).toEqual([1, 1, 1, 1, 2]);
+  });
+});

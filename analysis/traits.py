@@ -11,7 +11,7 @@ from sklearn.linear_model import LogisticRegression
 sys.path.insert(0, str(Path(__file__).parent))
 from common import BOOT, K_SHRINK, LEVEL, block_resample, dump, interval, num, trait  # noqa: E402
 from situation import (RAPID_RETRY_MS, SAME_FAILURE_MS, blocks_of, load_session, ok_moments, play_end_ms,  # noqa: E402,F401
-                       read_json, resolve_intents)
+                       read_json, resolvable_types, resolve_intents)
 
 UPSET = {"frustrated", "stuck"}
 NEGATIVE = {"frustrated", "stuck", "bored"}
@@ -51,6 +51,7 @@ def session_blocks(s, intents):
         end = s["events"][-1]["ms"] if s["events"] else 0
     events = [e for e in s["events"] if 0 <= e["ms"] <= end]   # the recording window only
     blocks = blocks_of(events)
+    resolvable = resolvable_types(s["events"])
     moments = ok_moments(s["moments"]) if s["moments"] is not None else None
     ids = sorted(set(blocks))
     first = {b: next(e["ms"] for e, bb in zip(events, blocks) if bb == b) for b in ids}
@@ -60,7 +61,7 @@ def session_blocks(s, intents):
         first[0] = 0
     bounds = {b: (first[b], first[ids[i + 1]] if i + 1 < len(ids) else end) for i, b in enumerate(ids)}
     st = {b: dict(session=s["id"], block=b, start=bounds[b][0], minutes=max(0, bounds[b][1] - bounds[b][0]) / 60000,
-                  attempts=0, explores=0, accidental=0, gaps=[], idleq=[], reads=[], pauses=[], wheel=0,
+                  attempts=0, resolvable=0, explores=0, accidental=0, gaps=[], idleq=[], reads=[], pauses=[], wheel=0,
                   outcomes=[], last_fail=None, ft=[], bored_streak=[], neg=0, confused=[], channels=[],
                   has_moments=moments is not None) for b in ids}
 
@@ -93,9 +94,11 @@ def session_blocks(s, intents):
                 x["bored_streak"].append(int(_active_or_starts(moments, t, t + 10000, {"bored"})))
         elif k == "attempt":
             x["attempts"] += 1
-            no_success += 1
-            if no_success >= WHEEL_N:
-                x["wheel"] += 1
+            if e["type"] in resolvable:
+                no_success += 1
+                x["resolvable"] += 1
+                if no_success >= WHEEL_N:
+                    x["wheel"] += 1
             if new_at is not None:
                 st[new_at[1]]["pauses"].append((t - new_at[0]) / 1000)
                 new_at = None
@@ -254,7 +257,7 @@ def extras(name, bs, sessions, intents):
         long_ = [x[0] for x in r if x[1] >= LONG_TEXT]
         return {"short_share": float(np.mean(short)) if short else None, "long_share": float(np.mean(long_)) if long_ else None}
     if name == "persistence":
-        attempts = sum(b["attempts"] for b in bs)
+        attempts = sum(b["resolvable"] for b in bs)
         worst = [b for b in bs if len(b["outcomes"]) >= 3]
         after = None
         if worst:

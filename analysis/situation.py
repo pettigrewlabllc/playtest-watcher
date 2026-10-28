@@ -115,11 +115,30 @@ def stages_of(events):
     return out
 
 
+PAIR_MS = 2000
+
+
+def resolvable_types(events):
+    """Attempt types that ever get an outcome; only these count toward wheel-spinning (mirrors rows.ts)."""
+    out = set()
+    for j, e in enumerate(events):
+        if e["kind"] != "attempt":
+            continue
+        for o in events[j + 1:]:
+            if o["kind"] == "attempt" or o["ms"] - e["ms"] > PAIR_MS:
+                break
+            if o["kind"] in ("success", "fail"):
+                out.add(e["type"])
+                break
+    return out
+
+
 class Stepper:
     """The situation features of rows.ts, one event at a time, so a simulation can change outcomes as it goes.
     prev_label and s_since_moment are left to the caller (moments, or the simulation's own sampled reactions)."""
 
-    def __init__(self):
+    def __init__(self, resolvable=None):
+        self.resolvable = resolvable
         self.fail_streak, self.last_fail, self.no_success = 0, -float("inf"), 0
         self.last_success, self.last_progress, self.explore, self.help = 0, 0, 0, 0
         self.attempts, self.new_things, self.open_text = deque(), deque(), []
@@ -140,7 +159,8 @@ class Stepper:
             self.last_progress = t
         elif k == "attempt":
             self.attempts.append(t)
-            self.no_success += 1
+            if self.resolvable is None or e["type"] in self.resolvable:
+                self.no_success += 1
             rapid = int(t - self.last_fail < RAPID_RETRY_MS)
         elif k == "new_thing":
             self.new_things.append(t)
@@ -175,7 +195,7 @@ def build_rows(session, intents=None, moments="from_session"):
     real = ok_moments(ms_)
     ended = sorted(real, key=lambda m: m["endMs"])
     stages, blocks = stages_of(events), blocks_of(events)
-    st, rows = Stepper(), []
+    st, rows = Stepper(resolvable_types(events)), []
     end = play_end_ms(session)
     for i, e in enumerate(events):
         f = st.step(e, i)

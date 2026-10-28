@@ -41,6 +41,22 @@ export function resolveIntents(debriefs: Debrief[], sessionId: string, game: str
 }
 
 const SAME_FAILURE_MS = 50;
+const PAIR_MS = 2000;
+
+// Attempt types that ever get an outcome (a success or fail within 2 s, before the next attempt). Only these count
+// toward wheel-spinning: Hoard Keeper's query_step attempts never log one, so they would count forever.
+export function resolvableTypes(events: AlignedEvent[]): Set<string> {
+  const out = new Set<string>();
+  events.forEach((e, j) => {
+    if (e.kind !== 'attempt') return;
+    for (let k = j + 1; k < events.length; k++) {
+      const o = events[k];
+      if (o.kind === 'attempt' || o.ms - e.ms > PAIR_MS) break;
+      if (o.kind === 'success' || o.kind === 'fail') { out.add(e.type); break; }
+    }
+  });
+  return out;
+}
 const RAPID_RETRY_MS = 1000;
 const isBlockStart = (e: AlignedEvent) => e.kind === 'progress' && /_start$/.test(e.type) && e.type !== 'logger_start';
 const hasStageNumber = (e: AlignedEvent) => e.kind === 'progress' && ['level', 'wave', 'season'].some(f => e.data[f] !== undefined);
@@ -74,6 +90,7 @@ export function buildRows(session: string, game: string, aligned: Aligned, momen
   const blocks = blocksOf(events);
   const ended = okMoments(moments).slice().sort((a, b) => a.endMs - b.endMs);
   const end = playEndMs(aligned);
+  const resolvable = resolvableTypes(events);
   const weak = moments === null;
   const real = okMoments(moments);
   const rows: Row[] = [];
@@ -100,7 +117,7 @@ export function buildRows(session: string, game: string, aligned: Aligned, momen
     }
     else if (e.kind === 'success') { failStreak = 0; noSuccess = 0; lastSuccessMs = e.ms; }
     else if (e.kind === 'progress') lastProgressMs = e.ms;
-    else if (e.kind === 'attempt') { attempts.push(e.ms); noSuccess++; rapid = e.ms - lastFailMs < RAPID_RETRY_MS ? 1 : 0; }
+    else if (e.kind === 'attempt') { attempts.push(e.ms); if (resolvable.has(e.type)) noSuccess++; rapid = e.ms - lastFailMs < RAPID_RETRY_MS ? 1 : 0; }
     else if (e.kind === 'new_thing') newThings.push(e.ms);
     else if (e.kind === 'explore') explore++;
     else if (e.kind === 'help') help++;

@@ -17,7 +17,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).parent))
 from afm import PAIR_MS  # noqa: E402
 from common import dump  # noqa: E402
-from situation import LABELS, SAME_FAILURE_MS, Stepper, in_window, read_json, stages_of  # noqa: E402
+from situation import LABELS, SAME_FAILURE_MS, Stepper, in_window, read_json, resolvable_types, stages_of  # noqa: E402
 
 N_SIMS = 200
 
@@ -82,7 +82,8 @@ def simulate(events, game, kid, afm, model, n=N_SIMS, seed=0, draws=None):
     drop = {m: flip_kind[k][0] for k, (a, j, follow) in flip_kind.items() for m in follow}
 
     stages = stages_of(events)
-    steppers = [Stepper() for _ in range(n)]
+    resolvable = resolvable_types(events)
+    steppers = [Stepper(resolvable) for _ in range(n)]
     prev = np.array(["none"] * n, dtype=object)
     prev_end = np.zeros(n)
     cur = np.array(["none"] * n, dtype=object)
