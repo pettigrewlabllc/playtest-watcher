@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { clientFromEnv, createMetaClient, type MetaClient } from '../meta/client.ts';
 import { isValidSessionId } from '../server/ids.ts';
 import { align } from './align.ts';
-import { transcribe } from './transcribe.ts';
+import { applyKidSpeaker, transcribe } from './transcribe.ts';
 import { candidatesStage } from './candidates.ts';
 import { explainStage } from './explain.ts';
 import { fixesStage } from './fixes.ts';
@@ -38,7 +38,7 @@ export async function runWatch(
       const a = await align(dir);
       summary = `${Object.keys(a.tracks).length} video tracks, ${a.audio?.wavChunks.length ?? 0} audio chunks, ${a.events.length} events`;
     } else if (stage === 'transcribe') {
-      const t = await transcribe(dir, client);
+      const t = await transcribe(dir, client, { log });
       summary = `${t.turns.length} turns`;
     } else if (stage === 'candidates') {
       const c = await candidatesStage(dir);
@@ -58,9 +58,10 @@ export async function runWatch(
   return { ran, skipped };
 }
 
-function parseArgs(argv: string[]): { id?: string; force?: Stage; live: boolean } {
+export function parseArgs(argv: string[]): { id?: string; force?: Stage; live: boolean; kidSpeaker?: string } {
   let id: string | undefined;
   let force: Stage | undefined;
+  let kidSpeaker: string | undefined;
   let live = false;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -69,17 +70,27 @@ function parseArgs(argv: string[]): { id?: string; force?: Stage; live: boolean 
       const s = argv[++i] as Stage;
       if (!STAGES.includes(s)) throw new Error(`--force needs one of: ${STAGES.join(', ')}`);
       force = s;
+    } else if (a === '--kid-speaker') {
+      kidSpeaker = argv[++i];
+      if (!kidSpeaker) throw new Error('--kid-speaker needs a speaker label, as printed by transcribe (e.g. A)');
     } else if (!a.startsWith('--')) id = a;
   }
-  return { id, force, live };
+  return { id, force, live, kidSpeaker };
 }
 
 async function main(): Promise<void> {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-  const { id, force, live } = parseArgs(process.argv.slice(2));
-  if (!id || !isValidSessionId(id)) throw new Error('usage: npm run watch -- <sessionId> [--force <stage>] [--live]');
+  const { id, force, live, kidSpeaker } = parseArgs(process.argv.slice(2));
+  if (!id || !isValidSessionId(id)) throw new Error('usage: npm run watch -- <sessionId> [--force <stage>] [--kid-speaker <label>] [--live]');
   const dir = join(root, 'recordings', id);
   if (!(await exists(join(dir, 'manifest.json')))) throw new Error(`no manifest.json in ${dir}`);
+  if (kidSpeaker) {
+    const { relabelled } = await applyKidSpeaker(dir, kidSpeaker);
+    console.log(`kid speaker set to ${kidSpeaker}${relabelled ? '; transcript.json relabelled' : ''}`);
+    if (relabelled && (await exists(join(dir, 'moments.json'))) && !force) {
+      console.log('moments.json was explained with the old labels; rerun with --force explain to redo it');
+    }
+  }
 
   // Two keys on purpose: --live here, and PW_LIVE=1 plus MODEL_API_KEY in the environment.
   let client: MetaClient;
