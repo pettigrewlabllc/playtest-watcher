@@ -234,6 +234,23 @@ Most developers will have a coding agent wire Playtest Watcher into their game. 
 4. **`AGENTS.md` and an `instrument-game` skill**: the step-by-step an agent follows: read the game's code, find its real decision points, add the logger calls, write `game.json`, record a 2-minute session (or drive the game headless), run `validate` until it passes. Our four games, with their manifests, are the worked examples.
 5. **An MCP server (local, stdio)** exposing `describe_contract`, `validate_session`, `list_personas`, `get_persona`, and `predict_playtest` (a target session in, predicted moments and a fix list per persona out), so an agent can integrate, check, and then ask "how would these players react to this build?" in one place.
 
+### Start with what you have: data tiers
+
+A persona starts forming from the first session, whatever was captured, and sharpens as more arrives. Every trait already reports `n` and a range and is null rather than guessed when its data is missing; the tiers make that explicit.
+
+| Tier | What's captured | What it unlocks |
+|---|---|---|
+| 0 | Game events only (the minimum: attempts with outcomes, progress) | Skill and learning rate per game, recovery, pace, persistence, wheel-spinning, exploration, reading; reactions from event heuristics only, marked weak |
+| 1 | + questionnaire and/or debrief (typed, no hardware) | Said versus did, intent corrections (accidental, curiosity, misread), fun scores and rankings |
+| 2 | + microphone | Transcript, speech-triggered moments, talk rate, the kid's own words during play |
+| 3 | + screen recording | Muse sees what was on screen at each moment: labelled reactions with screen evidence |
+| 4 | + face and hands cameras | Full reaction labels with face, voice, hands and screen evidence; expressiveness |
+
+- Each session records its tier, and so does each persona (the lowest tier that most of its sessions reached, plus a count per tier). The persona page and every prediction say which tier they rest on.
+- Weak, tier-0 reaction labels never mix silently with Muse labels: the reaction model trains on one label source at a time, and scores say which.
+- `validate` reports the tier a session reached and what the next tier would unlock for that game ("add a microphone: talk rate and the kid's own words become available").
+- The minimum for tier 0 is in the manifest: if a game can't pair attempts with outcomes, `validate` says so first, because almost every trait depends on it.
+
 ### What changes in the code
 
 `stages.ts`, the AFM attempt pairing, the same-instant rule, the text and explore kinds and the main targets stop being hard-coded per game and are read from `game.json`. The four games get manifests that reproduce today's behaviour exactly, which the existing tests then guard.
