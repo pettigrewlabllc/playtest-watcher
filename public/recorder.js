@@ -23,7 +23,26 @@
 
   const openScreen = () => navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 30 } }, audio: false });
 
-  function startTrackRecorder(sessionId, trackName, stream) {
+  const RETRY_DELAYS_MS = [500, 1000, 2000];
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+  // One chunk, retried 3 times with backoff before it counts as failed.
+  async function uploadChunk(url, body, sleep) {
+    let last;
+    for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+      if (attempt) await sleep(RETRY_DELAYS_MS[attempt - 1]);
+      try {
+        const r = await fetch(url, { method: 'POST', body, headers: { 'content-type': 'application/octet-stream' } });
+        if (r.ok) return;
+        last = new Error(`status ${r.status}`);
+      } catch (err) { last = err; }
+    }
+    throw last;
+  }
+
+  // opts.onFail(trackName, error) fires once, as soon as a chunk is given up on, so the page can warn while recording.
+  function startTrackRecorder(sessionId, trackName, stream, opts = {}) {
+    const sleep = opts.sleep || wait;
     const audioOnly = stream.getVideoTracks().length === 0;
     const rec = new MediaRecorder(stream, { mimeType: audioOnly ? AUDIO_MIME : MIME });
     let seq = 0, bytes = 0, chain = Promise.resolve(), failed = null;
@@ -32,11 +51,15 @@
       if (!e.data.size) return;
       const n = seq++;
       bytes += e.data.size;
-      // Chunks must arrive in order, so uploads are chained.
-      chain = chain.then(() => fetch(`/api/sessions/${sessionId}/chunk?track=${trackName}&seq=${n}`, {
-        method: 'POST', body: e.data, headers: { 'content-type': 'application/octet-stream' },
-      })).then(r => { if (!r.ok) throw new Error(`${trackName} chunk ${n}: ${r.status}`); })
-        .catch(err => { failed = failed ?? err; });
+      // Chunks must arrive in order, so uploads are chained. Once one is lost the server can't take later ones.
+      chain = chain.then(() => {
+        if (failed) return;
+        return uploadChunk(`/api/sessions/${sessionId}/chunk?track=${trackName}&seq=${n}`, e.data, sleep)
+          .catch(err => {
+            failed = new Error(`${trackName} chunk ${n}: ${err && err.message}`);
+            if (opts.onFail) opts.onFail(trackName, failed);
+          });
+      });
     };
     rec.start(1000);
     return {

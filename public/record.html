@@ -22,6 +22,7 @@
   code { background: #222; padding: 2px 6px; border-radius: 4px; word-break: break-all; }
   pre { background: #222; padding: 8px; }
   .muted { color: #999; }
+  #uploadWarn { background: #b91c1c; color: #fff; font-weight: 600; padding: 10px 14px; border-radius: 6px; margin: 10px 0; }
 </style>
 </head>
 <body>
@@ -58,6 +59,7 @@
     <button id="stopBtn" class="big" hidden>Stop</button>
     <span id="clock">10:00</span>
   </div>
+  <div id="uploadWarn" role="alert" hidden></div>
   <p class="muted">Remind them to say what they're thinking as they play.</p>
   <div id="debrief" hidden>
     <b>Before you stop, ask out loud and let them answer:</b>
@@ -172,7 +174,7 @@ function start() {
   $('debrief').hidden = false;
   recs = {};
   startedAt = Date.now();
-  for (const k of Object.keys(streams)) recs[k] = PW.startTrackRecorder(session, k, streams[k]);
+  for (const k of Object.keys(streams)) recs[k] = PW.startTrackRecorder(session, k, streams[k], { onFail: uploadFailed });
   $('go').hidden = true; $('stopBtn').hidden = false;
   let beeped = false;
   timer = setInterval(() => {
@@ -182,6 +184,16 @@ function start() {
     // Time's up, but keep recording so a kid mid-level isn't cut off.
     if (left <= 0 && !beeped) { beeped = true; beep(); $('clock').style.color = '#f59e0b'; }
   }, 250);
+}
+
+// Shown the moment a track gives up uploading, not only at Stop.
+const failedTracks = [];
+function uploadFailed(track, err) {
+  failedTracks.push(track);
+  console.warn(err);
+  const at = $('clock').textContent;
+  $('uploadWarn').textContent = `Upload failed: ${failedTracks.join(', ')} (at ${at} on the clock). That track stops saving from here; the others are still recording. Check the laptop is still running the watcher.`;
+  $('uploadWarn').hidden = false;
 }
 
 function beep() {

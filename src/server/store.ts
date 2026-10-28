@@ -32,10 +32,18 @@ export function createStore(root: string) {
       const d = dir(id);
       if (!TRACK.test(track)) throw new Error(`bad track: ${track}`);
       const key = `${id}/${track}`;
-      const expected = nextSeq.get(key) ?? 0;
+      const seqFile = join(d, `${track}.seq`);
+      // <track>.seq holds the next expected seq on disk, so a restarted server carries on where it was
+      let expected = nextSeq.get(key);
+      if (expected === undefined) {
+        const saved = Number((await readFile(seqFile, 'utf8').catch(() => '0')).trim());
+        expected = Number.isInteger(saved) && saved >= 0 ? saved : 0;
+      }
+      if (seq === expected - 1) return;   // a retry of a chunk already stored (its response was lost)
       if (seq !== expected) throw new Error(`expected seq ${expected}, got ${seq}`);
       await mkdir(d, { recursive: true });
       await appendFile(join(d, `${track}.webm`), buf);
+      await writeFile(seqFile, String(expected + 1));
       nextSeq.set(key, expected + 1);
     },
 
