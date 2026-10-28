@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { writeFile, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { align } from '../../src/watch/align.ts';
-import { compositeClip, explainStage } from '../../src/watch/explain.ts';
+import { cameraWarnings, compositeClip, explainStage } from '../../src/watch/explain.ts';
 import { probeDurationMs, probeSize, hasStream } from '../../src/watch/ffmpeg.ts';
 import { createMetaClient, type MetaClient } from '../../src/meta/client.ts';
 import { fakeSession, tmp, T0 } from './helpers.ts';
@@ -85,5 +85,22 @@ describe('explainStage', () => {
     expect(second.log.responded).toHaveLength(1);
     expect(second.log.responded[0]).toContain('c002');
     expect(moments.every(m => m.status === 'ok')).toBe(true);
+  }, 30000);
+});
+
+describe('camera roles in the prompt', () => {
+  it('warns in the prompt header when the face track came from a Desk View camera', async () => {
+    const dir = await sessionWithCandidates();
+    const m = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf8'));
+    m.tracks.face.label = 'MacBook Pro Desk View Camera';
+    await writeFile(join(dir, 'manifest.json'), JSON.stringify(m));
+    await writeFile(join(dir, 'candidates.json'), JSON.stringify([cand('c001', 0, 1200)]));
+    const texts: string[] = [];
+    const base = createMetaClient({ live: false, budgetUsd: 1, spendLog: '/dev/null' });
+    const client: MetaClient = { ...base, respond: async (req: any) => { texts.push(req.content[0].text); return base.respond(req); } };
+    await explainStage(dir, client);
+    expect(texts[0].startsWith('WARNING: the left panel was recorded from the camera "MacBook Pro Desk View Camera"')).toBe(true);
+    expect(cameraWarnings({ tracks: { face: { label: 'Anker PowerConf C200' } } })).toEqual([]);
+    expect(cameraWarnings(undefined)).toEqual([]);
   }, 30000);
 });

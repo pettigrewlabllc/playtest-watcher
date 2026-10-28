@@ -39,13 +39,25 @@ export function mmss(ms: number, tenths = false): string {
   return `${String(m).padStart(2, '0')}:${tenths ? rest.toFixed(1).padStart(4, '0') : String(Math.floor(rest)).padStart(2, '0')}`;
 }
 
-export function buildPrompt(game: string, c: Candidate, aligned: Aligned, turns: Transcript['turns']): string {
+type Manifest = { tracks?: Record<string, { label?: string } | undefined> };
+
+// The panel order is fixed (face, hands, screen), so a camera recorded in the wrong role is flagged to the model.
+export function cameraWarnings(manifest: Manifest | undefined): string[] {
+  const face = manifest?.tracks?.face?.label;
+  if (face && /desk ?view/i.test(face)) {
+    return [`WARNING: the left panel was recorded from the camera "${face}", which looks down at the desk. It may show hands or the device instead of the child's face; do not read facial expression from it unless a face is clearly visible.`];
+  }
+  return [];
+}
+
+export function buildPrompt(game: string, c: Candidate, aligned: Aligned, turns: Transcript['turns'], warnings: string[] = []): string {
   const rel = (ms: number) => `+${mmss(ms - c.startMs, true)}`;
   const talk = turns.filter(t => t.startMs < c.endMs && t.endMs > c.startMs)
     .map(t => `${rel(t.startMs)} ${t.who}: ${t.text}`);
   const events = aligned.events.filter(e => e.ms >= c.startMs && e.ms <= c.endMs)
     .map(e => `${rel(e.ms)} ${e.type} ${JSON.stringify(e.data)}`);
   return [
+    ...warnings,
     `You are watching a child playtest a kids' game called "${game || 'unknown'}". The video has three panels side by side, left to right: the child's face, the child's hands on the device, and the game screen. The audio is the room microphone.`,
     `This clip is ${((c.endMs - c.startMs) / 1000).toFixed(1)} seconds long and was flagged for: ${c.triggers.join(', ')}. Times below are relative to the start of the clip.`,
     '',
@@ -83,6 +95,7 @@ export async function explainStage(dir: string, client: MetaClient, opts: { conc
   const transcript = await readJson<Transcript>(join(dir, 'transcript.json'));
   const session = await readJson<{ game?: string }>(join(dir, 'session.json'));
   const previous = (await readJson<Moment[]>(join(dir, 'moments.json'))) ?? [];
+  const warnings = cameraWarnings(await readJson<Manifest>(join(dir, 'manifest.json')));
   const done = new Map(previous.filter(m => m.status === 'ok').map(m => [m.id, m]));
 
   const results: Moment[] = new Array(candidates.length);
@@ -99,7 +112,7 @@ export async function explainStage(dir: string, client: MetaClient, opts: { conc
       const r = await client.respond<Omit<Moment, 'id' | 'startMs' | 'endMs' | 'triggers' | 'status'>>({
         model: 'muse-spark-1.2', kind: 'explain', schema: MOMENT_SCHEMA, maxOutputTokens: 4000,
         content: [
-          { type: 'input_text', text: buildPrompt(session?.game ?? '', c, aligned, transcript?.turns ?? []) },
+          { type: 'input_text', text: buildPrompt(session?.game ?? '', c, aligned, transcript?.turns ?? [], warnings) },
           { type: 'input_video', file_id: fileId },
         ],
       });
