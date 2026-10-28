@@ -215,6 +215,29 @@ The kids' own words changed what some events mean. One kid's single "explore" ev
 
 Fingerprint becomes the trait estimators with ranges and game adjustment (plus the new learning rate, persistence, challenge appetite and stamina traits); the reaction model becomes the pooled model; the persona prompts take traits with ranges and must cite them; the debrief and mood feed the said-versus-did comparison.
 
+## 3c. Integration contract (written for coding agents)
+
+Most developers will have a coding agent wire Playtest Watcher into their game. The contract has to carry enough context that an agent maps a game cleanly the first time, and has to tell the agent when it got something wrong. Local-first: nothing is hosted; everything below ships in the repo.
+
+### The pieces
+
+1. **`game.json`, a manifest per game**, next to the game's code. It declares, in data rather than prose:
+   - `stages`: which event and field define a stage (`{ "event": "level_start", "field": "level" }`), never a screen event;
+   - `attempts`: each attempt type and the event types that resolve it as success or fail, with the max seconds between them (this is the pairing the AFM model needs; a game that only ever logs failures for an attempt type is caught here);
+   - `same_instant`: event types that are one failure logged twice (a wrong cut and the life it costs);
+   - `text`: which events show and close reading text, and how `chars` is measured;
+   - `explore`, `help`, `quit`, `new_thing`: the game's event types for each shared kind;
+   - `main_targets`: the `data-pw` names of the main play surface, for first-touch;
+   - `audience`: age range and device, for the baseline and the persona.
+2. **The event schema as JSON Schema** (`schema/event.schema.json`, `schema/game.schema.json`), with a description on every field that says what it's for and gives an example from a real game.
+3. **`npm run validate -- <game.json> <session>`**: checks a manifest against the schema and a recorded session against the manifest, and prints fixes an agent can act on: attempt types that never resolve, outcome pairs never seen, stages that repeat or come from screens, text without `chars`, events before Start or after Stop, idle never logged, kinds missing entirely. Exit code non-zero until it's clean.
+4. **`AGENTS.md` and an `instrument-game` skill**: the step-by-step an agent follows: read the game's code, find its real decision points, add the logger calls, write `game.json`, record a 2-minute session (or drive the game headless), run `validate` until it passes. Our four games, with their manifests, are the worked examples.
+5. **An MCP server (local, stdio)** exposing `describe_contract`, `validate_session`, `list_personas`, `get_persona`, and `predict_playtest` (a target session in, predicted moments and a fix list per persona out), so an agent can integrate, check, and then ask "how would these players react to this build?" in one place.
+
+### What changes in the code
+
+`stages.ts`, the AFM attempt pairing, the same-instant rule, the text and explore kinds and the main targets stop being hard-coded per game and are read from `game.json`. The four games get manifests that reproduce today's behaviour exactly, which the existing tests then guard.
+
 ## 4. Capture setup and the two-camera risk
 
 Joel has two cameras and a mic. Two USB cameras on one Mac usually work in Chrome, but they can fail when both share one USB bus at high resolution, and Chrome sometimes reports two identical camera names.
