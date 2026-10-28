@@ -28,9 +28,10 @@ describe('align', () => {
     expect(a.audio?.wavChunks).toHaveLength(1);
     expect(a.audio?.wavChunks[0].startMs).toBe(0);
     expect(a.audio?.offsetMs).toBe(50);
+    // both events carry the same game time; skew = median(-1300, -800) = -1050, so each lands at -300 + 1050
     expect(a.events).toEqual([
-      { ms: 500, type: 'swap', kind: 'other', data: {} },
-      { ms: 1000, type: 'level_start', kind: 'progress', data: { kind: 'progress' } },
+      { ms: 750, type: 'level_start', kind: 'progress', data: { kind: 'progress' } },
+      { ms: 750, type: 'swap', kind: 'other', data: {} },
     ]);
     expect(a.gameClockSkewMs).toBe(-1050);
   }, 20000);
