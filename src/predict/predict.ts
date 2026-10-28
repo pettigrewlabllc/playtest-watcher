@@ -27,8 +27,6 @@ export type PredictedItem = { stage: string; event_type: string; label: string; 
 export type Prediction = { predictor: string; target: string; items: PredictedItem[]; enjoyment?: number };
 
 const MAX_PER_STAGE = 2;
-const MODEL_STAGE_MEAN = 0.35;
-const MODEL_ROW_P = 0.7;
 const REACTIONS = LABELS.filter(l => l !== 'none');
 
 export const PREDICTION_SCHEMA = {
@@ -129,28 +127,20 @@ function clean(items: PredictedItem[] | undefined, stages: StageSummary[]): Pred
   return capPerStage(kept);
 }
 
-// Per stage: the label with the highest mean probability if it isn't none and reaches 0.35, plus any single event at 0.7.
+// Per stage: the reaction labels ranked by mean probability over the stage's events, top MAX_PER_STAGE kept (the
+// budget every predictor gets). The event type is where that label peaks. Ranks, not thresholds: calibration varies.
 export function itemsFromProbs(probs: RowProbs[], typeOf: (i: number) => string, source = 'model'): PredictedItem[] {
-  const items = new Map<string, PredictedItem>();
-  const put = (stage: string, type: string, label: string, p: number, why: string) => {
-    const key = `${stage}|${type}|${label}`;
-    const prev = items.get(key);
-    if (!prev || prev.p < p) items.set(key, { stage, event_type: type, label, p, why });
-  };
-  const stageOrder = [...new Set(probs.map(r => r.stage))];
-  for (const stage of stageOrder) {
+  const items: PredictedItem[] = [];
+  for (const stage of new Set(probs.map(r => r.stage))) {
     const rs = probs.filter(r => r.stage === stage);
-    const mean = Object.fromEntries(LABELS.map(l => [l, rs.reduce((s, r) => s + r.p[l], 0) / rs.length])) as Record<Label, number>;
-    const best = LABELS.reduce((a, b) => (mean[b] > mean[a] ? b : a));
-    if (best !== 'none' && mean[best] >= MODEL_STAGE_MEAN) {
-      const top = rs.reduce((a, b) => (b.p[best] > a.p[best] ? b : a));
-      put(stage, typeOf(top.i), best, mean[best], `${source}: mean ${best} probability ${mean[best].toFixed(2)} over ${rs.length} events`);
-    }
-    for (const r of rs) {
-      for (const l of REACTIONS) if (r.p[l] >= MODEL_ROW_P) put(stage, typeOf(r.i), l, r.p[l], `${source}: ${l} probability ${r.p[l].toFixed(2)} at one event`);
+    for (const l of REACTIONS) {
+      const mean = rs.reduce((s, r) => s + r.p[l], 0) / rs.length;
+      if (!(mean > 0)) continue;
+      const top = rs.reduce((a, b) => (b.p[l] > a.p[l] ? b : a));
+      items.push({ stage, event_type: typeOf(top.i), label: l, p: mean, why: `${source}: mean ${l} probability ${mean.toFixed(2)} over ${rs.length} events` });
     }
   }
-  return [...items.values()];
+  return capPerStage(items);
 }
 
 async function modelPredictor(letter: string, t: Target, o: Opts): Promise<PredictedItem[]> {
