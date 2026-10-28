@@ -77,3 +77,115 @@ def play_end_ms(session):
     debrief = next((e["ms"] for e in ev if e.get("type") == "debrief_start"), None)
     # events logged after the recording stopped (a long idle, page_hide) are not play
     return debrief if debrief is not None else (session.get("duration_ms") or (ev[-1]["ms"] if ev else 0))
+
+
+STAGE_FIELDS = ("level", "wave", "season", "name")
+ROW_COLUMNS = ["session", "game", "i", "ms", "stage", "kind", "type", "fail_streak", "s_since_success", "s_since_progress",
+               "attempts_30s", "new_thing_10s", "text_chars_on_screen", "s_in_session", "explore_so_far", "help_so_far",
+               "label", "weak_labels", "kid", "block", "prev_label", "s_since_moment", "rapid_retry", "attempts_no_success", "intent"]
+
+
+def _stage_field(e):
+    if e.get("kind") != "progress":
+        return None
+    for f in STAGE_FIELDS:
+        v = (e.get("data") or {}).get(f)
+        if isinstance(v, bool):
+            continue
+        if isinstance(v, float) and v.is_integer():
+            v = int(v)
+        if isinstance(v, (str, int, float)):
+            return str(v)
+    return None
+
+
+def stages_of(events):
+    cur, out = "start", []
+    for e in events:
+        cur = _stage_field(e) or cur
+        out.append(cur)
+    return out
+
+
+class Stepper:
+    """The situation features of rows.ts, one event at a time, so a simulation can change outcomes as it goes.
+    prev_label and s_since_moment are left to the caller (moments, or the simulation's own sampled reactions)."""
+
+    def __init__(self):
+        self.fail_streak, self.last_fail, self.no_success = 0, -float("inf"), 0
+        self.last_success, self.last_progress, self.explore, self.help = 0, 0, 0, 0
+        self.attempts, self.new_things, self.open_text = [], [], []
+
+    def step(self, e, i=0):
+        k, t = e["kind"], e["ms"]
+        d = e.get("data") or {}
+        chars = d.get("chars") if isinstance(d.get("chars"), (int, float)) else 0
+        tid = d.get("id") if isinstance(d.get("id"), str) else None
+        rapid = 0
+        if k == "fail":
+            if t - self.last_fail > SAME_FAILURE_MS:
+                self.fail_streak += 1
+            self.last_fail = t
+        elif k == "success":
+            self.fail_streak, self.no_success, self.last_success = 0, 0, t
+        elif k == "progress":
+            self.last_progress = t
+        elif k == "attempt":
+            self.attempts.append(t)
+            self.no_success += 1
+            rapid = int(t - self.last_fail < RAPID_RETRY_MS)
+        elif k == "new_thing":
+            self.new_things.append(t)
+        elif k == "explore":
+            self.explore += 1
+        elif k == "help":
+            self.help += 1
+        elif k == "text_shown":
+            self.open_text.append((tid or f"#{i}", chars))
+        elif k == "text_closed":
+            at = next((j for j, o in enumerate(self.open_text) if o[0] == tid), None) if tid else (0 if self.open_text else None)
+            if at is not None:
+                self.open_text.pop(at)
+        return {"fail_streak": self.fail_streak, "s_since_success": (t - self.last_success) / 1000,
+                "s_since_progress": (t - self.last_progress) / 1000,
+                "attempts_30s": sum(1 for a in self.attempts if t - 30000 < a <= t),
+                "new_thing_10s": int(any(t - 10000 <= n <= t for n in self.new_things)),
+                "text_chars_on_screen": sum(c for _, c in self.open_text), "s_in_session": t / 1000,
+                "explore_so_far": self.explore, "help_so_far": self.help, "rapid_retry": rapid,
+                "attempts_no_success": self.no_success}
+
+
+def build_rows(session, intents=None, moments="from_session"):
+    """rows.ts buildRows in Python (labels, weak labels, prev_label from moments)."""
+    events = session["events"]
+    ms_ = session["moments"] if moments == "from_session" else moments
+    weak = ms_ is None
+    real = ok_moments(ms_)
+    ended = sorted(real, key=lambda m: m["endMs"])
+    stages, blocks = stages_of(events), blocks_of(events)
+    st, rows = Stepper(), []
+    for i, e in enumerate(events):
+        f = st.step(e, i)
+        label = "none"
+        if weak:
+            if f["fail_streak"] >= 3:
+                label = "frustrated"
+            elif e["kind"] == "idle":
+                label = "stuck"
+        else:
+            best = -1
+            for m in real:
+                if m["startMs"] <= e["ms"] <= m["endMs"] and m["confidence"] > best:
+                    best, label = m["confidence"], m["label"]
+        prev = None
+        for m in ended:
+            if m["endMs"] < e["ms"]:
+                prev = m
+            else:
+                break
+        rows.append({"session": session["id"], "game": session["game"], "i": i, "ms": e["ms"], "stage": stages[i],
+                     "kind": e["kind"], "type": e["type"], **f, "label": label, "weak_labels": int(weak),
+                     "kid": session["kid"], "block": blocks[i], "prev_label": prev["label"] if prev else "none",
+                     "s_since_moment": (e["ms"] - (prev["endMs"] if prev else 0)) / 1000,
+                     "intent": (intents or {}).get(e["type"], "none")})
+    return rows
