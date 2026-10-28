@@ -47,7 +47,9 @@ def _active_or_starts(moments, t, until, labels):
 def session_blocks(s, intents):
     """Per-block sufficient statistics for every trait, so a block bootstrap only re-aggregates."""
     end = play_end_ms(s)
-    events = [e for e in s["events"] if e["ms"] <= end and e.get("type") != "debrief_start"]
+    if not np.isfinite(end):
+        end = s["events"][-1]["ms"] if s["events"] else 0
+    events = [e for e in s["events"] if 0 <= e["ms"] <= end]   # the recording window only
     blocks = blocks_of(events)
     moments = ok_moments(s["moments"]) if s["moments"] is not None else None
     ids = sorted(set(blocks))
@@ -240,7 +242,9 @@ def extras(name, bs, sessions, intents):
     if name == "exploration_drive":
         firsts = []
         for s in sessions:
-            t = next((e["ms"] / 1000 for e in s["events"] if e["kind"] == "explore" and intents[s["id"]].get(e["type"]) != "accidental"), None)
+            end = play_end_ms(s)
+            t = next((e["ms"] / 1000 for e in s["events"] if 0 <= e["ms"] <= end and e["kind"] == "explore"
+                      and intents[s["id"]].get(e["type"]) != "accidental"), None)
             if t is not None:
                 firsts.append(t)
         return {"first_explore_s": float(np.median(firsts)) if firsts else None, "accidental_discounted": sum(b["accidental"] for b in bs)}

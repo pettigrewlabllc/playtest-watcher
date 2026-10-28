@@ -192,3 +192,11 @@ def test_zero_counts_still_get_an_interval(tmp_path):
     a = write_session(tmp_path, "sa", "A", "g", e)
     ex = tr(compute(tmp_path, [a]), "A", "exploration_drive", "g")
     assert ex["value"] == 0 and ex["lo"] == 0 and ex["hi"] > 0
+
+
+def test_events_outside_the_recording_window_are_left_out(tmp_path):
+    e, ms = runs(3, 10)
+    e = [ev(-20000, "explore", "menu_look"), ev(-10000, "explore", "menu_look")] + e + [ev(ms + 60000, "explore", "menu_look")]
+    a = write_session(tmp_path, "sa", "A", "g", e, duration=ms)
+    ex = tr(compute(tmp_path, [a]), "A", "exploration_drive", "g")
+    assert ex["value"] == 0 and ex["first_explore_s"] is None

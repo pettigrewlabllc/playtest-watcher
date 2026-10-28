@@ -74,10 +74,17 @@ def resolve_intents(debriefs, session_id, game, events):
 
 
 def play_end_ms(session):
+    """The recording window ends at Stop (durationMs), or just before debrief_start. Mirrors rows.ts playEndMs."""
     ev = session["events"]
     debrief = next((e["ms"] for e in ev if e.get("type") == "debrief_start"), None)
-    # events logged after the recording stopped (a long idle, page_hide) are not play
-    return debrief if debrief is not None else (session.get("duration_ms") or (ev[-1]["ms"] if ev else 0))
+    if debrief is not None:
+        return debrief - 1
+    d = session.get("duration_ms")
+    return d if d and d > 0 else float("inf")
+
+
+def in_window(session, e, end=None):
+    return 0 <= e["ms"] <= (play_end_ms(session) if end is None else end)
 
 
 STAGE_FIELDS = ("level", "wave", "season", "name")
@@ -169,8 +176,11 @@ def build_rows(session, intents=None, moments="from_session"):
     ended = sorted(real, key=lambda m: m["endMs"])
     stages, blocks = stages_of(events), blocks_of(events)
     st, rows = Stepper(), []
+    end = play_end_ms(session)
     for i, e in enumerate(events):
         f = st.step(e, i)
+        if not in_window(session, e, end):
+            continue
         label = "none"
         if weak:
             if f["fail_streak"] >= 3:

@@ -70,6 +70,7 @@ def test_planted_fast_and_slow_learner(tmp_path):
         assert set(fast) >= {"value", "lo", "hi", "n", "games", "adjusted", "source"}
     assert res["kids"]["F"]["learning_rate"]["lo"] > res["kids"]["S"]["learning_rate"]["hi"]
     assert res["kids"]["F"]["learning_rate"]["adjusted"] is True
+    assert abs(res["kids"]["F"]["skill"]["value"] + res["kids"]["S"]["skill"]["value"]) < 1e-9   # centred on the kids sharing the games
     assert res["boot"]["unit"] == "block"
     assert 0 < res["C"]
 
