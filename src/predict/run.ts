@@ -11,9 +11,11 @@ import { logo, scoreboard } from './score.ts';
 import type { Agg, Score } from './score.ts';
 import { freeze } from './freeze.ts';
 import { listSessions, loadStudy, playerSessions, sameKid } from './study.ts';
+import { buildGroupModel } from './traits.ts';
+import type { Trait } from './traits.ts';
 
 const REPO = resolve(import.meta.dirname, '..', '..');
-export const COMMANDS = ['fingerprint', 'train', 'persona', 'predict', 'freeze', 'logo', 'scoreboard'] as const;
+export const COMMANDS = ['fingerprint', 'train', 'persona', 'predict', 'freeze', 'logo', 'scoreboard', 'traits'] as const;
 const USAGE = `usage: npm run predict -- <command> [--live]
   fingerprint <letter>
   train <letter>
@@ -21,11 +23,14 @@ const USAGE = `usage: npm run predict -- <command> [--live]
   predict <letter> <targetSessionId>
   freeze <letter> <targetSessionId> <checkLabel>
   logo <letter>
-  scoreboard`;
+  scoreboard
+  traits            (AFM and trait estimators for every kid, from all learn sessions)`;
 
 type Deps = { root?: string; client?: MetaClient; out?: (line: string) => void; commit?: (file: string, message: string) => Promise<void>; docFile?: string };
 
 const pct = (n: number | null | undefined) => (n == null ? '  -  ' : `${(n * 100).toFixed(0)}%`.padStart(5));
+const fmt = (n: number | null) => (n == null ? '-' : Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2));
+export const traitLine = (t: Trait) => (t.value == null ? 'n/a' : `${fmt(t.value)} [${fmt(t.lo)}, ${fmt(t.hi)}] n=${t.n}${t.adjusted ? '' : ' (not adjusted)'}`);
 const aggLine = (a: Agg | Score | null) => (a ? `recall ${pct(a.recall)}  precision ${pct(a.precision)}  mix ${pct(a.mix_similarity)}` : 'no data');
 
 function pickClient(live: boolean): MetaClient {
@@ -112,6 +117,14 @@ export async function runCommand(argv: string[], deps: Deps = {}): Promise<void>
         out(`  ${name.padEnd(13)} LOGO ${aggLine(r.logo)} | check ${aggLine(r.check)} | normalized ${pct(r.logo_normalized)} / ${pct(r.check_normalized)}`);
       }
     }
+  } else if (cmd === 'traits') {
+    const g = await buildGroupModel({ root });
+    for (const [letter, k] of Object.entries(g.traits.kids)) {
+      out(`traits ${letter}: ${Object.entries(k.traits).map(([n, t]) => `${n} ${traitLine(t)}`).join('; ')}`);
+      for (const [n, t] of Object.entries(k.traits)) for (const [game, pg] of Object.entries(t.per_game)) out(`  ${game} ${n}: ${traitLine(pg)}`);
+      for (const gap of k.gaps) out(`  said vs did, ${gap.axis}: ${gap.note}`);
+    }
+    out(`written to ${g.dir}`);
   } else {
     throw new Error(`unknown command "${cmd ?? ''}"\n${USAGE}`);
   }

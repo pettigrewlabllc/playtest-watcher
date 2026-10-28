@@ -117,6 +117,7 @@ def run(df, boot=BOOT, seed=0):
     by_block = {(s, b): d for (s, b), d in att.groupby(["session", "block"])}
     rng = np.random.default_rng(seed)
     reps = {p: ([], []) for p in pairs}
+    kid_reps = {k: ([], []) for k in kids}
     for _ in range(boot):
         pick = block_resample(strata, rng)
         sample = pd.concat([by_block[(s, b)] for s, bs in pick.items() for b in bs], ignore_index=True)
@@ -126,6 +127,9 @@ def run(df, boot=BOOT, seed=0):
         for p, (sk, lr) in cells(c, pairs).items():
             reps[p][0].append(sk)
             reps[p][1].append(lr)
+        for k in kids:
+            kid_reps[k][0].append(c["kid"][k])
+            kid_reps[k][1].append(c["kid_slope"][k])
 
     kids_on = {g: sorted(att.loc[att["game"] == g, "kid"].unique()) for g in games}
     out = {"model": "logit P(success) = kid + game + game x practice + kid x practice",
@@ -147,6 +151,17 @@ def run(df, boot=BOOT, seed=0):
             "learning_rate": trait(lr, llo, lhi, n, [g], adj, f"afm: change in log-odds per {PRACTICE_UNIT} attempts (L2-shrunk)",
                                    kid_slope=coef["kid_slope"][k], blocks=int(nb)),
         }
+    for k in kids:
+        mine = sorted(att.loc[att["kid"] == k, "game"].unique())
+        shared = [g for g in mine if len(kids_on[g]) >= 2]
+        n = int(att["kid"].isin([k]).sum() if not shared else ((att["kid"] == k) & att["game"].isin(shared)).sum())
+        for name, key, j, what in (("skill", "kid", 0, "kid term: log-odds of success relative to the other kids on the same games"),
+                                   ("learning_rate", "kid_slope", 1, f"kid slope: change in log-odds per {PRACTICE_UNIT} attempts relative to the other kids")):
+            if shared:
+                lo, hi = interval(kid_reps[k][j])
+                out["kids"][k][name] = trait(coef[key][k], lo, hi, n, shared, True, f"afm {what} (L2-shrunk)")
+            else:
+                out["kids"][k][name] = trait(None, n=n, games=mine, source=f"afm {what}; not identified: no game shared with another kid")
     return out
 
 
