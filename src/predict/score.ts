@@ -12,7 +12,8 @@ import type { AnyPredictor, PredictedItem, Prediction, Predictor, Variant } from
 import { buildPersona } from './persona.ts';
 import { playerDir, recordingsRoot, trainPlayer, venvAvailable } from './model.ts';
 import type { Opts } from './model.ts';
-import { listSessions, playerSessions, sha256File } from './study.ts';
+import { listSessions, sameKid, sha256File } from './study.ts';
+import type { SessionInfo } from './study.ts';
 import { cohenKappa, reliability } from './reliability.ts';
 import type { Reliability } from './reliability.ts';
 import { foldGroupModel } from './reaction.ts';
@@ -172,23 +173,33 @@ export async function rankingCheck(letter: string, report: { folds: { game: stri
 
 export type LogoReport = {
   letter: string;
-  folds: { game: string; key: string; trainSessions: string[]; scores: Partial<Record<AnyPredictor, Score>>; enjoyment?: Partial<Record<Variant, number>> }[];
+  // target: the session predicted from (the game's reference, else another kid's learn session). self_target: neither
+  // existed, so the kid's own held-out session was the target; such folds stay out of `mean`.
+  folds: { game: string; key: string; target: string; self_target?: boolean; trainSessions: string[]; scores: Partial<Record<AnyPredictor, Score>>; enjoyment?: Partial<Record<Variant, number>> }[];
   skipped: string[];
   mean: Partial<Record<AnyPredictor, Agg>>;
 };
 
-// Leave-one-game-out: for each game the player has learn sessions in, rebuild everything without it and predict it.
+// The session a fold predicts from: the game's reference playthrough, else another kid's learn session of it.
+export function foldTarget(all: SessionInfo[], letter: string, game: string): SessionInfo | null {
+  const ofGame = all.filter(s => s.game === game);
+  return ofGame.find(s => s.round === 'reference') ?? ofGame.find(s => s.round === 'learn' && !sameKid(s.kid, letter)) ?? null;
+}
+
+// Leave-one-game-out: for each game the player has learn sessions in, rebuild everything without it, predict the
+// game from its reference target and score that against the player's own held-out sessions.
 export async function logo(
   letter: string, client: MetaClient,
   o: Opts & { log?: (line: string) => void; predictors?: readonly Predictor[]; variants?: boolean; sims?: number } = {},
 ): Promise<LogoReport> {
   const log = o.log ?? console.log;
   const root = recordingsRoot(o);
-  const learn = await playerSessions(root, letter, 'learn');
+  const all = await listSessions(root);
+  const learn = all.filter(s => sameKid(s.kid, letter) && s.round === 'learn');
   const games = [...new Set(learn.map(s => s.game))].sort();
   const base = join(playerDir(letter, { root }), 'logo');
   const report: LogoReport = { letter, folds: [], skipped: [], mean: {} };
-  const perPredictor: Partial<Record<AnyPredictor, Score[]>> = {};
+  const perPredictor: Partial<Record<AnyPredictor, Score[]>> = {};   // headline folds only
   const withVariants = o.variants ?? venvAvailable();
 
   for (const game of games) {
@@ -221,20 +232,24 @@ export async function logo(
     const scores: Partial<Record<AnyPredictor, Score>> = {};
     const perSession: Partial<Record<AnyPredictor, Score[]>> = {};
     const joy: Partial<Record<Variant, number[]>> = {};
+    const ref = foldTarget(all, letter, game);
+    const selfTarget = !ref;
+    if (selfTarget) log(`logo ${letter}: no reference or other kid's session for ${game}; self-target fold, left out of the mean`);
+    const shared = ref ? await predictSession(letter, ref.dir, client, predictors, { ...fold, group: group ?? undefined, sims: o.sims }) : null;
     for (const h of held) {
-      const preds = await predictSession(letter, h.dir, client, predictors, { ...fold, group: group ?? undefined, sims: o.sims });
+      const preds = shared ?? await predictSession(letter, h.dir, client, predictors, { ...fold, group: group ?? undefined, sims: o.sims });
       for (const p of predictors) (perSession[p] ??= []).push(await scorePrediction(preds[p]!, h.dir));
-      for (const v of MODEL_VARIANTS) if (typeof preds[v]?.enjoyment === 'number') (joy[v] ??= []).push(preds[v]!.enjoyment!);
+      if (!shared || h === held[0]) for (const v of MODEL_VARIANTS) if (typeof preds[v]?.enjoyment === 'number') (joy[v] ??= []).push(preds[v]!.enjoyment!);
     }
     for (const p of predictors) {
       const xs = perSession[p] ?? [];
       // one held-out session is the normal case; with several, the fold score is their mean
       scores[p] = xs.length === 1 ? xs[0] : { ...meanScores(xs), real: sum(xs, 'real'), predicted: sum(xs, 'predicted'), hits: sum(xs, 'hits'), matched: sum(xs, 'matched') };
-      (perPredictor[p] ??= []).push(scores[p]!);
+      if (!selfTarget) (perPredictor[p] ??= []).push(scores[p]!);
     }
     const enjoyment: Partial<Record<Variant, number>> = {};
     for (const v of MODEL_VARIANTS) if (joy[v]?.length) enjoyment[v] = avg(joy[v]!)!;
-    report.folds.push({ game, key, trainSessions: train.map(s => s.id), scores, ...(Object.keys(enjoyment).length ? { enjoyment } : {}) });
+    report.folds.push({ game, key, target: ref?.id ?? held[0].id, ...(selfTarget ? { self_target: true } : {}), trainSessions: train.map(s => s.id), scores, ...(Object.keys(enjoyment).length ? { enjoyment } : {}) });
   }
   for (const p of ALL_PREDICTORS) if (perPredictor[p]) report.mean[p] = meanScores(perPredictor[p]!);
   await mkdir(playerDir(letter, { root }), { recursive: true });

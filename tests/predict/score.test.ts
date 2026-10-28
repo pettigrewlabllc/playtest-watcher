@@ -72,6 +72,7 @@ async function world(root: string) {
   for (const [i, g] of ['g1', 'g2', 'g3'].entries()) {
     const { events: e, moments: m } = failStream(i);
     dirs.push(await writeSession(root, `a-${g}-learn`, { kid: 'A', game: g, events: e, moments: m }));
+    await writeSession(root, `ref-${g}`, { kid: 'ref', game: g, round: 'reference', events: failStream(i + 4).events });
   }
   return dirs;
 }
@@ -84,6 +85,7 @@ describe.skipIf(!venvAvailable())('logo (needs analysis/.venv)', () => {
     const rep = await logo('A', client, { root, log: () => {} });
     expect(rep.folds.map(f => f.game)).toEqual(['g1', 'g2', 'g3']);
     for (const p of PREDICTORS) expect(rep.folds[0].scores[p]).toBeDefined();
+    expect(rep.folds.map(f => f.target)).toEqual(['ref-g1', 'ref-g2', 'ref-g3']);
     expect(rep.mean.persona?.recall).not.toBeUndefined();
 
     // fold 2 (g2 held out): calls 7..13 are lens x3, persona synthesis, then three prompted predictors
