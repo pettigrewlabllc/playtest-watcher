@@ -150,7 +150,9 @@ def logo_splits(df):
             yield g, np.flatnonzero(~test), np.flatnonzero(test)
 
 
-def run(rows, session_dirs, kids_file, logo=True):
+def run(rows, session_dirs, kids_file, logo=True, trait_dirs=None):
+    """trait_dirs: sessions the final model's trait table comes from (default session_dirs). The unseen-kid transfer
+    fold passes every other kid's sessions plus the kid's own other games, while the rows hold no row of that kid."""
     df = rows.reset_index(drop=True)
     sessions = {Path(d).name: d for d in session_dirs}
     game_of = {sid: load_session(d)["game"] for sid, d in sessions.items()}
@@ -174,7 +176,7 @@ def run(rows, session_dirs, kids_file, logo=True):
         y = np.concatenate(pooled_y)
         pooled = {n: metrics(y, np.vstack(pooled_P[n])) for n in names}
 
-    table = trait_table(traits_mod.compute(list(sessions.values()), kids_file, None, boot=0))
+    table = trait_table(traits_mod.compute(list(trait_dirs or sessions.values()), kids_file, None, boot=0))
     final = {v: Model(v, kids, table).fit(df) for v in VARIANTS}
     report = {"variants": VARIANTS, "baselines": BASELINES, "C": C, "min_class": MIN_CLASS,
               "trait_features": TRAIT_FEATURES, "interactions": INTERACT, "kids": kids,
@@ -192,12 +194,13 @@ def main(argv=None):
     ap.add_argument("--kids", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--final-only", action="store_true", help="fit the two variants on everything; skip leave-one-game-out")
+    ap.add_argument("--trait-sessions", nargs="+", help="sessions the trait table comes from (default: --sessions)")
     args = ap.parse_args(argv)
     rows = pd.read_csv(args.rows)
     if rows.empty:
         sys.exit("reaction.py: no rows")
     import reaction  # so the saved models unpickle as reaction.Model, not __main__.Model
-    report, final = reaction.run(rows, args.sessions, args.kids, logo=not args.final_only)
+    report, final = reaction.run(rows, args.sessions, args.kids, logo=not args.final_only, trait_dirs=args.trait_sessions)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     dump(report, out / "reaction.json")

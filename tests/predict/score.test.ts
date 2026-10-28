@@ -177,6 +177,17 @@ describe.skipIf(!venvAvailable())('player-model variants in leave-one-game-out (
       expect(csv).not.toContain(`b-${f.game}-learn`);   // every kid's rows for the held-out game stay out
     }
     expect(rep.mean['model-kid']).toBeDefined();
+    // unseen-kid transfer: the traits variant never sees a row of A; A's traits come from A's other game
+    expect(rep.transfer?.folds.map(f => f.game)).toEqual(['g1', 'g2']);
+    expect(rep.transfer?.mean?.recall).not.toBeUndefined();
+    const tdirs = await readdir(join(root, 'group', 'transfer'));
+    expect(tdirs).toHaveLength(2);
+    for (const d of tdirs) {
+      expect(await readFile(join(root, 'group', 'transfer', d, 'all_rows.csv'), 'utf8')).not.toMatch(/a-g\d-learn/);
+      const rj = JSON.parse(await readFile(join(root, 'group', 'transfer', d, 'reaction', 'reaction.json'), 'utf8'));
+      expect(rj.kids).not.toContain('A');
+      expect(Object.keys(rj.trait_values)).toContain('A');
+    }
     const { rankingCheck } = await import('../../src/predict/score.ts');
     const r = await rankingCheck('A', rep, root);
     expect(r?.order).toEqual(['g2', 'g1']);
@@ -189,7 +200,7 @@ describe('scoreboard lines', () => {
     const { scoreboardLines } = await import('../../src/predict/run.ts');
     const sb = {
       reliability: { n: 10, kappa: 0.42, agreement: 0.6, below_gate: true, gate: 0.6, per_label: {}, sessions: [] },
-      players: { A: { ceiling: null, ranking: { order: ['g1', 'g2'], tau: { 'model-traits': 1, 'model-kid': -1 }, n: 2 }, predictors: {
+      players: { A: { ceiling: null, transfer: { recall: 0.3, precision: 0.2, mix_similarity: 0.4, kappa: 0.15, auc: {} }, ranking: { order: ['g1', 'g2'], tau: { 'model-traits': 1, 'model-kid': -1 }, n: 2 }, predictors: {
         baseline: { logo: { recall: 0.5, precision: 0.5, mix_similarity: 0.5, kappa: 0.1, auc: { frustrated: 0.7 } }, check: null, logo_normalized: null, check_normalized: null },
         'model-traits': { logo: { recall: 0.4, precision: 0.3, mix_similarity: 0.6, kappa: 0.2, auc: {} }, check: null, logo_normalized: null, check_normalized: null },
       } } },
@@ -200,6 +211,7 @@ describe('scoreboard lines', () => {
     expect(lines.findIndex(l => /baseline/.test(l))).toBeGreaterThan(1);
     expect(lines.join('\n')).toMatch(/model-traits .*kappa  0\.20/);
     expect(lines.join('\n')).toMatch(/frustrated 0\.70/);
+    expect(lines.join('\n')).toMatch(/traits transfer .*kappa  0\.15/);
     expect(lines.at(-1)).toMatch(/ranking check .*model-traits  1\.00, model-kid -1\.00/);
   });
 });

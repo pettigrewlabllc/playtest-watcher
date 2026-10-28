@@ -75,3 +75,14 @@ def test_the_traits_carry_the_kid_difference(tmp_path, monkeypatch):
     monkeypatch.setattr(reaction, "trait_table", lambda t: {})   # every kid at the group mean: situation only
     blind, _ = reaction.run(rows, dirs, str(tmp_path / "kids.json"))
     assert full["pooled"]["traits"]["macro_f1"] > blind["pooled"]["traits"]["macro_f1"] + 0.05
+
+
+def test_unseen_kid_transfer_takes_traits_from_sessions_it_never_trains_on(tmp_path):
+    dirs, rows = world(tmp_path)
+    others = rows[rows["kid"] != "A"]
+    report, final = reaction.run(others, [d for d in dirs if "/A-" not in d], str(tmp_path / "kids.json"), logo=False,
+                                 trait_dirs=dirs)
+    assert "A" not in report["kids"]                                  # no row of A in the fit
+    assert "A" in report["trait_values"]                              # but A's traits are known
+    assert report["trait_values"]["A"]["frustration_tolerance"] < 0
+    assert set(final["traits"].table) >= {"A", "B", "C", "D"}
