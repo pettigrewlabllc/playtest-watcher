@@ -73,4 +73,6 @@ Changed during build:
 
 `persona.ts` lens and synthesis prompts take `traits.json` (with intervals, and "don't call a trait high or low if its interval spans the group mean"), the debrief answers as the kid's own words (quoted, marked "said"), the mood taps, and intent corrections. Evidence ids may now also be trait names. Fake-client tests updated.
 
+Changed during build: `buildPersona(letter, dirs, client, { traits })` takes a `TraitsFile` (default `recordings/group/traits.json`; `null` for none). The dossier now leads with TRAITS (top-level difference from the group with its range, then each game's value and range with that game's group mean, or "no other kid on this game"; "no data" for empty traits; the said-vs-did gaps) followed by the spans rule, SAID (every debrief answer for **these sessions only**, quoted, with any intent), MOOD TAPS (`operator_mood` events) and INTENT CORRECTIONS (resolved event types, plus answers that carry an intent no event could be tied to, so the persona still hears them). Trait names with data count as evidence. Leave-one-game-out builds the fold's group model first and gives the fold persona traits computed without the held-out game (`foldGroupModel` now also writes `traits.json`), and the held-out game's debrief answers never reach it.
+
 Report per task: done or not, tests, commits, plan changes, anything unverified.
