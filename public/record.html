@@ -215,6 +215,7 @@ function beep() {
 
 async function stop() {
   $('stopBtn').disabled = true;
+  $('debrief').hidden = true; // the mic is off after Stop, so asking now would go unrecorded
   clearInterval(timer);
   const stoppedAt = Date.now();
   await Promise.all(Object.values(recs).map(r => r.stop()));
