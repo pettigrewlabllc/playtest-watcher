@@ -2,3 +2,5 @@ scikit-learn
 pandas
 joblib
 pytest
+scipy
+statsmodels
