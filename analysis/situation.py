@@ -90,7 +90,8 @@ def in_window(session, e, end=None):
 FALLBACK_FIELDS = ("level", "wave", "season", "name")
 ROW_COLUMNS = ["session", "game", "i", "ms", "stage", "kind", "type", "fail_streak", "s_since_success", "s_since_progress",
                "attempts_30s", "new_thing_10s", "text_chars_on_screen", "s_in_session", "explore_so_far", "help_so_far",
-               "label", "weak_labels", "kid", "block", "prev_label", "s_since_moment", "rapid_retry", "attempts_no_success", "intent"]
+               "label", "weak_labels", "kid", "block", "prev_label", "s_since_moment", "rapid_retry", "attempts_no_success", "intent",
+               "moment"]
 
 
 def _num(v):
@@ -245,7 +246,7 @@ def build_rows(session, intents=None, moments="from_session"):
         f = st.step(e, i)
         if not in_window(session, e, end):
             continue
-        label = "none"
+        label, moment_id = "none", ""
         if weak:
             if f["fail_streak"] >= 3:
                 label = "frustrated"
@@ -255,7 +256,7 @@ def build_rows(session, intents=None, moments="from_session"):
             best = -1
             for m in real:
                 if m["startMs"] <= e["ms"] <= m["endMs"] and m["confidence"] > best:
-                    best, label = m["confidence"], m["label"]
+                    best, label, moment_id = m["confidence"], m["label"], str(m.get("id", ""))
         prev = None
         for m in ended:
             if m["endMs"] < e["ms"]:
@@ -266,5 +267,5 @@ def build_rows(session, intents=None, moments="from_session"):
                      "kind": e["kind"], "type": e["type"], **f, "label": label, "weak_labels": int(weak),
                      "kid": session["kid"], "block": blocks[i], "prev_label": prev["label"] if prev else "none",
                      "s_since_moment": (e["ms"] - (prev["endMs"] if prev else 0)) / 1000,
-                     "intent": (intents or {}).get(e["type"], "none")})
+                     "intent": (intents or {}).get(e["type"], "none"), "moment": moment_id})
     return rows

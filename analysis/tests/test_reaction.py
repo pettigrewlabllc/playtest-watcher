@@ -86,3 +86,33 @@ def test_unseen_kid_transfer_takes_traits_from_sessions_it_never_trains_on(tmp_p
     assert "A" in report["trait_values"]                              # but A's traits are known
     assert report["trait_values"]["A"]["frustration_tolerance"] < 0
     assert set(final["traits"].table) >= {"A", "B", "C", "D"}
+
+
+def _rows(spec):
+    """spec: (session, label, moment id or '', count) runs of rows."""
+    out = []
+    for s, l, m, n in spec:
+        out += [{"session": s, "label": l, "moment": m} for _ in range(n)]
+    return pd.DataFrame(out)
+
+
+def test_rows_are_weighted_by_their_moment():
+    df = _rows([("s1", "none", "", 3), ("s1", "frustrated", "c001", 4), ("s1", "none", "", 1), ("s1", "frustrated", "c002", 1),
+                ("s2", "stuck", "", 2), ("s2", "none", "", 1), ("s2", "stuck", "", 3)])
+    w = reaction.row_weights(df)
+    assert list(w[:3]) == [1, 1, 1]                       # each none row stands alone
+    assert list(w[3:7]) == [0.25] * 4 and w[8] == 1       # a 4-row moment counts once, like a 1-row one
+    assert list(w[9:11]) == [0.5, 0.5] and list(w[12:15]) == [1 / 3] * 3   # weak labels: a run is one unit
+    units = reaction.moment_units(df)
+    assert len(set(units[df["label"] == "frustrated"])) == 2 and len(set(units[df["label"] == "stuck"])) == 2
+
+
+def test_min_class_counts_distinct_moments_not_rows(tmp_path):
+    dirs, rows = world(tmp_path)
+    rows = rows.copy()
+    sid = rows["session"].iloc[0]
+    idx = rows.index[(rows["session"] == sid) & (rows["label"] == "none")][:40]
+    rows.loc[idx, "label"], rows.loc[idx, "moment"] = "bored", "one-long-moment"   # 40 rows, one moment
+    m = reaction.Model("kid", sorted(rows["kid"].unique()), {}).fit(rows)
+    assert "bored" not in m.classes and "frustrated" in m.classes
+    assert reaction.MIN_CLASS == 5

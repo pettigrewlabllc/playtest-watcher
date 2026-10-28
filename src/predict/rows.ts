@@ -10,12 +10,13 @@ export type Row = {
   new_thing_10s: 0 | 1; text_chars_on_screen: number; s_in_session: number; explore_so_far: number; help_so_far: number;
   label: Label; weak_labels: 0 | 1;
   kid: string; block: number; prev_label: Label; s_since_moment: number; rapid_retry: 0 | 1; attempts_no_success: number; intent: string;
+  moment: string;   // id of the moment that labelled the row ('' for none or weak labels)
 };
 
 export const ROW_COLUMNS: (keyof Row)[] = [
   'session', 'game', 'i', 'ms', 'stage', 'kind', 'type', 'fail_streak', 's_since_success', 's_since_progress',
   'attempts_30s', 'new_thing_10s', 'text_chars_on_screen', 's_in_session', 'explore_so_far', 'help_so_far', 'label', 'weak_labels',
-  'kid', 'block', 'prev_label', 's_since_moment', 'rapid_retry', 'attempts_no_success', 'intent',
+  'kid', 'block', 'prev_label', 's_since_moment', 'rapid_retry', 'attempts_no_success', 'intent', 'moment',
 ];
 
 export type DebriefAnswer = { q: string; a: string; fun?: number; intent?: string; event?: string };
@@ -129,13 +130,14 @@ export function buildRows(session: string, game: string, aligned: Aligned, momen
     }
 
     let label: Label = 'none';
+    let momentId = '';
     if (weak) {
       if (failStreak >= 3) label = 'frustrated';
       else if (e.kind === 'idle') label = 'stuck';
     } else {
       let best = -1;
       for (const m of real) {
-        if (e.ms >= m.startMs && e.ms <= m.endMs && m.confidence > best) { best = m.confidence; label = m.label; }
+        if (e.ms >= m.startMs && e.ms <= m.endMs && m.confidence > best) { best = m.confidence; label = m.label; momentId = m.id; }
       }
     }
 
@@ -158,7 +160,7 @@ export function buildRows(session: string, game: string, aligned: Aligned, momen
       prev_label: prev ? prev.label : 'none',
       s_since_moment: (e.ms - (prev ? prev.endMs : 0)) / 1000,
       rapid_retry: rapid, attempts_no_success: noSuccess,
-      intent: o.intents?.[e.type] ?? 'none',
+      intent: o.intents?.[e.type] ?? 'none', moment: momentId,
     });
   }
   return rows;
