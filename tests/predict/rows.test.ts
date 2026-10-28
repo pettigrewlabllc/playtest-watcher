@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { sessionRows, writeRowsCsv } from '../../src/predict/rows.ts';
+import { sessionRows, writeRowsCsv, resolveIntents } from '../../src/predict/rows.ts';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { stageOf } from '../../src/predict/stages.ts';
 import { ev, moment, tempRoot, writeSession } from './helpers.ts';
 
@@ -106,5 +107,70 @@ describe('sessionRows', () => {
     const lines = (await readFile(file, 'utf8')).trim().split('\n');
     expect(lines[0].startsWith('session,game,i,ms,stage,kind,type,')).toBe(true);
     expect(lines[1]).toContain('"cut, wire"');
+  });
+});
+
+describe('situation features (player model)', () => {
+  it('prev_label, s_since_moment, rapid_retry, attempts_no_success, block and kid', async () => {
+    const root = await tempRoot();
+    const evs = [
+      ev(0, 'progress', { level: 1 }, 'level_start'), // 0
+      ev(1000, 'attempt'),                            // 1
+      ev(1200, 'fail'),                               // 2
+      ev(1200, 'fail', {}, 'life_lost'),              // 3 same failure, logged twice
+      ev(1800, 'attempt'),                            // 4 rapid retry (< 1 s after the fail)
+      ev(2000, 'fail'),                               // 5
+      ev(4000, 'attempt'),                            // 6 not rapid
+      ev(4500, 'success'),                            // 7
+      ev(6000, 'progress', { level: 2 }, 'level_start'), // 8
+      ev(7000, 'attempt'),                            // 9
+      ev(9000, 'explore'),                            // 10
+    ];
+    const dir = await writeSession(root, 's1', {
+      kid: 'C', events: evs,
+      moments: [moment('m1', 1000, 2500, 'frustrated', 0.9), moment('m2', 6500, 6800, 'delighted', 0.3)],
+    });
+    const rows = await sessionRows(dir);
+    expect(rows.every(r => r.kid === 'C')).toBe(true);
+    expect(rows[1].prev_label).toBe('none');
+    expect(rows[1].s_since_moment).toBe(1);        // no moment yet: seconds since the session started
+    expect(rows[6].prev_label).toBe('frustrated');
+    expect(rows[6].s_since_moment).toBe(1.5);
+    expect(rows[9].prev_label).toBe('frustrated');  // m2 is below the confidence floor
+    expect(rows[4].rapid_retry).toBe(1);
+    expect(rows[6].rapid_retry).toBe(0);
+    expect(rows[1].rapid_retry).toBe(0);
+    expect(rows[5].fail_streak).toBe(2);           // the duplicate fail at the same ms counts once
+    expect(rows[1].attempts_no_success).toBe(1);
+    expect(rows[6].attempts_no_success).toBe(3);
+    expect(rows[7].attempts_no_success).toBe(0);
+    expect(rows[9].attempts_no_success).toBe(1);
+    expect(rows[0].block).toBe(1);
+    expect(rows[7].block).toBe(1);
+    expect(rows[8].block).toBe(2);
+    expect(rows.every(r => r.intent === 'none')).toBe(true);
+  });
+
+  it('a debrief that calls an event accidental marks that event type', async () => {
+    const root = await tempRoot();
+    const evs = [ev(0, 'attempt'), ev(1000, 'explore', {}, 'compendium_open'), ev(2000, 'explore', {}, 'menu_look')];
+    const dir = await writeSession(root, 's-acc', { kid: 'C', game: 'g1', events: evs, moments: [] });
+    await mkdir(join(root, 'kids', 'c'), { recursive: true });
+    await writeFile(join(root, 'kids', 'c', 'debriefs.json'), JSON.stringify([
+      { game: 'g1', session: 's-acc', answers: [
+        { q: 'From 1 to 5, how fun was that?', a: '4', fun: 4 },
+        { q: 'You opened the Compendium once. Why?', a: 'I hit that accidentally.', intent: 'accidental' },
+      ] },
+      { game: 'g1', session: 'other', answers: [{ q: 'menu?', a: 'oops', intent: 'accidental', event: 'menu_look' }] },
+    ]));
+    const rows = await sessionRows(dir);
+    expect(rows.map(r => r.intent)).toEqual(['none', 'accidental', 'none']);
+  });
+
+  it('an explicit event field wins over the text match', () => {
+    const intents = resolveIntents([
+      { game: 'g', session: 's', answers: [{ q: 'the compendium', a: 'oops', intent: 'accidental', event: 'menu_look' }] },
+    ], 's', 'g', [ev(0, 'explore', {}, 'compendium_open'), ev(1, 'explore', {}, 'menu_look')]);
+    expect(intents).toEqual({ menu_look: 'accidental' });
   });
 });
