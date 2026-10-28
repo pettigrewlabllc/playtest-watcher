@@ -225,6 +225,16 @@ The kids' own words changed what some events mean. One kid's single "explore" ev
 
 Fingerprint becomes the trait estimators with ranges and game adjustment (plus the new learning rate, persistence, challenge appetite and stamina traits); the reaction model becomes the pooled model; the persona prompts take traits with ranges and must cite them; the debrief and mood feed the said-versus-did comparison.
 
+## 3b+. Making perception more accurate: adapting to real kids' labels
+
+Every trait and prediction inherits the moment labels, so perception is where accuracy matters most. No public dataset matches (Kaggle and Hugging Face emotion sets are adults, posed faces or lectures), so adaptation uses the only matching data: Joel's own labels on his kids' clips.
+
+- **Labels:** Joel labels 150 to 200 clips in a tap-a-label page, blind to Muse's label, sampled stratified across Muse's labels including `none`, spread across all four kids and all games. The first 60 also serve as the reliability check (Cohen's kappa).
+- **Step 1, worked examples (no training).** Muse Spark gets 10 to 15 of Joel's labelled clips as in-context examples, chosen by a fixed rule (two per label, from kids other than the clip's own). Measure kappa against Joel on clips not used as examples, before and after.
+- **Step 2, a trained calibration layer (local).** A small classifier (L2 logistic, scikit-learn) trained on Joel's labels. Inputs: Muse's label and confidence (with and without step 1); facial action units per clip from py-feat (code MIT; check the model-weights licence before use), run locally over the face panel and summarised as mean and peak for brow lowerer (AU4), lip corner puller (AU12), jaw drop (AU26) and blink rate; and the game events in the window (fail streak, idle, rapid retries, progress). Evaluated **leave-one-kid-out**: trained on three kids' labels, scored on the fourth, so the gain is honest. Reported as kappa against Joel for Muse alone, Muse plus examples, and Muse plus calibration. If calibration doesn't beat Muse plus examples on held-out kids, it isn't used. The face models are trained on adults, which the write-up says.
+- **Step 3, stretch (only if the Modal or Baseten credits arrive):** a LoRA fine-tune of Muse Spark Open on the same labels, evaluated the same way. It also qualifies for the open-weights prize. Not on the critical path.
+- The labels the player model trains on come from the best-performing step on held-out kids, and the scoreboard says which.
+
 ## 3c. Integration contract (written for coding agents)
 
 Most developers will have a coding agent wire Playtest Watcher into their game. The contract has to carry enough context that an agent maps a game cleanly the first time, and has to tell the agent when it got something wrong. Local-first: nothing is hosted; everything below ships in the repo.
