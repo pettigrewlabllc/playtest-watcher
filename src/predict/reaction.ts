@@ -6,6 +6,7 @@ import { basename, join } from 'node:path';
 import { python, recordingsRoot } from './model.ts';
 import type { Opts } from './model.ts';
 import { groupDir, learnSessionDirs, writeAllRows } from './traits.ts';
+import { listSessions, sameKid } from './study.ts';
 
 export type LabelMetrics = { n: number; macro_f1: number | null; kappa: number | null; auc: Record<string, number>; mix_tvd: number | null };
 export type ReactionReport = {
@@ -44,5 +45,25 @@ export async function foldGroupModel(root: string, exceptGame: string): Promise<
   const afm = existsSync(join(dir, 'afm.json')) ? ['--afm', join(dir, 'afm.json')] : [];
   await python('traits.py', ['--sessions', ...dirs, '--kids', join(root, 'kids.json'), ...afm, '--out', join(dir, 'traits.json')]);
   await python('reaction.py', ['--rows', rows, '--sessions', ...dirs, '--kids', join(root, 'kids.json'), '--out', join(dir, 'reaction'), '--final-only']);
+  return dir;
+}
+
+// Unseen-kid transfer: the reaction model is fitted on the other kids' learn sessions only (no row of this kid), and
+// the kid's traits come from their own learn sessions of every other game. Cached by kid, game and session ids.
+export async function transferGroupModel(root: string, letter: string, exceptGame: string): Promise<string | null> {
+  const learn = (await listSessions(root)).filter(s => s.round === 'learn');
+  const others = learn.filter(s => !sameKid(s.kid, letter)).map(s => s.dir);
+  const mine = learn.filter(s => sameKid(s.kid, letter) && s.game !== exceptGame).map(s => s.dir);
+  if (!others.length || !mine.length) return null;
+  const ids = [...others, ...mine].map(d => basename(d)).sort().join('|');
+  const dir = join(groupDir({ root }), 'transfer', `${letter.toUpperCase()}-${exceptGame}-${createHash('sha1').update(ids).digest('hex').slice(0, 8)}`);
+  if (existsSync(join(dir, 'reaction', 'models.joblib'))) return dir;
+  await mkdir(join(dir, 'reaction'), { recursive: true });
+  const rows = join(dir, 'all_rows.csv');
+  await writeAllRows(others, rows);
+  try { await python('afm.py', ['--rows', rows, '--out', join(dir, 'afm.json'), '--boot', '0']); }
+  catch (e) { if (!/need resolved attempts/.test((e as Error).message)) throw e; }
+  await python('reaction.py', ['--rows', rows, '--sessions', ...others, '--trait-sessions', ...others, ...mine,
+    '--kids', join(root, 'kids.json'), '--out', join(dir, 'reaction'), '--final-only']);
   return dir;
 }

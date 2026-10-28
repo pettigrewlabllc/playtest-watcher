@@ -52,6 +52,7 @@ export function scoreboardLines(sb: Scoreboard): string[] {
       if (!r) continue;
       lines.push(`  ${name.padEnd(13)} LOGO ${aggLine(r.logo)} | check ${aggLine(r.check)} | normalized ${pct(r.logo_normalized)} / ${pct(r.check_normalized)}`);
     }
+    if (p.transfer) lines.push(`  traits transfer (model-traits, no row of ${letter} in training) LOGO ${aggLine(p.transfer)}`);
     if (p.ranking) lines.push(`  ranking check (Kendall tau vs their own order ${p.ranking.order.join(' > ')}): ${MODEL_VARIANTS.map(v => `${v} ${num2(p.ranking!.tau[v])}`).join(', ')}`);
   }
   return lines;
@@ -132,6 +133,7 @@ export async function runCommand(argv: string[], deps: Deps = {}): Promise<void>
     }
     out('mean');
     for (const p of ALL_PREDICTORS) if (r.mean[p]) out(`  ${p.padEnd(13)} ${aggLine(r.mean[p]!)}`);
+    if (r.transfer) out(`traits transfer (model-traits, no row of ${letter} in training): ${aggLine(r.transfer.mean)}`);
   } else if (cmd === 'scoreboard') {
     const study = await loadStudy(root);
     if (!Object.keys(study.players).length) throw new Error(`no players in ${join(root, 'study.json')}`);

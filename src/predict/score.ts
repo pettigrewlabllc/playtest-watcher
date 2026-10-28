@@ -7,7 +7,7 @@ import { loadSession } from './inputs.ts';
 import type { Label } from './inputs.ts';
 import { stagesOf } from './stages.ts';
 import { okMoments } from './rows.ts';
-import { ALL_PREDICTORS, MODEL_VARIANTS, PREDICTORS, predictSession } from './predict.ts';
+import { ALL_PREDICTORS, MODEL_VARIANTS, PREDICTORS, predictSession, simulateVariants } from './predict.ts';
 import type { AnyPredictor, PredictedItem, Prediction, Predictor, Variant } from './predict.ts';
 import { buildPersona } from './persona.ts';
 import { playerDir, recordingsRoot, trainPlayer, venvAvailable } from './model.ts';
@@ -16,7 +16,7 @@ import { listSessions, sameKid, sha256File } from './study.ts';
 import type { SessionInfo } from './study.ts';
 import { cohenKappa, reliability } from './reliability.ts';
 import type { Reliability } from './reliability.ts';
-import { foldGroupModel } from './reaction.ts';
+import { foldGroupModel, transferGroupModel } from './reaction.ts';
 import type { Study } from './study.ts';
 
 export type Score = {
@@ -178,6 +178,8 @@ export type LogoReport = {
   folds: { game: string; key: string; target: string; self_target?: boolean; trainSessions: string[]; scores: Partial<Record<AnyPredictor, Score>>; enjoyment?: Partial<Record<Variant, number>> }[];
   skipped: string[];
   mean: Partial<Record<AnyPredictor, Agg>>;
+  // traits transfer: model-traits fitted with no row of this kid, the kid's traits from their other games (headline folds in mean)
+  transfer?: { folds: { game: string; target: string; self_target?: boolean; score: Score }[]; mean: Agg | null };
 };
 
 // The session a fold predicts from: the game's reference playthrough, else another kid's learn session of it.
@@ -247,11 +249,28 @@ export async function logo(
       scores[p] = xs.length === 1 ? xs[0] : { ...meanScores(xs), real: sum(xs, 'real'), predicted: sum(xs, 'predicted'), hits: sum(xs, 'hits'), matched: sum(xs, 'matched') };
       if (!selfTarget) (perPredictor[p] ??= []).push(scores[p]!);
     }
+    if (withVariants) {
+      let tg: string | null = null;
+      try { tg = await transferGroupModel(root, letter, game); }
+      catch (e) { log(`logo ${letter}: no transfer model for fold ${game}: ${(e as Error).message}`); }
+      if (tg) {
+        const xs: Score[] = [];
+        const tOpts = { root, dir: join(dir, 'transfer'), group: tg, sims: o.sims };
+        const shared = ref ? (await simulateVariants(letter, ref.dir, tOpts))['model-traits'] : null;
+        for (const h of held) xs.push(await scorePrediction(shared ?? (await simulateVariants(letter, h.dir, tOpts))['model-traits'], h.dir));
+        const score = xs.length === 1 ? xs[0] : { ...meanScores(xs), real: sum(xs, 'real'), predicted: sum(xs, 'predicted'), hits: sum(xs, 'hits'), matched: sum(xs, 'matched') };
+        (report.transfer ??= { folds: [], mean: null }).folds.push({ game, target: ref?.id ?? held[0].id, ...(selfTarget ? { self_target: true } : {}), score });
+      }
+    }
     const enjoyment: Partial<Record<Variant, number>> = {};
     for (const v of MODEL_VARIANTS) if (joy[v]?.length) enjoyment[v] = avg(joy[v]!)!;
     report.folds.push({ game, key, target: ref?.id ?? held[0].id, ...(selfTarget ? { self_target: true } : {}), trainSessions: train.map(s => s.id), scores, ...(Object.keys(enjoyment).length ? { enjoyment } : {}) });
   }
   for (const p of ALL_PREDICTORS) if (perPredictor[p]) report.mean[p] = meanScores(perPredictor[p]!);
+  if (report.transfer) {
+    const head = report.transfer.folds.filter(f => !f.self_target).map(f => f.score);
+    report.transfer.mean = head.length ? meanScores(head) : null;
+  }
   await mkdir(playerDir(letter, { root }), { recursive: true });
   await writeFile(join(playerDir(letter, { root }), 'logo.json'), JSON.stringify(report, null, 2));
   return report;
@@ -263,7 +282,7 @@ export type PredictorRow = { logo: Agg | null; check: Score | null; logo_normali
 // reliability comes first: no prediction score means much until Joel's labels agree with Muse's (kappa >= 0.6)
 export type Scoreboard = {
   reliability: Reliability;
-  players: Record<string, { ceiling: Score | null; predictors: Partial<Record<AnyPredictor, PredictorRow>>; ranking: Ranking | null }>;
+  players: Record<string, { ceiling: Score | null; predictors: Partial<Record<AnyPredictor, PredictorRow>>; ranking: Ranking | null; transfer?: Agg | null }>;
 };
 
 function checkLabel(study: Study, letter: string, game: string): string {
@@ -324,7 +343,7 @@ export async function scoreboard(
       const norm = (r: number | null | undefined) => (r != null && ceiling?.recall ? r / ceiling.recall : null);
       rows[name] = { logo: lg, check, logo_normalized: norm(lg?.recall), check_normalized: norm(check?.recall) };
     }
-    out.players[letter] = { ceiling, predictors: rows, ranking: report ? await rankingCheck(letter, report, root) : null };
+    out.players[letter] = { ceiling, predictors: rows, ranking: report ? await rankingCheck(letter, report, root) : null, transfer: report?.transfer?.mean ?? null };
   }
   return out;
 }
