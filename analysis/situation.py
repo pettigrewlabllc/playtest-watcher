@@ -119,7 +119,7 @@ PAIR_MS = 2000
 
 
 def resolvable_types(events):
-    """Attempt types that ever get an outcome; only these count toward wheel-spinning (mirrors rows.ts)."""
+    """Attempt types whose success is ever logged; only these count toward wheel-spinning (mirrors rows.ts)."""
     out = set()
     for j, e in enumerate(events):
         if e["kind"] != "attempt":
@@ -127,8 +127,10 @@ def resolvable_types(events):
         for o in events[j + 1:]:
             if o["kind"] == "attempt" or o["ms"] - e["ms"] > PAIR_MS:
                 break
-            if o["kind"] in ("success", "fail"):
+            if o["kind"] == "success":
                 out.add(e["type"])
+                break
+            if o["kind"] == "fail":
                 break
     return out
 

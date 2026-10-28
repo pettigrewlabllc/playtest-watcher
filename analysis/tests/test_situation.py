@@ -49,6 +49,7 @@ def test_rows_only_inside_the_recording_window():
 
 def test_wheel_count_skips_attempt_types_that_never_resolve():
     evs = [ev(0, "attempt", "file_item"), ev(100, "fail", "file_item"), ev(1000, "attempt", "query_step"),
-           ev(2000, "attempt", "query_step"), ev(3000, "attempt", "file_item")]
+           ev(1100, "fail", "audit_answer"), ev(2000, "attempt", "query_step"), ev(3000, "attempt", "file_item"),
+           ev(3100, "success", "file_item")]
     rows = build_rows(session(evs, []))
-    assert [r["attempts_no_success"] for r in rows] == [1, 1, 1, 1, 2]
+    assert [r["attempts_no_success"] for r in rows] == [1, 1, 1, 1, 1, 2, 0]

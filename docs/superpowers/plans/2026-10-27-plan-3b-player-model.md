@@ -22,7 +22,7 @@ Changed during build: rows also carry `kid` and `block` (a new block at every `*
 
 Changed after the first real-data run: rows (Node and Python) and traits now cover only the **recording window**, from Start (ms 0) to Stop (`durationMs`), cut just before `debrief_start`. The real sessions had 3 to 7 events before Start (one kid looked at the menu three times while the operator set up) and up to 72 after Stop (a Bond Swap session kept logging after the recorder stopped, plus a 367 s idle); moments exist only inside the window, so rows outside it were labelled `none` by default. The feature state still runs over every event (a pre-Start explore still counts in `explore_so_far`); only the rows are dropped. Simulation output is restricted the same way.
 
-Also from the real-data run: `attempts_no_success` (and the wheel-spinning share in persistence) counts only attempt types that ever get an outcome in that session. Hoard Keeper's audit logs `query_step` attempts that never resolve, so the count climbed through every audit and read as 52% wheel-spinning.
+Also from the real-data run: `attempts_no_success` (and the wheel-spinning share in persistence) counts only attempt types whose **success** is logged at least once in that session, and the AFM leaves out attempt types no kid ever succeeds at on a game. Hoard Keeper's audit logs a wrong answer (`audit_answer` fail, which pairs with the last `query_step`) but never a right one, so `query_step` read as pure failure: the count climbed through every audit and the AFM scored the audit as all misses.
 
 ## Task 2: AFM skill and learning rate (analysis/afm.py)
 
