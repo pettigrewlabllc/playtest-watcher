@@ -152,12 +152,12 @@ async function ready() {
 
 async function showGameLink() {
   if (sel.game === 'current-cut' && sel.device === 'laptop') {
-    $('gameLink').innerHTML = `Run on this laptop: <code>godot --path game -- --playtest=${session} --pw=http://localhost:3058</code>`;
+    $('gameLink').innerHTML = `Run on this laptop: <code>godot --path game -- --playtest=${session} --pw=http://localhost:${location.port}</code>`;
     return;
   }
   const { lanIps } = await (await fetch('/api/info')).json();
   const host = sel.device === 'ipad' ? (lanIps[0] || 'localhost') : 'localhost';
-  const url = `http://${host}${GAME_PATHS[sel.game]}?playtest=${session}&pw=${encodeURIComponent(`http://${host}:3058`)}`;
+  const url = `http://${host}${GAME_PATHS[sel.game]}?playtest=${session}&pw=${encodeURIComponent(`http://${host}:${location.port}`)}`;
   $('gameLink').innerHTML = `Game link: <code>${url}</code>`;
   if (sel.device === 'ipad' && window.QRCode) {
     const c = document.createElement('canvas');
