@@ -174,3 +174,15 @@ describe('situation features (player model)', () => {
     expect(intents).toEqual({ menu_look: 'accidental' });
   });
 });
+
+describe('recording window', () => {
+  it('keeps rows only between the recording start and stop, and before the debrief', async () => {
+    const root = await tempRoot();
+    const evs = [ev(-5000, 'explore', {}, 'menu_look'), ev(0, 'attempt'), ev(1000, 'fail'), ev(2000, 'attempt'),
+      ev(3000, 'debrief_start', {}, 'debrief_start'), ev(4000, 'attempt'), ev(9000, 'idle')];
+    const dir = await writeSession(root, 's', { events: evs, durationMs: 8000, moments: [] });
+    const rows = await sessionRows(dir);
+    expect(rows.map(r => r.i)).toEqual([1, 2, 3]);
+    expect(rows[0].explore_so_far).toBe(1);   // state still counts what came before the window
+  });
+});

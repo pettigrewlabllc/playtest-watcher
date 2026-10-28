@@ -17,7 +17,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).parent))
 from afm import PAIR_MS  # noqa: E402
 from common import dump  # noqa: E402
-from situation import LABELS, SAME_FAILURE_MS, Stepper, read_json, stages_of  # noqa: E402
+from situation import LABELS, SAME_FAILURE_MS, Stepper, in_window, read_json, stages_of  # noqa: E402
 
 N_SIMS = 200
 
@@ -149,6 +149,10 @@ def main(argv=None):
         frame = pd.DataFrame({"i": range(len(events)), "stage": info["stages"], "type": [e["type"] for e in events]})
         for j, l in enumerate(LABELS):
             frame[f"p_{l}"] = P[:, j]
+        window = {"events": events, "duration_ms": (aligned or {}).get("durationMs")}
+        keep = [in_window(window, e) for e in events]    # predictions cover the recording window, like the rows
+        frame = frame[keep]
+        P = P[np.array(keep, bool)] if len(P) else P
         frame.to_csv(out / f"probs-{variant}.csv", index=False)
         summary["variants"][variant] = {"success_rate": info["success_rate"], "attempts": info["attempts"],
                                         "expected_rows": dict(zip(LABELS, P.sum(0).tolist()))}

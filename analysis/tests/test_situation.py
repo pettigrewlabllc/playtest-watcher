@@ -36,3 +36,12 @@ def test_text_and_weak_labels():
     assert [r["text_chars_on_screen"] for r in rows[:3]] == [120, 150, 30]
     assert [r["label"] for r in rows] == ["none", "none", "none", "none", "none", "frustrated", "frustrated"]
     assert all(r["weak_labels"] == 1 for r in rows)
+
+
+def test_rows_only_inside_the_recording_window():
+    evs = [ev(-5000, "explore", "menu_look"), ev(0, "attempt"), ev(1000, "fail"), ev(2000, "attempt"),
+           ev(3000, "debrief_start"), ev(4000, "attempt"), ev(9000, "idle")]
+    s = {"id": "s", "kid": "C", "game": "g", "events": evs, "moments": [], "duration_ms": 8000}
+    rows = build_rows(s)
+    assert [r["i"] for r in rows] == [1, 2, 3]
+    assert rows[0]["explore_so_far"] == 1

@@ -59,6 +59,13 @@ export function okMoments(moments: Moment[] | null): Moment[] {
   return (moments ?? []).filter(m => m.status === 'ok' && m.label !== 'none' && m.confidence >= MIN_CONFIDENCE);
 }
 
+// The recording window: from Start (0) to Stop (durationMs), cut at debrief_start if the debrief was marked.
+export function playEndMs(aligned: Aligned): number {
+  const debrief = aligned.events.find(e => e.type === 'debrief_start');
+  if (debrief) return debrief.ms - 1;
+  return aligned.durationMs > 0 ? aligned.durationMs : Infinity;
+}
+
 export type RowOpts = { kid?: string; intents?: Record<string, string> };
 
 export function buildRows(session: string, game: string, aligned: Aligned, moments: Moment[] | null, o: RowOpts = {}): Row[] {
@@ -66,6 +73,7 @@ export function buildRows(session: string, game: string, aligned: Aligned, momen
   const stages = stagesOf(events);
   const blocks = blocksOf(events);
   const ended = okMoments(moments).slice().sort((a, b) => a.endMs - b.endMs);
+  const end = playEndMs(aligned);
   const weak = moments === null;
   const real = okMoments(moments);
   const rows: Row[] = [];
@@ -113,6 +121,7 @@ export function buildRows(session: string, game: string, aligned: Aligned, momen
       }
     }
 
+    if (e.ms < 0 || e.ms > end) continue;   // before Start, after Stop or after the debrief: state counts it, no row
     let prev: Moment | null = null;
     for (const m of ended) { if (m.endMs < e.ms) prev = m; else break; }
 

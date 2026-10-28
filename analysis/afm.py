@@ -155,11 +155,16 @@ def run(df, boot=BOOT, seed=0):
         mine = sorted(att.loc[att["kid"] == k, "game"].unique())
         shared = [g for g in mine if len(kids_on[g]) >= 2]
         n = int(att["kid"].isin([k]).sum() if not shared else ((att["kid"] == k) & att["game"].isin(shared)).sum())
-        for name, key, j, what in (("skill", "kid", 0, "kid term: log-odds of success relative to the other kids on the same games"),
-                                   ("learning_rate", "kid_slope", 1, f"kid slope: change in log-odds per {PRACTICE_UNIT} attempts relative to the other kids")):
+        # only differences between kids who share a game are identified (the L2 penalty anchors the terms at 0),
+        # so the top level is the kid's term minus the mean term of the kids on their shared games
+        peers = sorted({p for g in shared for p in kids_on[g]})
+        for name, key, j, what in (("skill", "kid", 0, "kid term minus the mean of the kids on the same games: log-odds of success"),
+                                   ("learning_rate", "kid_slope", 1, f"kid slope minus the mean of the kids on the same games: log-odds per {PRACTICE_UNIT} attempts")):
             if shared:
-                lo, hi = interval(kid_reps[k][j])
-                out["kids"][k][name] = trait(coef[key][k], lo, hi, n, shared, True, f"afm {what} (L2-shrunk)")
+                centre = lambda c: c[k] - np.mean([c[p] for p in peers])  # noqa: E731
+                reps_c = [r - np.mean([kid_reps[p][j][i] for p in peers]) for i, r in enumerate(kid_reps[k][j])]
+                lo, hi = interval(reps_c)
+                out["kids"][k][name] = trait(centre(coef[key]), lo, hi, n, shared, True, f"afm {what} (L2-shrunk)", peers=peers)
             else:
                 out["kids"][k][name] = trait(None, n=n, games=mine, source=f"afm {what}; not identified: no game shared with another kid")
     return out
