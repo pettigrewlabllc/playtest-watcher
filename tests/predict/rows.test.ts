@@ -87,6 +87,7 @@ describe('sessionRows', () => {
     expect(rows[14].label).toBe('none');
     expect(rows[16].label).toBe('none');
     expect(rows[20].label).toBe('none');
+    expect([rows[5].moment, rows[12].moment, rows[14].moment]).toEqual(['m1', 'm2', '']);   // the moment behind each label
     expect(rows.every(r => r.weak_labels === 0)).toBe(true);
   });
 

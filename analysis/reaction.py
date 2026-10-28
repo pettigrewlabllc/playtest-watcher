@@ -29,8 +29,37 @@ INTERACT = ["fail_streak", "s_since_success"]
 VARIANTS = ["traits", "kid"]
 BASELINES = ["base_rate", "markov"]
 C = 1.0
-MIN_CLASS = 10       # a label with fewer training rows is not modelled in that fold (probability 0)
+MIN_CLASS = 5        # a label seen in fewer distinct training moments is not modelled in that fold (probability 0)
 SMOOTH = 10          # pseudo-rows pulling a baseline's per-bin mix toward the overall mix
+
+
+def moment_units(df):
+    """The independent unit behind each row: labelled rows share their moment; with weak labels (no moment id) a run of
+    one label within a session is one unit; every none row is its own."""
+    labels = df["label"].astype(str).to_numpy()
+    ids = df["moment"].astype(str).to_numpy() if "moment" in df else np.repeat("", len(df))
+    sessions = df["session"].astype(str).to_numpy() if "session" in df else np.repeat("", len(df))
+    out, run, prev = [], 0, None
+    for i, (l, m, s) in enumerate(zip(labels, ids, sessions)):
+        if l == "none":
+            out.append(f"row:{i}")
+            prev = None
+        elif m not in ("", "nan", "None"):
+            out.append(f"moment:{s}:{m}")
+            prev = None
+        else:
+            if prev != (s, l):
+                run += 1
+                prev = (s, l)
+            out.append(f"run:{run}")
+    return np.array(out, dtype=object)
+
+
+def row_weights(df):
+    """1 / (rows in the row's moment), so a long moment counts once, not once per event in it."""
+    u = moment_units(df)
+    counts = pd.Series(u).value_counts()
+    return 1.0 / counts.reindex(u).to_numpy(float)
 
 
 def situation_matrix(df):
@@ -68,14 +97,17 @@ class Model:
 
     def fit(self, df):
         y = df["label"].astype(str).to_numpy()
-        counts = pd.Series(y).value_counts()
-        self.classes = [l for l in LABELS if counts.get(l, 0) >= MIN_CLASS]
+        units, w = moment_units(df), row_weights(df)
+        moments = {l: len(set(units[y == l])) for l in LABELS}
+        self.classes = [l for l in LABELS if moments[l] >= MIN_CLASS]
         keep = np.isin(y, self.classes)
-        self.prior = np.array([counts.get(l, 0) for l in LABELS], float) / max(1, len(y))
+        mass = np.array([w[y == l].sum() for l in LABELS])
+        self.prior = mass / max(mass.sum(), 1e-12)
         self.model = None
         if len(self.classes) >= 2:
             self.model = make_pipeline(StandardScaler(), LogisticRegression(C=C, max_iter=5000))
-            self.model.fit(design(df[keep], self.variant, self.kids, self.table), y[keep])
+            self.model.fit(design(df[keep], self.variant, self.kids, self.table), y[keep],
+                           logisticregression__sample_weight=w[keep])
         return self
 
     def proba(self, df):
@@ -96,12 +128,15 @@ class BinRate:
         self.key = key
 
     def fit(self, df):
-        y = df["label"].astype(str)
-        self.overall = np.array([(y == l).mean() for l in LABELS])
+        y = df["label"].astype(str).to_numpy()
+        w = row_weights(df)
+        self.overall = np.array([w[y == l].sum() for l in LABELS]) / max(w.sum(), 1e-12)
         self.bins = {}
-        for b, g in df.groupby(self.key(df)):
-            counts = np.array([(g["label"].astype(str) == l).sum() for l in LABELS], float)
-            self.bins[b] = (counts + SMOOTH * self.overall) / (len(g) + SMOOTH)
+        keys = self.key(df)
+        for b in pd.unique(keys):
+            at = keys == b
+            counts = np.array([w[at & (y == l)].sum() for l in LABELS])
+            self.bins[b] = (counts + SMOOTH * self.overall) / (w[at].sum() + SMOOTH)
         return self
 
     def proba(self, df):
@@ -182,6 +217,7 @@ def run(rows, session_dirs, kids_file, logo=True, trait_dirs=None):
               "trait_features": TRAIT_FEATURES, "interactions": INTERACT, "kids": kids,
               "weak_labels": bool(df.get("weak_labels", pd.Series([0])).astype(int).any()),
               "label_counts": {l: int((df["label"].astype(str) == l).sum()) for l in LABELS},
+              "label_moments": {l: len(set(moment_units(df)[(df["label"].astype(str) == l).to_numpy()])) for l in LABELS},
               "folds": folds, "pooled": pooled,
               "trait_values": {k: dict(zip(TRAIT_FEATURES, v.tolist())) for k, v in table.items()}}
     return report, final
