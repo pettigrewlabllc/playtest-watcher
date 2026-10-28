@@ -68,6 +68,8 @@ def test_planted_fast_and_slow_learner(tmp_path):
         assert fast["lo"] > slow["hi"], (fast, slow)
         assert fast["adjusted"] is True and fast["n"] == 240
         assert set(fast) >= {"value", "lo", "hi", "n", "games", "adjusted", "source"}
+    assert res["kids"]["F"]["learning_rate"]["lo"] > res["kids"]["S"]["learning_rate"]["hi"]
+    assert res["kids"]["F"]["learning_rate"]["adjusted"] is True
     assert res["boot"]["unit"] == "block"
     assert 0 < res["C"]
 
@@ -86,4 +88,9 @@ def test_one_kid_on_a_game_is_not_adjusted_and_never_nan(tmp_path):
     res = json.loads(text)
     assert res["kids"]["F"]["games"]["g2"]["skill"]["adjusted"] is False
     assert res["kids"]["F"]["games"]["g1"]["skill"]["adjusted"] is True
+    df2 = df[df["game"] == "g2"]
+    df2.to_csv(rows, index=False)
+    subprocess.run([sys.executable, str(ROOT / "afm.py"), "--rows", str(rows), "--out", str(out), "--boot", "20"], check=True)
+    alone = json.loads(out.read_text())["kids"]["F"]
+    assert alone["skill"]["value"] is None and alone["skill"]["adjusted"] is False
     assert "g2" in res["games"] and "S" not in [k for k in res["kids"] if "g2" in res["kids"][k]["games"]]

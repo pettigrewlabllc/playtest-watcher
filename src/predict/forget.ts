@@ -24,7 +24,7 @@ export async function forgetPlayer(root: string, letter: string, typed: [string,
   let names: string[] = [];
   try { names = await readdir(root); } catch { /* empty root */ }
   for (const name of names) {
-    if (['kids', 'players', 'predictions'].includes(name)) continue;
+    if (['kids', 'players', 'predictions', 'group'].includes(name)) continue;
     try {
       const meta = JSON.parse(await readFile(join(root, name, 'session.json'), 'utf8'));
       if (sameKid(String(meta.kid ?? ''), letter)) await drop(join(root, name));
@@ -35,6 +35,9 @@ export async function forgetPlayer(root: string, letter: string, typed: [string,
     try { kids = await readdir(join(root, dir)); } catch { /* none */ }
     for (const k of kids) if (sameKid(k, letter)) await drop(join(root, dir, k));
   }
+
+  // group/ pools every kid's rows and traits; it is rebuilt (npm run predict -- traits) without the forgotten kid
+  await drop(join(root, 'group'));
 
   const labels = Object.entries(study.checks ?? {}).filter(([, c]) => sameKid(c.letter, letter)).map(([l]) => l);
   let preds: string[] = [];

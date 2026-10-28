@@ -26,7 +26,7 @@ export type Opts = { root?: string; dir?: string };
 export const recordingsRoot = (o: Opts = {}) => o.root ?? join(REPO, 'recordings');
 export const playerDir = (letter: string, o: Opts = {}) => o.dir ?? join(recordingsRoot(o), 'players', letter);
 
-async function python(script: string, args: string[]): Promise<void> {
+export async function python(script: string, args: string[]): Promise<void> {
   if (!venvAvailable()) throw new Error(`python venv missing at ${PYTHON}; run: uv venv analysis/.venv && uv pip install -p analysis/.venv -r analysis/requirements.txt`);
   try {
     await run(PYTHON, [join(REPO, 'analysis', script), ...args], { maxBuffer: 16 << 20 });

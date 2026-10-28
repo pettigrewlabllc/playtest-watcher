@@ -75,6 +75,8 @@ describe('forget', () => {
     await writeFile(join(root, 'predictions', 'A-g4', 'persona.json'), '{}');
     await mkdir(join(root, 'predictions', 'B-g4'), { recursive: true });
     await mkdir(join(root, 'predictions', 'ref-g1__A'), { recursive: true });
+    await mkdir(join(root, 'group'), { recursive: true });
+    await writeFile(join(root, 'group', 'traits.json'), '{}');
     await saveStudy(root, {
       players: { A: { learn: ['g1'], check: 'g4' }, B: { learn: ['g1'], check: 'g4' } },
       frozen: { 'A-g4': { persona: 'x' }, 'B-g4': { persona: 'y' } },
@@ -93,6 +95,7 @@ describe('forget', () => {
     expect(await exists(join(root, 'a-g4-check'))).toBe(false);
     expect(await exists(join(root, 'predictions', 'A-g4'))).toBe(false);
     expect(await exists(join(root, 'predictions', 'ref-g1__A'))).toBe(false);
+    expect(await exists(join(root, 'group'))).toBe(false);   // pooled across kids: rebuilt without them
     expect(await exists(join(root, 'kids', 'B'))).toBe(true);
     expect(await exists(join(root, 'players', 'B', 'persona.json'))).toBe(true);
     expect(await exists(join(root, 'b-g1-learn'))).toBe(true);
@@ -108,7 +111,7 @@ describe('forget', () => {
     await expect(forgetPlayer(root, 'A', ['A', 'B'])).rejects.toThrow(/typed twice/);
     await expect(forgetPlayer(root, 'A', ['B', 'B'])).rejects.toThrow(/typed twice/);
     await expect(forgetPlayer(root, '../x', ['../x', '../x'])).rejects.toThrow(/letter/);
-    expect((await readdir(root)).sort()).toEqual(['a-g1-learn', 'a-g4-check', 'b-g1-learn', 'kids', 'players', 'predictions', 'ref-g1', 'study.json']);
+    expect((await readdir(root)).sort()).toEqual(['a-g1-learn', 'a-g4-check', 'b-g1-learn', 'group', 'kids', 'players', 'predictions', 'ref-g1', 'study.json']);
   });
 });
 
@@ -124,11 +127,13 @@ describe.skipIf(!venvAvailable())('runCommand (fake client, temp root)', () => {
     await writeSession(root, 'ref-g4', { kid: 'ref', game: 'g4', round: 'reference', events: [ev(0, 'progress', { level: 1 }), ev(500, 'attempt'), ev(900, 'fail')] });
     const lines: string[] = [];
     const deps = { root, client: recordingClient(), out: (l: string) => lines.push(l), commit: async () => {}, docFile: join(root, 'frozen.md') };
-    for (const argv of [['fingerprint', 'c'], ['train', 'c'], ['persona', 'c'], ['predict', 'c', 'ref-g4'], ['logo', 'c'], ['freeze', 'c', 'ref-g4', 'check-1']]) await runCommand(argv, deps);
+    for (const argv of [['fingerprint', 'c'], ['train', 'c'], ['persona', 'c'], ['predict', 'c', 'ref-g4'], ['logo', 'c'], ['freeze', 'c', 'ref-g4', 'check-1'], ['traits']]) await runCommand(argv, deps);
     const text = lines.join('\n');
     expect(text).toMatch(/train C: \d+ rows/);
     expect(text).toMatch(/held out g1/);
     expect(text).toMatch(/frozen check-1/);
+    expect(text).toMatch(/traits C: .*recovery/);
+    expect(await exists(join(root, 'group', 'traits.json'))).toBe(true);
     expect(await exists(join(root, 'players', 'C', 'fingerprint.json'))).toBe(true);
     expect(await exists(join(root, 'predictions', 'ref-g4__C', 'model.json'))).toBe(true);
     await expect(runCommand(['bogus'], deps)).rejects.toThrow(/unknown command/);
