@@ -22,7 +22,8 @@ export const ALL_PREDICTORS: readonly AnyPredictor[] = [...PREDICTORS, ...MODEL_
 // group: the folder holding afm.json and reaction/models.joblib (default recordings/group); sims: simulations per variant.
 export type PredictOpts = Opts & { group?: string; sims?: number };
 export type PredictedItem = { stage: string; event_type: string; label: string; p: number; why: string };
-export type Prediction = { predictor: string; target: string; items: PredictedItem[] };
+// enjoyment (player-model variants only): mean P(delighted) - P(bored or frustrated) over the simulated playthrough
+export type Prediction = { predictor: string; target: string; items: PredictedItem[]; enjoyment?: number };
 
 const MAX_PER_STAGE = 2;
 const MODEL_STAGE_MEAN = 0.35;
@@ -180,7 +181,8 @@ export async function simulateVariants(letter: string, targetSessionDir: string,
   for (const v of MODEL_VARIANTS) {
     const probs = readProbs(await readFile(join(out, `probs-${v.replace('model-', '')}.csv`), 'utf8'));
     const byI = new Map(probs.map(r => [r.i, r.type]));
-    res[v] = { predictor: v, target: id, items: itemsFromProbs(probs, i => byI.get(i) ?? '', `${v} (simulated)`) };
+    const enjoyment = probs.length ? probs.reduce((s, r) => s + r.p.delighted - r.p.bored - r.p.frustrated, 0) / probs.length : 0;
+    res[v] = { predictor: v, target: id, items: itemsFromProbs(probs, i => byI.get(i) ?? '', `${v} (simulated)`), enjoyment };
   }
   return res;
 }

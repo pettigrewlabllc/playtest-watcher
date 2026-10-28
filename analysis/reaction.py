@@ -150,14 +150,14 @@ def logo_splits(df):
             yield g, np.flatnonzero(~test), np.flatnonzero(test)
 
 
-def run(rows, session_dirs, kids_file):
+def run(rows, session_dirs, kids_file, logo=True):
     df = rows.reset_index(drop=True)
     sessions = {Path(d).name: d for d in session_dirs}
     game_of = {sid: load_session(d)["game"] for sid, d in sessions.items()}
     kids = sorted(df["kid"].astype(str).unique())
     names = VARIANTS + BASELINES
     folds, pooled_y, pooled_P = [], [], {n: [] for n in names}
-    for game, tr, te in logo_splits(df):
+    for game, tr, te in (logo_splits(df) if logo else []):
         dirs = [d for sid, d in sessions.items() if game_of[sid] != game]
         table = trait_table(traits_mod.compute(dirs, kids_file, None, boot=0)) if dirs else {}
         train, test = df.iloc[tr], df.iloc[te]
@@ -191,12 +191,13 @@ def main(argv=None):
     ap.add_argument("--sessions", nargs="+", required=True)
     ap.add_argument("--kids", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--final-only", action="store_true", help="fit the two variants on everything; skip leave-one-game-out")
     args = ap.parse_args(argv)
     rows = pd.read_csv(args.rows)
     if rows.empty:
         sys.exit("reaction.py: no rows")
     import reaction  # so the saved models unpickle as reaction.Model, not __main__.Model
-    report, final = reaction.run(rows, args.sessions, args.kids)
+    report, final = reaction.run(rows, args.sessions, args.kids, logo=not args.final_only)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     dump(report, out / "reaction.json")

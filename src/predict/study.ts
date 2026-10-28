@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto';
 import { readFile, readdir, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { Predictor } from './predict.ts';
+import type { AnyPredictor } from './predict.ts';
 
 // study.json lives in recordings/ (git-ignored): it maps kids to sessions. Only scoring, freezing and forgetting read it.
 export type Study = {
   players: Record<string, { learn: string[]; check: string; replay?: string }>;
-  frozen: Record<string, Partial<Record<Predictor, string>>>;
+  frozen: Record<string, Partial<Record<AnyPredictor, string>>>;
   checks?: Record<string, { letter: string; game: string }>;
 };
 

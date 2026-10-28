@@ -62,6 +62,13 @@ Changed during build: files are `model-traits.json` and `model-kid.json` (the ex
 - Ranking check: for each kid with `ranking.json`, compare the model's predicted enjoyment order (mean P(delighted) − P(bored or frustrated) per game) with the kid's order; report Kendall's tau.
 - Scoreboard adds per-label AUC, kappa and label-mix distance for each predictor, and both model variants.
 
+Changed during build:
+- Reliability lives in `src/predict/reliability.ts`. Joel's labels pair with that session's `ok` Muse moments by id; ids with no Muse moment are skipped. Per-label kappa is one-vs-rest. With no hand labels the scoreboard says so on its first line (every score then rests on unchecked Muse labels); kappa null or below 0.6 prints a WARNING line. `npm run predict -- reliability` prints just that; `logo` prints it too.
+- Predictions are item lists (stage, event type, label, p), not per-event probabilities, so the new metrics are **stage-level**: kappa between the top-p predicted label per stage and the most common real label per stage (`none` when empty), and per-label AUC of the item p (0 when absent) for "this label happens at this stage", over the real session's stages. `mix_distance` = 1 - mix similarity. Per-event AUC and kappa for the reaction model itself are in `reaction.json` (Task 4). `replayCeiling` now passes each real moment's confidence as its p.
+- Leave-one-game-out runs the two variants (when the venv exists) from a fold group model (`group/logo/<game>-<hash>/`: rows, AFM without bootstrap, `reaction.py --final-only`) built from every kid's learn sessions except that game, cached by the training-session ids. Each fold records the variants' predicted enjoyment (mean P(delighted) - P(bored) - P(frustrated) over the simulated playthrough, carried on the prediction as `enjoyment`).
+- Ranking: Kendall's tau (pairs with tied predictions count as neither) between `ranking.json`'s order and the LOGO enjoyment of each game, per variant; only games with a fold prediction count, and two games give only +1 or -1, which is a coin flip's worth of evidence. Printed under each player.
+- `freeze` also freezes `model-traits` and `model-kid` when `group/reaction/models.joblib` exists; frozen-hash verification requires the four Plan 3 predictors and checks a variant only if its hash was frozen. `study.json`'s `frozen` map takes either.
+
 ## Task 7: Persona inputs
 
 `persona.ts` lens and synthesis prompts take `traits.json` (with intervals, and "don't call a trait high or low if its interval spans the group mean"), the debrief answers as the kid's own words (quoted, marked "said"), the mood taps, and intent corrections. Evidence ids may now also be trait names. Fake-client tests updated.

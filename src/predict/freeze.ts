@@ -3,8 +3,10 @@ import { promisify } from 'node:util';
 import { appendFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import type { MetaClient } from '../meta/client.ts';
-import { PREDICTORS, predictSession, writePredictions } from './predict.ts';
-import type { Predictor } from './predict.ts';
+import { MODEL_VARIANTS, PREDICTORS, predictSession, writePredictions } from './predict.ts';
+import type { AnyPredictor } from './predict.ts';
+import { existsSync } from 'node:fs';
+import { groupDir } from './traits.ts';
 import { recordingsRoot } from './model.ts';
 import type { Opts } from './model.ts';
 import { loadStudy, saveStudy, sha256File } from './study.ts';
@@ -32,7 +34,7 @@ async function exists(p: string) { return stat(p).then(() => true, () => false);
 
 export async function freeze(
   letter: string, targetSessionId: string, label: string, client: MetaClient, o: FreezeOpts = {},
-): Promise<{ dir: string; hashes: Record<Predictor, string> }> {
+): Promise<{ dir: string; hashes: Partial<Record<AnyPredictor, string>> }> {
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(label)) throw new Error(`label must be letters, digits, dot, dash or underscore: "${label}"`);
   if (!/^[A-Za-z]$/.test(letter)) throw new Error(`player letter must be a single letter: "${letter}"`);
   const root = recordingsRoot(o);
@@ -43,17 +45,19 @@ export async function freeze(
 
   const target = join(root, targetSessionId);
   const game = (await loadSession(target)).meta.game;
-  const preds = await predictSession(letter, target, client, PREDICTORS, o);
+  // the player-model variants are frozen with the rest once the group model exists
+  const names: AnyPredictor[] = [...PREDICTORS, ...(existsSync(join(groupDir(o), 'reaction', 'models.joblib')) ? MODEL_VARIANTS : [])];
+  const preds = await predictSession(letter, target, client, names, o);
   const files = await writePredictions(dir, preds);
 
-  const hashes = {} as Record<Predictor, string>;
-  for (const f of files) hashes[f.split('/').pop()!.replace('.json', '') as Predictor] = await sha256File(f);
+  const hashes: Partial<Record<AnyPredictor, string>> = {};
+  for (const f of files) hashes[f.split('/').pop()!.replace('.json', '') as AnyPredictor] = await sha256File(f);
 
   const at = (o.now ?? (() => new Date()))().toISOString();
   await mkdir(dirname(docFile), { recursive: true });
   if (!(await exists(docFile))) await writeFile(docFile, DOC_HEADER);
   else if (!(await readFile(docFile, 'utf8')).endsWith('\n')) await appendFile(docFile, '\n');
-  await appendFile(docFile, PREDICTORS.map(p => `| ${label} | ${p} | ${hashes[p]} | ${at} |\n`).join(''));
+  await appendFile(docFile, names.map(p => `| ${label} | ${p} | ${hashes[p]} | ${at} |\n`).join(''));
 
   study.frozen[label] = hashes;
   (study.checks ??= {})[label] = { letter, game };
