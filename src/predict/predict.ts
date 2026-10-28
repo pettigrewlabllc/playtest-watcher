@@ -12,7 +12,8 @@ import { groupDir } from './traits.ts';
 import { QUESTIONS } from '../server/questionnaire.ts';
 import { mmss } from '../watch/explain.ts';
 
-export const PREDICTORS = ['baseline', 'questionnaire', 'persona', 'model'] as const;
+// null is the floor: every label at every stage, under the same per-stage cap as the rest.
+export const PREDICTORS = ['null', 'baseline', 'questionnaire', 'persona', 'model'] as const;
 export type Predictor = typeof PREDICTORS[number];
 // The player model's simulated-playthrough predictors (spec 3b), one per reaction-model variant.
 export const MODEL_VARIANTS = ['model-traits', 'model-kid'] as const;
@@ -63,7 +64,7 @@ type StageSummary = { stage: string; startMs: number; endMs: number; kinds: Reco
 
 function summarize(t: Target): StageSummary[] {
   const events = t.aligned.events;
-  const stages = stagesOf(events);
+  const stages = stagesOf(events, t.game);
   const out: StageSummary[] = [];
   events.forEach((e, i) => {
     let s = out[out.length - 1];
@@ -85,7 +86,7 @@ function targetText(t: Target, stages: StageSummary[]): string {
     const types = Object.entries(s.types).map(([k, n]) => `${k} x${n}`).join(', ');
     return `- stage ${s.stage} (${mmss(s.startMs)} to ${mmss(s.endMs)}): ${kinds}. Event types: ${types}.` + (s.screen.length ? ` On screen: ${s.screen.join(' / ')}` : '');
   });
-  return [`GAME: ${t.game}. A playthrough of it, stage by stage (stage = the game's own level or wave):`, ...lines].join('\n');
+  return [`GAME: ${t.game}. A playthrough of it, stage by stage (stage = a piece of the game's content: a level, a blade or a season phase):`, ...lines].join('\n');
 }
 
 const TASK = [
@@ -102,6 +103,17 @@ function questionnaireText(answers: Record<string, string>): string {
   return lines.length ? lines.join('\n') : '(no answers recorded)';
 }
 
+const topType = (s: StageSummary) => Object.entries(s.types).sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
+
+// At most MAX_PER_STAGE items per stage key, highest p first (ties keep their order). A stage key can recur (a revisit).
+export function capPerStage(items: PredictedItem[]): PredictedItem[] {
+  const out: PredictedItem[] = [];
+  for (const stage of new Set(items.map(i => i.stage))) {
+    out.push(...items.filter(i => i.stage === stage).sort((a, b) => b.p - a.p).slice(0, MAX_PER_STAGE));
+  }
+  return out;
+}
+
 function clean(items: PredictedItem[] | undefined, stages: StageSummary[]): PredictedItem[] {
   const byStage = new Map(stages.map(s => [s.stage, s]));
   const kept: PredictedItem[] = [];
@@ -114,11 +126,7 @@ function clean(items: PredictedItem[] | undefined, stages: StageSummary[]): Pred
       event_type: types.includes(it.event_type) ? it.event_type : (types[0] ?? ''),
     });
   }
-  const out: PredictedItem[] = [];
-  for (const stage of new Set(stages.map(s => s.stage))) {   // a stage name can recur (a revisit); cap per name
-    out.push(...kept.filter(i => i.stage === stage).sort((a, b) => b.p - a.p).slice(0, MAX_PER_STAGE));
-  }
-  return out;
+  return capPerStage(kept);
 }
 
 // Per stage: the label with the highest mean probability if it isn't none and reaches 0.35, plus any single event at 0.7.
@@ -204,6 +212,8 @@ export async function predictSession(
     let items: PredictedItem[];
     if (name === 'model') {
       items = await modelPredictor(letter, t, o);
+    } else if (name === 'null') {
+      items = capPerStage(stages.flatMap(st => REACTIONS.map(label => ({ stage: st.stage, event_type: topType(st), label, p: 1 / REACTIONS.length, why: 'null: every label at every stage' }))));
     } else {
       let who: string;
       if (name === 'baseline') who = 'WHO THEY ARE: a child aged 8 to 14. Nothing else is known.';

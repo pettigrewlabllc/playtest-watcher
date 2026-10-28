@@ -83,7 +83,7 @@ def simulate(events, game, kid, afm, model, n=N_SIMS, seed=0, draws=None):
         flip_kind[k] = (a, j, follow)
     drop = {m: flip_kind[k][0] for k, (a, j, follow) in flip_kind.items() for m in follow}
 
-    stages = stages_of(events)
+    stages = stages_of(events, game)
     steppers = [Stepper(resolvable) for _ in range(n)]
     prev = np.array(["none"] * n, dtype=object)
     prev_end = np.zeros(n)
