@@ -157,7 +157,10 @@ async function showGameLink() {
   }
   const { lanIps } = await (await fetch('/api/info')).json();
   const host = sel.device === 'ipad' ? (lanIps[0] || 'localhost') : 'localhost';
-  const url = `http://${host}${GAME_PATHS[sel.game]}?playtest=${session}&pw=${encodeURIComponent(`http://${host}:${location.port}`)}`;
+  // Current Cut is a Godot web build, which needs https on the iPad; its server passes events on to this one.
+  const url = sel.game === 'current-cut'
+    ? `https://${host}:3062/index.html?playtest=${session}&pw=${encodeURIComponent(`https://${host}:3062`)}`
+    : `http://${host}${GAME_PATHS[sel.game]}?playtest=${session}&pw=${encodeURIComponent(`http://${host}:${location.port}`)}`;
   $('gameLink').innerHTML = `Game link: <code>${url}</code>`;
   if (sel.device === 'ipad' && window.QRCode) {
     const c = document.createElement('canvas');
