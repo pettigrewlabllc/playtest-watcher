@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Playtest Watcher</title>
+<style>
+  body { font: 15px system-ui, sans-serif; margin: 16px; background: #111; color: #eee; }
+  button, select { font: inherit; background: #222; color: #eee; border: 1px solid #444; border-radius: 6px; padding: 6px 12px; }
+  .muted { color: #999; }
+  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 20px; margin: 0; }
+  h2 { font-size: 16px; margin: 0 0 8px; }
+  .stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 10px; margin: 12px 0; }
+  .side { display: grid; grid-template-rows: 1fr 1fr; gap: 10px; }
+  video { width: 100%; height: 100%; max-height: 62vh; background: #000; border-radius: 6px; object-fit: contain; display: block; }
+  .side video { max-height: 30vh; }
+  .cap { position: relative; }
+  .cap span { position: absolute; left: 8px; top: 6px; font-size: 12px; background: #000a; padding: 2px 6px; border-radius: 4px; }
+  #bar { position: relative; height: 44px; background: #1b1b1b; border: 1px solid #333; border-radius: 6px; cursor: pointer; margin: 8px 0 4px; }
+  #bar .lvl { position: absolute; top: 0; bottom: 0; width: 1px; background: #3a3a3a; }
+  #bar .m { position: absolute; top: 8px; height: 28px; min-width: 4px; border-radius: 3px; opacity: .85; }
+  #bar .m.on { outline: 2px solid #fff; opacity: 1; }
+  #head { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #fff; pointer-events: none; }
+  #time { font-variant-numeric: tabular-nums; }
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 12px; }
+  .panel { background: #181818; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px; max-height: 46vh; overflow: auto; }
+  .mo { padding: 8px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+  .mo:hover { background: #222; }
+  .mo.on { border-color: #666; background: #222; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 13px; color: #111; font-weight: 600; }
+  .mo q { display: block; margin: 4px 0; color: #ddd; }
+  .mo .ev { font-size: 13px; color: #aaa; margin-top: 4px; }
+  .legend { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; }
+  #fixes h3 { font-size: 15px; margin: 14px 0 4px; }
+  #fixes p, #fixes li { color: #ccc; }
+  #fixes a { color: #93c5fd; cursor: pointer; }
+  @media (max-width: 800px) { .stage, .cols { grid-template-columns: 1fr; } .side { grid-template-rows: none; grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="row">
+  <h1>Playtest Watcher</h1>
+  <select id="pick"></select>
+  <span class="muted">Faces are blurred. Nothing here leaves this laptop.</span>
+</div>
+
+<div class="stage">
+  <div class="cap"><video id="screen" playsinline muted></video><span>Screen</span></div>
+  <div class="side">
+    <div class="cap"><video id="face-blur" playsinline muted></video><span id="faceCap">Face (blurred)</span></div>
+    <div class="cap"><video id="hands" playsinline muted></video><span>Hands</span></div>
+  </div>
+</div>
+
+<div class="row"><button id="play">Play</button><span id="time" class="muted"></span><div class="legend" id="legend"></div></div>
+<div id="bar"><div id="head"></div></div>
+
+<div class="cols">
+  <div class="panel"><h2 id="mTitle">Moments</h2><div id="moments"></div></div>
+  <div class="panel"><h2>Fix list</h2><div id="fixes"></div></div>
+</div>
+
+<script>
+const COLORS = { confused: '#fbbf24', stuck: '#fb923c', frustrated: '#f87171', bored: '#9ca3af', focused: '#60a5fa', engaged: '#4ade80', delighted: '#f472b6', none: '#555' };
+const names = ['screen', 'face-blur', 'hands'];
+const vids = Object.fromEntries(names.map(n => [n, document.getElementById(n)]));
+const master = vids.screen;
+let data = null, offsets = {}, active = null;
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const mmss = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const sessionMs = () => master.currentTime * 1000 + (offsets.screen ?? 0);
+
+function seek(ms) {
+  for (const n of names) if (vids[n].src) vids[n].currentTime = Math.max(0, (ms - (offsets[n] ?? 0)) / 1000);
+  tick();
+}
+
+// The screen video leads; the other two follow it and get pulled back when they drift.
+function follow() {
+  const t = sessionMs();
+  for (const n of names) {
+    const v = vids[n];
+    if (v === master || !v.src) continue;
+    const want = (t - (offsets[n] ?? 0)) / 1000;
+    if (Math.abs(v.currentTime - want) > 0.25) v.currentTime = Math.max(0, want);
+    if (master.paused !== v.paused) master.paused ? v.pause() : v.play().catch(() => {});
+  }
+}
+
+function tick() {
+  if (!data) return;
+  const t = sessionMs();
+  document.getElementById('time').textContent = `${mmss(t)} / ${mmss(data.durationMs)}`;
+  document.getElementById('head').style.left = `${(100 * t) / data.durationMs}%`;
+  const now = data.moments.find(m => t >= m.startMs && t <= m.endMs);
+  if (now?.id !== active) {
+    active = now?.id ?? null;
+    document.querySelectorAll('[data-m]').forEach(el => el.classList.toggle('on', el.dataset.m === active));
+    if (active) document.querySelector(`.mo[data-m="${active}"]`)?.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+function renderFixes(md) {
+  if (!md.trim()) return '<p class="muted">No fix list yet.</p>';
+  const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\b(\d{1,2}:\d{2})\b/g, '<a data-t="$1">$1</a>');
+  let html = '', list = false;
+  for (const line of md.split('\n')) {
+    const li = /^\s*[-*]\s+(.*)/.exec(line);
+    if (li) { if (!list) { html += '<ul>'; list = true; } html += `<li>${inline(li[1])}</li>`; continue; }
+    if (list) { html += '</ul>'; list = false; }
+    if (/^#\s/.test(line)) continue;
+    const h = /^#{2,4}\s+(.*)/.exec(line);
+    if (h) html += `<h3>${inline(h[1])}</h3>`;
+    else if (line.trim()) html += `<p>${inline(line)}</p>`;
+  }
+  return html + (list ? '</ul>' : '');
+}
+
+async function load(id) {
+  data = await (await fetch(`/api/view/${encodeURIComponent(id)}`)).json();
+  offsets = Object.fromEntries(names.map(n => [n, data.tracks[n]?.offsetMs ?? 0]));
+  for (const n of names) {
+    const v = vids[n];
+    v.pause();
+    if (data.tracks[n]?.available) v.src = `/media/${encodeURIComponent(id)}/${n}.mp4`; else v.removeAttribute('src');
+    v.load();
+  }
+  document.getElementById('faceCap').textContent = data.tracks['face-blur']?.available ? 'Face (blurred)' : 'Face not blurred yet: run npm run blur';
+  const bar = document.getElementById('bar');
+  bar.querySelectorAll('.lvl, .m').forEach(el => el.remove());
+  const pct = ms => `${(100 * ms) / data.durationMs}%`;
+  for (const l of data.levels) bar.insertAdjacentHTML('beforeend', `<div class="lvl" style="left:${pct(l.ms)}" title="${esc(l.name)}"></div>`);
+  for (const m of data.moments) {
+    bar.insertAdjacentHTML('beforeend', `<div class="m" data-m="${m.id}" style="left:${pct(m.startMs)};width:${pct(m.endMs - m.startMs)};background:${COLORS[m.label] ?? '#555'}" title="${m.label} at ${mmss(m.startMs)}"></div>`);
+  }
+  const counts = {};
+  for (const m of data.moments) counts[m.label] = (counts[m.label] ?? 0) + 1;
+  document.getElementById('legend').innerHTML = Object.entries(counts).sort((a, b) => b[1] - a[1])
+    .map(([l, n]) => `<span class="pill" style="background:${COLORS[l] ?? '#555'}">${l} ${n}</span>`).join('');
+  document.getElementById('mTitle').textContent = `Moments (${data.moments.length})`;
+  document.getElementById('moments').innerHTML = data.moments.map(m => `
+    <div class="mo" data-m="${m.id}" data-t="${m.peakMs}">
+      <span class="pill" style="background:${COLORS[m.label] ?? '#555'}">${m.label}</span>
+      <span class="muted">${mmss(m.startMs)}${m.asked_for_help ? ' · asked for help' : ''} · ${Math.round(m.confidence * 100)}% sure</span>
+      ${m.quote ? `<q>${esc(m.quote)}</q>` : ''}
+      <div>${esc(m.context)}</div>
+      <div class="ev">Face: ${esc(m.evidence.face)}<br>Voice: ${esc(m.evidence.voice)}<br>Hands: ${esc(m.evidence.hands)}</div>
+    </div>`).join('');
+  document.getElementById('fixes').innerHTML = renderFixes(data.fixes);
+  active = undefined;
+  seek(0);
+}
+
+document.getElementById('moments').addEventListener('click', e => { const el = e.target.closest('[data-t]'); if (el) seek(Number(el.dataset.t) - 2000); });
+document.getElementById('fixes').addEventListener('click', e => {
+  const a = e.target.closest('a[data-t]');
+  if (a) { const [m, s] = a.dataset.t.split(':').map(Number); seek((m * 60 + s) * 1000); }
+});
+document.getElementById('bar').addEventListener('click', e => {
+  const r = e.currentTarget.getBoundingClientRect();
+  seek(((e.clientX - r.left) / r.width) * data.durationMs);
+});
+const playBtn = document.getElementById('play');
+playBtn.addEventListener('click', () => (master.paused ? master.play() : master.pause()));
+master.addEventListener('play', () => { playBtn.textContent = 'Pause'; follow(); });
+master.addEventListener('pause', () => { playBtn.textContent = 'Play'; follow(); });
+master.addEventListener('timeupdate', () => { follow(); tick(); });
+master.addEventListener('seeked', tick);
+document.getElementById('pick').addEventListener('change', e => { history.replaceState(null, '', `?s=${e.target.value}`); load(e.target.value); });
+
+(async () => {
+  const list = await (await fetch('/api/view')).json();
+  const pick = document.getElementById('pick');
+  pick.innerHTML = list.map(s => `<option value="${s.id}">Kid ${esc(s.kid)} · ${esc(s.game)} · ${esc(s.round)} · ${s.moments} moments${s.blurred ? '' : ' · not blurred'}</option>`).join('');
+  const want = new URLSearchParams(location.search).get('s');
+  if (want && list.some(s => s.id === want)) pick.value = want;
+  if (pick.value) load(pick.value);
+})();
+</script>
+</body>
+</html>

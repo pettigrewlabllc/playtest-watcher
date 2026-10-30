@@ -7,6 +7,7 @@ import { networkInterfaces } from 'node:os';
 import { createStore } from './store.ts';
 import { QUESTIONS, scoreAnswers } from './questionnaire.ts';
 import { pendingQueue, setLabel, clipPath } from '../label/queue.ts';
+import { listViewable, mediaPath, viewData } from './view.ts';
 
 const PUBLIC = fileURLToPath(new URL('../../public/', import.meta.url));
 const TYPES: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
@@ -83,6 +84,12 @@ export function createApp(root: string) {
       }
 
       if (req.method === 'GET' && path === '/api/label-queue') return send(res, 200, await pendingQueue(root));
+
+      if (req.method === 'GET' && path === '/api/view') return send(res, 200, await listViewable(root));
+      if (req.method === 'GET' && seg[0] === 'api' && seg[1] === 'view' && seg.length === 3) return send(res, 200, await viewData(root, seg[2]));
+      if (req.method === 'GET' && seg[0] === 'media' && seg.length === 3 && seg[2].endsWith('.mp4')) {
+        return sendFile(req, res, mediaPath(root, seg[1], seg[2].slice(0, -4)), 'video/mp4');
+      }
 
       if (req.method === 'GET' && seg[0] === 'clips' && seg.length === 3 && seg[2].endsWith('.mp4')) {
         return sendFile(req, res, clipPath(root, seg[1], seg[2].slice(0, -4)), 'video/mp4');
