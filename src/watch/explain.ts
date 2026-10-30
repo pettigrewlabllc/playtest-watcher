@@ -7,11 +7,17 @@ import type { Transcript } from './transcribe.ts';
 import { compositeClip } from './clips.ts';
 
 export { compositeClip };
-export const LABELS = ['confused', 'stuck', 'bored', 'frustrated', 'delighted', 'none'] as const;
+// Negative to positive, none last. focused and engaged were added 2026-10-30: without them a kid happily playing had
+// to be called delighted or none, and Muse read quiet concentration as confused or bored.
+export const LABELS = ['confused', 'stuck', 'bored', 'frustrated', 'focused', 'engaged', 'delighted', 'none'] as const;
 export type Label = (typeof LABELS)[number];
+export const ATTENTION = ['game', 'adult', 'away', 'mixed'] as const;
+export const UNDERSTOOD = ['yes', 'no', 'unclear'] as const;
 export type Moment = {
   id: string; startMs: number; endMs: number; triggers: string[];
-  label: Label; confidence: number;
+  label: Label; confidence: number; secondary_label: Label;
+  attention: (typeof ATTENTION)[number]; asked_for_help: boolean; understood_goal: (typeof UNDERSTOOD)[number];
+  peak_s: number; quote: string;
   evidence: { face: string; voice: string; hands: string; screen: string };
   game_context: string; fix_hint: string; status: 'ok' | 'unanalyzed';
 };
@@ -21,10 +27,16 @@ export const MOMENT_SCHEMA = {
   name: 'moment',
   schema: {
     type: 'object', additionalProperties: false,
-    required: ['label', 'confidence', 'evidence', 'game_context', 'fix_hint'],
+    required: ['label', 'confidence', 'secondary_label', 'attention', 'asked_for_help', 'understood_goal', 'peak_s', 'quote', 'evidence', 'game_context', 'fix_hint'],
     properties: {
       label: { type: 'string', enum: [...LABELS] },
       confidence: { type: 'number' },
+      secondary_label: { type: 'string', enum: [...LABELS] },
+      attention: { type: 'string', enum: [...ATTENTION] },
+      asked_for_help: { type: 'boolean' },
+      understood_goal: { type: 'string', enum: [...UNDERSTOOD] },
+      peak_s: { type: 'number' },
+      quote: str,
       evidence: { type: 'object', additionalProperties: false, required: ['face', 'voice', 'hands', 'screen'], properties: { face: str, voice: str, hands: str, screen: str } },
       game_context: str,
       fix_hint: str,
@@ -99,16 +111,24 @@ export function buildPrompt(game: string, c: Candidate, aligned: Aligned, turns:
     '  - stuck: understands the goal but cannot find how to make progress',
     '  - bored: attention drifting, nothing holding them',
     '  - frustrated: wants to succeed and is annoyed at failing or at the game',
-    '  - delighted: clear enjoyment, surprise or pride',
-    '  - none: nothing notable',
+    '  - focused: quiet, heads-down concentration on the game. Still and silent is often this, not bored or confused.',
+    '  - engaged: into it and playing happily, with no visible problem, but no big reaction either',
+    '  - delighted: a visible peak of enjoyment, surprise or pride: a laugh, a grin, a cheer',
+    '  - none: nothing notable, or the child is not playing (talking about something else, off camera)',
     '- confidence: 0 to 1. Around 0.9 when two or more signals clearly agree, around 0.6 when one signal points that way, 0.4 or lower when it is a guess.',
+    '- secondary_label: the next best label when the clip is mixed (focused but getting frustrated, engaged then confused). Same as label when it is not mixed.',
+    '- attention: where the child is mostly looking: game (the iPad), adult (the facilitator), away (elsewhere), or mixed.',
+    '- asked_for_help: true if the child asks the adult for help or turns to them for it, by words or by look.',
+    '- understood_goal: does the child seem to know what the game wants from them right now? yes, no, or unclear.',
+    '- peak_s: seconds from the start of the clip where the feeling shows most clearly.',
+    "- quote: the child's most telling words in the clip, verbatim from the audio. Empty if they said nothing useful.",
     '- evidence: one or two sentences each, with clip times, of what you saw or heard:',
     '  - face: expression, gaze and posture from the LEFT panel. "not visible" if no face is in view.',
     "  - voice: the child's words or sounds (sighs, laughs, groans), quoted where you can. \"silent\" if the child made none.",
     '  - hands: what the hands did in the MIDDLE panel.',
     '  - screen: what the game showed in the RIGHT panel.',
     '- game_context: one sentence on what the game was asking the child to do at that moment.',
-    '- fix_hint: one line for the game developer on what to change so this does not happen again. Empty when the label is none or delighted.',
+    '- fix_hint: one line for the game developer on what to change so this does not happen again. Empty when the label is none, focused, engaged or delighted.',
   ].join('\n');
 }
 
@@ -118,7 +138,8 @@ async function readJson<T>(file: string): Promise<T | undefined> {
 
 function unanalyzed(c: Candidate): Moment {
   return {
-    id: c.id, startMs: c.startMs, endMs: c.endMs, triggers: c.triggers, label: 'none', confidence: 0,
+    id: c.id, startMs: c.startMs, endMs: c.endMs, triggers: c.triggers, label: 'none', confidence: 0, secondary_label: 'none',
+    attention: 'mixed', asked_for_help: false, understood_goal: 'unclear', peak_s: 0, quote: '',
     evidence: { face: '', voice: '', hands: '', screen: '' }, game_context: '', fix_hint: '', status: 'unanalyzed',
   };
 }
@@ -155,9 +176,16 @@ export async function explainStage(dir: string, client: MetaClient, opts: { conc
       });
       const d = r.data;
       const label = (LABELS as readonly string[]).includes(d.label) ? d.label : 'none';
+      const clipS = (c.endMs - c.startMs) / 1000;
       return {
         id: c.id, startMs: c.startMs, endMs: c.endMs, triggers: c.triggers, label,
         confidence: Math.min(1, Math.max(0, Number(d.confidence) || 0)),
+        secondary_label: (LABELS as readonly string[]).includes(d.secondary_label) ? d.secondary_label : label,
+        attention: (ATTENTION as readonly string[]).includes(d.attention) ? d.attention : 'mixed',
+        asked_for_help: d.asked_for_help === true,
+        understood_goal: (UNDERSTOOD as readonly string[]).includes(d.understood_goal) ? d.understood_goal : 'unclear',
+        peak_s: Math.min(clipS, Math.max(0, Number(d.peak_s) || 0)),
+        quote: d.quote ?? '',
         evidence: { face: d.evidence?.face ?? '', voice: d.evidence?.voice ?? '', hands: d.evidence?.hands ?? '', screen: d.evidence?.screen ?? '' },
         game_context: d.game_context ?? '', fix_hint: d.fix_hint ?? '', status: 'ok',
       };

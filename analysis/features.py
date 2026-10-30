@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 
-LABELS = ["confused", "stuck", "bored", "frustrated", "delighted", "none"]
+LABELS = ["confused", "stuck", "bored", "frustrated", "focused", "engaged", "delighted", "none"]
 KINDS = ["attempt", "success", "fail", "progress", "explore", "text_shown", "text_closed",
          "help", "new_thing", "first_touch", "idle", "quit", "other"]
 NUMERIC = ["fail_streak", "s_since_success", "s_since_progress", "attempts_30s", "new_thing_10s",

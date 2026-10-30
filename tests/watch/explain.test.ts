@@ -117,7 +117,8 @@ describe('explain prompt', () => {
     expect(p).toContain('sweep (a routine sample');
     expect(p).toContain('+00:02.5 level_fail {"level":3}');
     expect(p).toContain('+00:01.0 kid: ugh');
-    for (const field of ['- label:', '- confidence:', '  - face:', '  - voice:', '  - hands:', '  - screen:', '- game_context:', '- fix_hint:']) expect(p).toContain(field);
+    for (const l of ['  - focused:', '  - engaged:', '  - delighted:']) expect(p).toContain(l);
+    for (const field of ['- label:', '- confidence:', '- secondary_label:', '- attention:', '- asked_for_help:', '- understood_goal:', '- peak_s:', '- quote:', '  - face:', '  - voice:', '  - hands:', '  - screen:', '- game_context:', '- fix_hint:']) expect(p).toContain(field);
     expect(buildPrompt('g', c, aligned, [], [])).not.toMatch(/years old/);
   });
 });

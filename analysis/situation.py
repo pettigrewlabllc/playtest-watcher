@@ -4,7 +4,7 @@ import re
 from collections import deque
 from pathlib import Path
 
-LABELS = ["confused", "stuck", "bored", "frustrated", "delighted", "none"]
+LABELS = ["confused", "stuck", "bored", "frustrated", "focused", "engaged", "delighted", "none"]
 MIN_CONFIDENCE = 0.5
 SAME_FAILURE_MS = 50
 RAPID_RETRY_MS = 1000

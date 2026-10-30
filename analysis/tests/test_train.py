@@ -64,7 +64,7 @@ def test_predict_rows_match_input(tmp_path):
     out = pd.read_csv(tmp_path / "p.csv")
     assert len(out) == 50
     assert out["i"].tolist() == target["i"].tolist()
-    assert list(out.columns) == ["i", "stage", "p_confused", "p_stuck", "p_bored", "p_frustrated", "p_delighted", "p_none"]
+    assert list(out.columns) == ["i", "stage", "p_confused", "p_stuck", "p_bored", "p_frustrated", "p_focused", "p_engaged", "p_delighted", "p_none"]
     assert np.allclose(out.filter(like="p_").sum(axis=1), 1.0)
     hi = out[target["fail_streak"].to_numpy() >= 4]
     assert (hi["p_frustrated"] > 0.5).mean() > 0.8

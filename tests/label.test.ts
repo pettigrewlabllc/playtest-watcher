@@ -28,8 +28,9 @@ beforeEach(async () => {
 
 describe('sampleLabels', () => {
   it('takes equal shares per Muse label and spreads them over the kids', async () => {
-    const q = await sampleLabels(root, { n: 120 });
-    expect(q).toHaveLength(120);
+    const n = LABELS.length * 20;
+    const q = await sampleLabels(root, { n });
+    expect(q).toHaveLength(n);
     const label = async (x: { session: string; moment: string }) =>
       JSON.parse(await readFile(join(root, x.session, 'moments.json'), 'utf8')).find((m: any) => m.id === x.moment).label;
     const counts: Record<string, number> = {};
@@ -37,7 +38,7 @@ describe('sampleLabels', () => {
     for (const l of LABELS) expect(counts[l]).toBe(20);
     const kids: Record<string, number> = {};
     for (const x of q) kids[x.kid] = (kids[x.kid] ?? 0) + 1;
-    expect(Object.values(kids)).toEqual([30, 30, 30, 30]);
+    expect(Object.values(kids)).toEqual(Array(4).fill(n / 4));
   });
 
   it('flags the first 60 for the reliability check', async () => {

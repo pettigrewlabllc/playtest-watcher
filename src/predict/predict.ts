@@ -23,7 +23,7 @@ export const ALL_PREDICTORS: readonly AnyPredictor[] = [...PREDICTORS, ...MODEL_
 // group: the folder holding afm.json and reaction/models.joblib (default recordings/group); sims: simulations per variant.
 export type PredictOpts = Opts & { group?: string; sims?: number };
 export type PredictedItem = { stage: string; event_type: string; label: string; p: number; why: string };
-// enjoyment (player-model variants only): mean P(delighted) - P(bored or frustrated) over the simulated playthrough
+// enjoyment (player-model variants only): mean P(delighted or engaged) - P(bored or frustrated) over the simulated playthrough
 export type Prediction = { predictor: string; target: string; items: PredictedItem[]; enjoyment?: number };
 
 const MAX_PER_STAGE = 2;
@@ -88,7 +88,7 @@ function targetText(t: Target, stages: StageSummary[]): string {
 }
 
 const TASK = [
-  'Predict how this child will react to the playthrough. A reaction is one of: confused, stuck, bored, frustrated, delighted.',
+  `Predict how this child will react to the playthrough. A reaction is one of: ${REACTIONS.join(', ')}.`,
   `Give at most ${MAX_PER_STAGE} predicted reactions per stage, each with the stage exactly as written, an event_type taken from that stage's event types (the kind of event it would happen around), the label, p (your probability that it really happens, 0 to 1) and a one-sentence why. Predict nothing for a stage where you expect no notable reaction. Do not invent facts about the child beyond what is given.`,
 ].join('\n');
 
@@ -189,7 +189,7 @@ export async function simulateVariants(letter: string, targetSessionDir: string,
   for (const v of MODEL_VARIANTS) {
     const probs = readProbs(await readFile(join(out, `probs-${v.replace('model-', '')}.csv`), 'utf8'));
     const byI = new Map(probs.map(r => [r.i, r.type]));
-    const enjoyment = probs.length ? probs.reduce((s, r) => s + r.p.delighted - r.p.bored - r.p.frustrated, 0) / probs.length : 0;
+    const enjoyment = probs.length ? probs.reduce((s, r) => s + r.p.delighted + r.p.engaged - r.p.bored - r.p.frustrated, 0) / probs.length : 0;
     res[v] = { predictor: v, target: id, items: itemsFromProbs(probs, i => byI.get(i) ?? '', `${v} (simulated)`), enjoyment };
   }
   return res;

@@ -33,7 +33,8 @@ export async function fixesStage(dir: string, client: MetaClient): Promise<strin
   const date = new Date(session.createdAt ?? Date.now()).toISOString().slice(0, 10);
   const game = session.game ?? 'unknown game';
   const heading = `# Fix list: ${game}, kid ${(session.kid ?? '?').toUpperCase()}, ${date}`;
-  const real = moments.filter(m => m.label !== 'none' && m.status === 'ok');
+  // focused and engaged mean the game is working; they are not fix material.
+  const real = moments.filter(m => !['none', 'focused', 'engaged'].includes(m.label) && m.status === 'ok');
 
   let md: string;
   if (!real.length) {
@@ -41,7 +42,8 @@ export async function fixesStage(dir: string, client: MetaClient): Promise<strin
   } else {
     const byId = new Map(real.map(m => [m.id, m]));
     const payload = real.map(m => ({
-      id: m.id, time: mmss(m.startMs), label: m.label, confidence: m.confidence,
+      id: m.id, time: mmss(m.startMs), label: m.label, confidence: m.confidence, secondary_label: m.secondary_label,
+      attention: m.attention, asked_for_help: m.asked_for_help, understood_goal: m.understood_goal, quote: m.quote,
       evidence: m.evidence, game_context: m.game_context, fix_hint: m.fix_hint,
     }));
     const r = await client.respond<{ fixes: Fix[] }>({
