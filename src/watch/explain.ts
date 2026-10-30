@@ -167,8 +167,8 @@ export async function explainStage(dir: string, client: MetaClient, opts: { conc
       await compositeClip(dir, aligned, c, clip);
       fileId = await client.uploadFile(clip, 'video/mp4');
       const r = await client.respond<Omit<Moment, 'id' | 'startMs' | 'endMs' | 'triggers' | 'status'>>({
-        // Muse Spark reasons before it answers, and the reasoning counts here; 4000 cut one answer off mid-JSON.
-        model: 'muse-spark-1.2', kind: 'explain', schema: MOMENT_SCHEMA, maxOutputTokens: 8000,
+        // Muse Spark reasons before it answers, and the reasoning counts here; 4000 cut one answer off mid-JSON, and 8000 cut two once the extra fields came in.
+        model: 'muse-spark-1.2', kind: 'explain', schema: MOMENT_SCHEMA, maxOutputTokens: 12000,
         content: [
           { type: 'input_text', text: buildPrompt(session?.game ?? '', c, aligned, transcript?.turns ?? [], warnings, age) },
           { type: 'input_video', file_id: fileId },
