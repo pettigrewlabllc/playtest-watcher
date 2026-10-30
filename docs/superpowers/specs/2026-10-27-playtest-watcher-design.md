@@ -295,6 +295,7 @@ Joel has two cameras and a mic. Two USB cameras on one Mac usually work in Chrom
 
 - Raw recordings stay in `recordings/`, which is gitignored with every video and audio extension already blocked.
 - Only short moment clips and session audio go to the Meta API, in standard mode only. Uploaded files are deleted through the Files API once their analysis is cached.
+- The face panel goes to Meta **unblurred**, on purpose: the kids' expressions and body movement are the signal the moment labels depend on. This runs on the hackathon's free credits, whose Billing page says content sent while using them "may be used for product improvement". Joel accepted that for his kids' clips on 2026-10-29. Blurring stays only on what people see (viewer, screenshots, demo video).
 - Faces are blurred by SAM 3.1 before anything reaches the viewer, a screenshot, or the demo video.
 - The repo is public under the hackathon rules. It holds code, prompts, and synthetic fixtures only. Kids are Kid A–D everywhere in the repo.
 - Nothing goes in the demo video or the X post without Joel's sign-off.
