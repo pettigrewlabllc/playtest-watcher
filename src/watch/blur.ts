@@ -114,3 +114,9 @@ export async function blurFaces(client: MetaClient, inMp4: string, outMp4: strin
     await rm(work, { recursive: true, force: true });
   }
 }
+
+// The viewer's face panel: the whole frame blurred hard enough that nobody is recognisable, posture still readable.
+// No model call, so it runs on every session for free; SAM's per-face blur above stays for when the budget allows.
+export async function blurPanel(inMp4: string, outMp4: string): Promise<void> {
+  await run(['-i', inMp4, '-an', '-vf', 'scale=320:-2,boxblur=luma_radius=18:luma_power=3', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '28', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', outMp4]);
+}
