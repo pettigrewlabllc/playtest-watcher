@@ -52,3 +52,10 @@ Written before any check session is scored (freeze adds it if it is missing, and
 | check-a-current-cut-v2 | model | 4e43775787fd7ed4279f224fefb6de0dbfe7337f8d8384be242c6d7a04b737bc | 2026-10-30T23:33:58.977Z |
 | check-a-current-cut-v2 | model-traits | ec07c3b8378144fd1f6a12a8098489476c1b82a2c14dadd9cca5d0da49f28323 | 2026-10-30T23:33:58.977Z |
 | check-a-current-cut-v2 | model-kid | fe16a446a347c652fbf7461f8e9bd3e920fb989d19f2346f0393cab68753e782 | 2026-10-30T23:33:58.977Z |
+| check-b-hoard-keeper-v2 | null | f20b54db0ac98c987ed06e3552fc0a95d606748209a0a31240502579fb88e204 | 2026-10-30T23:37:02.267Z |
+| check-b-hoard-keeper-v2 | baseline | f2ee7bf749a471d4dac910f69a7dbf8d5fdb4fe5e36827a1cfe4884d5f764210 | 2026-10-30T23:37:02.267Z |
+| check-b-hoard-keeper-v2 | questionnaire | 15ce91e084b358cb064f8a30918d494533056e00018be33bb338066e56b13364 | 2026-10-30T23:37:02.267Z |
+| check-b-hoard-keeper-v2 | persona | 3e3550afcff663dd49ff7dae78ef191e528941532627100294107980c2ad5adc | 2026-10-30T23:37:02.267Z |
+| check-b-hoard-keeper-v2 | model | 6e4db3a25232dc1c5f68931abdf7efe8d1006e97cfb74821d74ab548a95f1d72 | 2026-10-30T23:37:02.267Z |
+| check-b-hoard-keeper-v2 | model-traits | 683225e0f14e564c96b82c266d775f4a99ef9900527246a8b63dc29e5e42b61b | 2026-10-30T23:37:02.267Z |
+| check-b-hoard-keeper-v2 | model-kid | 3a5ce501cbff0e69a39b3fa04445dc1f8a89af361fa869b6ae504fe8ac3cb99e | 2026-10-30T23:37:02.267Z |
