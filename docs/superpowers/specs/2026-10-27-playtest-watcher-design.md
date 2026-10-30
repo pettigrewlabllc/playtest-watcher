@@ -227,6 +227,8 @@ Fingerprint becomes the trait estimators with ranges and game adjustment (plus t
 
 ## 3b+. Making perception more accurate: adapting to real kids' labels
 
+**Decision, 2026-10-30 (Joel): hand labelling is dropped for the hackathon. Muse's labels are treated as ground truth and feed the player model directly.** After 16 clips Joel found the six-label set did not fit what he saw (a kid happily playing had no label), so `focused` and `engaged` were added and all moments re-explained; he then chose to skip labelling. Consequences: there is no reliability figure (kappa against a human), steps 1 and 2 below are not built, and the write-up must say the labels are Muse's, unchecked. The labelling page and sampler stay in the repo for later. The rest of this section is the original plan.
+
 Every trait and prediction inherits the moment labels, so perception is where accuracy matters most. No public dataset matches (Kaggle and Hugging Face emotion sets are adults, posed faces or lectures), so adaptation uses the only matching data: Joel's own labels on his kids' clips.
 
 - **Labels:** Joel labels 150 to 200 clips in a tap-a-label page, blind to Muse's label, sampled stratified across Muse's labels including `none`, spread across all four kids and all games. The first 60 also serve as the reliability check (Cohen's kappa).

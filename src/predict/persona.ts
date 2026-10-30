@@ -153,13 +153,14 @@ export async function buildPersona(
   for (const lens of LENSES) {
     const prompt = [
       `Player ${letter} is a child playing prototype games. ${lens.ask}`,
-      'Every observation needs evidence: each evidence item must be a moment id exactly as written in brackets below, a fingerprint field name, or a trait name. Do not invent ids. Say only what the evidence supports. When a claim rests on the kid\'s own words, say so ("they said...").',
+      `Every observation needs evidence: each evidence item must be a moment id exactly as written in brackets below, a fingerprint field name, or a trait name. Do not invent ids. Say only what the evidence supports. When a claim rests on the kid\'s own words, say so ("they said..."). Call the child "they" or "Player ${letter}"; never guess their gender.`,
       `Fingerprint field names: ${[...validFields].join(', ')}.`,
       `Trait names: ${[...validTraits].join(', ') || '(none with data)'}.`,
       '', body,
     ].join('\n');
+    // Muse Wonder reasons before it answers and the reasoning counts here; 4000 ran out before any JSON on real kids.
     const res = await client.respond<{ observations: Observation[] }>({
-      model: MODEL, kind: `persona:${letter}:lens:${lens.name}`, schema: LENS_SCHEMA, maxOutputTokens: 4000,
+      model: MODEL, kind: `persona:${letter}:lens:${lens.name}`, schema: LENS_SCHEMA, maxOutputTokens: 16000,
       content: [{ type: 'input_text', text: prompt }],
     });
     const kept: Observation[] = [];
@@ -174,11 +175,11 @@ export async function buildPersona(
 
   const synth = [
     `Player ${letter} is a child playing prototype games. Three experts read their play. Combine the observations below into one persona that a forecaster can use to predict this child's reactions to a game they have not played.`,
-    'Give tolerances as numbers: fail_streak is how many fails in a row before they sour, recovery_s is seconds from a fail to trying again, idle_before_bored_s is seconds of doing nothing before they are bored. Make tells concrete (what face, voice and hands do). In said_vs_did, call out where the questionnaire or the debrief differs from play, quoting their words. ' + TRAIT_RULE + ' In predictions_guidance, say in plain words what to expect and what not to expect. Every claim must come from the observations or the data; do not invent backstory or feelings.',
+    `Give tolerances as numbers: fail_streak is how many fails in a row before they sour, recovery_s is seconds from a fail to trying again, idle_before_bored_s is seconds of doing nothing before they are bored. Make tells concrete (what face, voice and hands do). In said_vs_did, call out where the questionnaire or the debrief differs from play, quoting their words. ` + TRAIT_RULE + ` In predictions_guidance, say in plain words what to expect and what not to expect. Every claim must come from the observations or the data; do not invent backstory or feelings. Call the child "they" or "Player ${letter}"; never guess their gender.`,
     '', 'EXPERT OBSERVATIONS (observations):', JSON.stringify(lenses), '', body,
   ].join('\n');
   const res = await client.respond<Omit<Persona, 'letter' | 'lenses' | 'dropped_observations'>>({
-    model: MODEL, kind: `persona:${letter}:synthesis`, schema: PERSONA_SCHEMA, maxOutputTokens: 4000,
+    model: MODEL, kind: `persona:${letter}:synthesis`, schema: PERSONA_SCHEMA, maxOutputTokens: 32000,   // synthesis used 12-14k on real kids; 16k left no margin
     content: [{ type: 'input_text', text: synth }],
   });
   const d = res.data;
