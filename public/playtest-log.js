@@ -7,6 +7,15 @@
   const enabled = !!(session && origin && /^[a-z0-9-]{1,80}$/.test(session));
   const IDLE_MS = 8000;
 
+  // A playtest starts from the beginning: the first load of each session clears this game's saved progress
+  // (everything in its origin's localStorage), so a kid never picks up where the last player stopped.
+  // A reload in the same session keeps it.
+  if (enabled) {
+    try {
+      if (localStorage.getItem('pw_fresh') !== session) { localStorage.clear(); localStorage.setItem('pw_fresh', session); }
+    } catch { /* storage blocked: nothing saved to clear */ }
+  }
+
   let queue = [];
   let lastInput = Date.now();
   let idleLogged = false;
