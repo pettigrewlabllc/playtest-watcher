@@ -62,12 +62,31 @@ const scrub = (s: string) => s.replace(/personalit(y|ies)/gi, 'play style');
 
 function momentRef(s: Session, id: string) { return `${s.id}:${id}`; }
 
-function momentLines(sessions: Session[]): string[] {
+type Picked = { s: Session; m: ReturnType<typeof okMoments>[number]; ref: string };
+
+// Muse cited bare ids like "c013" (ambiguous across sessions) and dropped most claims, so
+// each prompt moment gets a short ref it can copy exactly: M1..M40.
+function pickMoments(sessions: Session[]): Picked[] {
   const all = sessions.flatMap(s => okMoments(s.moments).map(m => ({ s, m })));
   all.sort((a, b) => b.m.confidence - a.m.confidence);
-  return all.slice(0, MAX_MOMENTS).map(({ s, m }) =>
-    `[${momentRef(s, m.id)}] game=${s.meta.game} ${m.label} (confidence ${m.confidence.toFixed(2)}) at ${mmss(m.startMs)}`
+  return all.slice(0, MAX_MOMENTS).map((x, i) => ({ ...x, ref: `M${i + 1}` }));
+}
+
+function momentLines(picked: Picked[]): string[] {
+  return picked.map(({ s, m, ref }) =>
+    `[${ref}] game=${s.meta.game} ${m.label} (confidence ${m.confidence.toFixed(2)}) at ${mmss(m.startMs)}`
     + ` | context: ${m.game_context} | face: ${m.evidence.face} | voice: ${m.evidence.voice} | hands: ${m.evidence.hands} | screen: ${m.evidence.screen}`);
+}
+
+// Face, voice and hands only, a few per label: what synthesis needs to write tells.
+function tellLines(picked: Picked[]): string[] {
+  const out: string[] = [];
+  for (const label of ['stuck', 'confused', 'frustrated', 'bored', 'focused', 'engaged', 'delighted']) {
+    for (const { m, ref } of picked.filter(p => p.m.label === label).slice(0, 3)) {
+      out.push(`${label} [${ref}]: face: ${m.evidence.face} | voice: ${m.evidence.voice} | hands: ${m.evidence.hands}`);
+    }
+  }
+  return out;
 }
 
 async function loadImportances(letter: string, o: Opts): Promise<Importance[]> {
@@ -120,16 +139,43 @@ function kidWords(sessions: Session[], debriefs: Debrief[], known: KidTraits['in
 
 function dossier(fp: PlayerFingerprint, importances: Importance[], moments: string[], k: KidTraits | null = null, words: Words = { said: [], mood: [], intents: [] }): string {
   return [
-    'TRAITS (computed from play by fixed estimators; cite a trait by its name):', ...traitLines(k), TRAIT_RULE,
-    'SAID (the kid\'s own words in the debrief after each game, quoted; anything you take from here is what they said, not what they did):', words.said.length ? words.said.join('\n') : '(no debrief)',
-    'MOOD TAPS (the operator\'s read of the kid just before each session):', words.mood.length ? words.mood.join('\n') : '(none)',
-    'INTENT CORRECTIONS (what the kid said an event meant):', words.intents.length ? words.intents.join('\n') : '(none)',
+    wordsBlock(k, words),
     'FINGERPRINT (mean over all sessions; null means no data):', JSON.stringify(fp.mean),
     'FINGERPRINT PER GAME:', JSON.stringify(fp.perGame),
     'SAID VS DID GAPS (said = questionnaire, did = behaviour, both -1..+1):', fp.gaps.length ? fp.gaps.map(g => g.note).join('\n') : '(none)',
     'TOP REACTION-MODEL FEATURES (what predicts this player\'s reactions):', importances.length ? importances.map(i => `${i.feature}: ${i.importance.toFixed(3)}`).join('\n') : '(model not trained yet)',
     `MOMENTS (up to ${MAX_MOMENTS}, highest confidence first; cite them by the id in brackets):`, moments.length ? moments.join('\n') : '(none)',
   ].join('\n');
+}
+
+function wordsBlock(k: KidTraits | null, words: Words): string {
+  return [
+    'TRAITS (computed from play by fixed estimators; cite a trait by its name):', ...traitLines(k), TRAIT_RULE,
+    'SAID (the kid\'s own words in the debrief after each game, quoted; anything you take from here is what they said, not what they did):', words.said.length ? words.said.join('\n') : '(no debrief)',
+    'MOOD TAPS (the operator\'s read of the kid just before each session):', words.mood.length ? words.mood.join('\n') : '(none)',
+    'INTENT CORRECTIONS (what the kid said an event meant):', words.intents.length ? words.intents.join('\n') : '(none)',
+  ].join('\n');
+}
+
+// Prose fields a forecaster reads. Synthesis once came back as identifier soup
+// ("said_V foo_confuses_V ... FROM_XP") and empty tells; reject that and retry once.
+const SNAKE = /\b[A-Za-z]+_[A-Za-z0-9_]+\b/g;
+export function proseProblems(d: Omit<Persona, 'letter' | 'lenses' | 'dropped_observations'>): string[] {
+  const out: string[] = [];
+  const fields: [string, string][] = [
+    ['summary', d.summary], ['reads', d.reads], ['explores', d.explores], ['predictions_guidance', d.predictions_guidance],
+    ['tells.stuck', d.tells?.stuck], ['tells.bored', d.tells?.bored], ['tells.delighted', d.tells?.delighted],
+  ];
+  for (const [name, v] of fields) {
+    const text = String(v ?? '').trim();
+    if (!text) { out.push(`${name} is empty; write a plain sentence`); continue; }
+    const ids = text.match(SNAKE) ?? [];
+    if (ids.length) out.push(`${name} uses internal names (${[...new Set(ids)].slice(0, 4).join(', ')}); say it in plain words`);
+  }
+  const t = d.tolerances ?? ({} as Persona['tolerances']);
+  if (!(t.fail_streak >= 1)) out.push('tolerances.fail_streak must be a count of fails, 1 or more');
+  if (!(t.recovery_s > 0) || !(t.idle_before_bored_s > 0)) out.push('tolerances seconds must be above 0');
+  return out;
 }
 
 export async function buildPersona(
@@ -141,19 +187,34 @@ export async function buildPersona(
   const importances = await loadImportances(letter, o);
   const kid = kidTraits(o.traits === undefined ? await loadTraits({ root: recordingsRoot(o) }) : o.traits, letter);
   const words = kidWords(sessions, await loadDebriefs(recordingsRoot(o), letter), kid?.intents);
-  const body = dossier(fp, importances, momentLines(sessions), kid, words);
+  const picked = pickMoments(sessions);
+  const body = dossier(fp, importances, momentLines(picked), kid, words);
 
+  const refOf = new Map(picked.map(p => [p.ref.toLowerCase(), momentRef(p.s, p.m.id)]));
   const validMoments = new Set(sessions.flatMap(s => (s.moments ?? []).map(m => momentRef(s, m.id))));
   const validFields = new Set(Object.keys(fp.mean));
   const validTraits = new Set(Object.keys(kid?.traits ?? {}).filter(n => kid!.traits[n].value != null || Object.values(kid!.traits[n].per_game ?? {}).some(g => g.value != null)));
-  const valid = (e: string) => validMoments.has(e) || validFields.has(e) || validTraits.has(e);
+  // Muse wraps ids in brackets or quotes now and then; strip that, map M-refs back to full refs.
+  const norm = (e: string) => {
+    const x = String(e).trim().replace(/^[\[\("'`]+|[\]\)"'`.,]+$/g, '');
+    return refOf.get(x.toLowerCase()) ?? x;
+  };
+  // A debrief quote counts when its words really are in this kid's answers ("they said: 'I barely got it'").
+  const saidText = words.said.join('\n').toLowerCase().replace(/\s+/g, ' ');
+  const quoted = (e: string) => {
+    const m = /^they said\b[^'"]*['"](.+)$/i.exec(e);
+    const q = m?.[1].replace(/['"]+$/, '').toLowerCase().replace(/\s+/g, ' ').slice(0, 40).trim();
+    return !!q && q.length >= 8 && saidText.includes(q);
+  };
+  const valid = (e: string) => validMoments.has(e) || validFields.has(e) || validTraits.has(e) || quoted(e);
+  const unknown: string[] = [];
 
   const lenses = {} as Record<LensName, Observation[]>;
   let dropped = 0;
   for (const lens of LENSES) {
     const prompt = [
       `Player ${letter} is a child playing prototype games. ${lens.ask}`,
-      `Every observation needs evidence: each evidence item must be a moment id exactly as written in brackets below, a fingerprint field name, or a trait name. Do not invent ids. Say only what the evidence supports. When a claim rests on the kid\'s own words, say so ("they said..."). Call the child "they" or "Player ${letter}"; never guess their gender.`,
+      `Every observation needs evidence: each evidence item must be a moment id exactly as written in brackets below (like M3), a fingerprint field name, or a trait name. Do not invent ids. Say only what the evidence supports. When a claim rests on the kid\'s own words, say so ("they said..."). Call the child "they" or "Player ${letter}"; never guess their gender.`,
       `Fingerprint field names: ${[...validFields].join(', ')}.`,
       `Trait names: ${[...validTraits].join(', ') || '(none with data)'}.`,
       '', body,
@@ -165,24 +226,37 @@ export async function buildPersona(
     });
     const kept: Observation[] = [];
     for (const ob of res.data.observations ?? []) {
-      const ev = Array.isArray(ob.evidence) ? ob.evidence : [];
+      const ev = (Array.isArray(ob.evidence) ? ob.evidence : []).map(norm);
       if (ev.length && ev.every(valid)) kept.push({ claim: scrub(String(ob.claim)), evidence: ev });
-      else dropped++;
+      else { dropped++; unknown.push(...ev.filter(e => !valid(e))); }
     }
     lenses[lens.name] = kept;
   }
-  if (dropped) log(`persona ${letter}: dropped ${dropped} observation${dropped === 1 ? '' : 's'} with missing evidence`);
+  if (dropped) log(`persona ${letter}: dropped ${dropped} observation${dropped === 1 ? '' : 's'} with missing evidence (unknown: ${[...new Set(unknown)].slice(0, 8).join(', ') || 'none cited'})`);
 
+  const obsLines = LENSES.flatMap(l => lenses[l.name].map(o => `${l.name}: ${o.claim}`));
   const synth = [
     `Player ${letter} is a child playing prototype games. Three experts read their play. Combine the observations below into one persona that a forecaster can use to predict this child's reactions to a game they have not played.`,
-    `Give tolerances as numbers: fail_streak is how many fails in a row before they sour, recovery_s is seconds from a fail to trying again, idle_before_bored_s is seconds of doing nothing before they are bored. Make tells concrete (what face, voice and hands do). In said_vs_did, call out where the questionnaire or the debrief differs from play, quoting their words. ` + TRAIT_RULE + ` In predictions_guidance, say in plain words what to expect and what not to expect. Every claim must come from the observations or the data; do not invent backstory or feelings. Call the child "they" or "Player ${letter}"; never guess their gender.`,
-    '', 'EXPERT OBSERVATIONS (observations):', JSON.stringify(lenses), '', body,
+    `Give tolerances as numbers: fail_streak is how many fails in a row before they sour (1 or more), recovery_s is seconds from a fail to trying again, idle_before_bored_s is seconds of doing nothing before they are bored. Make tells concrete (what face, voice and hands do), from the TELL EVIDENCE lines; if a label has no lines, say no clear tell was seen. In said_vs_did, call out where the questionnaire or the debrief differs from play, quoting their words. ` + TRAIT_RULE + ` Write every text field as plain sentences a parent could read: no field names, no ids, no words joined with underscores. In predictions_guidance, say in plain words what to expect and what not to expect. Every claim must come from the observations or the data; do not invent backstory or feelings. Call the child "they" or "Player ${letter}"; never guess their gender.`,
+    '', 'EXPERT OBSERVATIONS:', obsLines.length ? obsLines.join('\n') : '(none survived the evidence check)',
+    '', 'TELL EVIDENCE (face, voice and hands in the clearest moments of each kind):', tellLines(picked).join('\n') || '(none)',
+    '', 'SAID VS DID GAPS (said = questionnaire, did = behaviour, both -1..+1):', fp.gaps.length ? fp.gaps.map(g => g.note).join('\n') : '(none)',
+    '', wordsBlock(kid, words),
   ].join('\n');
-  const res = await client.respond<Omit<Persona, 'letter' | 'lenses' | 'dropped_observations'>>({
-    model: MODEL, kind: `persona:${letter}:synthesis`, schema: PERSONA_SCHEMA, maxOutputTokens: 32000,   // synthesis used 12-14k on real kids; 16k left no margin
-    content: [{ type: 'input_text', text: synth }],
-  });
-  const d = res.data;
+  type Synth = Omit<Persona, 'letter' | 'lenses' | 'dropped_observations'>;
+  let d: Synth | null = null;
+  let problems: string[] = [];
+  for (let attempt = 0; attempt < 2 && !d; attempt++) {
+    const retry = problems.length ? `\n\nYour last answer was rejected: ${problems.join('; ')}. Fix these.` : '';
+    const res = await client.respond<Synth>({
+      model: MODEL, kind: `persona:${letter}:synthesis`, schema: PERSONA_SCHEMA, maxOutputTokens: 32000,   // synthesis used 12-14k on real kids; 16k left no margin
+      content: [{ type: 'input_text', text: synth + retry }],
+    });
+    problems = proseProblems(res.data);
+    if (!problems.length) d = res.data;
+    else log(`persona ${letter}: synthesis rejected: ${problems.join('; ')}`);
+  }
+  if (!d) throw new Error(`persona ${letter}: synthesis failed the prose check twice: ${problems.join('; ')}`);
   const persona: Persona = {
     letter, summary: scrub(d.summary), tolerances: d.tolerances, reads: scrub(d.reads), explores: scrub(d.explores),
     delights: d.delights.map(scrub), confuses: d.confuses.map(scrub),

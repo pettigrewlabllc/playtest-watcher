@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clientFromEnv, createMetaClient } from '../meta/client.ts';
@@ -16,12 +16,14 @@ import { listSessions, loadStudy, playerSessions, sameKid } from './study.ts';
 import { buildGroupModel, groupDir } from './traits.ts';
 import { fitReaction } from './reaction.ts';
 import { reliability, reliabilityLine } from './reliability.ts';
+import { stability, stabilityLine } from './stability.ts';
+import type { Stability } from './stability.ts';
 import { sampleLabels, writeQueue } from '../label/queue.ts';
 import type { Scoreboard } from './score.ts';
 import type { Trait } from './traits.ts';
 
 const REPO = resolve(import.meta.dirname, '..', '..');
-export const COMMANDS = ['fingerprint', 'train', 'persona', 'predict', 'freeze', 'logo', 'scoreboard', 'traits', 'reaction', 'reliability'] as const;
+export const COMMANDS = ['fingerprint', 'train', 'persona', 'predict', 'freeze', 'logo', 'scoreboard', 'traits', 'reaction', 'reliability', 'stability'] as const;
 const USAGE = `usage: npm run predict -- <command> [--live]
   fingerprint <letter>
   train <letter>
@@ -33,6 +35,7 @@ const USAGE = `usage: npm run predict -- <command> [--live]
   traits            (AFM and trait estimators for every kid, from all learn sessions)
   reaction          (pooled reaction model, both variants and baselines, leave-one-game-out)
   reliability       (Cohen's kappa between Joel's hand labels and Muse's)
+  stability [--n 30] (Muse asked twice about the same clips: how often it gives the same label; live, ~$0.03 a clip)
   sample-labels [--n 200]   (moments for Joel to label, stratified by Muse's label, into label-queue.json)`;
 
 type Deps = { root?: string; client?: MetaClient; out?: (line: string) => void; commit?: (file: string, message: string) => Promise<void>; docFile?: string };
@@ -45,12 +48,13 @@ const aucText = (a: Record<string, number> | undefined) => (a && Object.keys(a).
 const aggLine = (a: Agg | Score | null) => (a ? `recall ${pct(a.recall)}  precision ${pct(a.precision)}  mix ${pct(a.mix_similarity)}  kappa ${num2(a.kappa)}  AUC ${aucText(a.auc)}` : 'no data');
 
 // Reliability first, then the pre-registered primary metric (docs/frozen-predictions.md), then everything else.
-export function scoreboardLines(sb: Scoreboard): string[] {
-  const lines = reliabilityLine(sb.reliability).split('\n');
+// The headline has the five pre-registered predictors; the model variants stay in the secondary block.
+export function scoreboardLines(sb: Scoreboard, stab: Stability | null = null): string[] {
+  const lines = [...(stab ? [stabilityLine(stab)] : []), ...reliabilityLine(sb.reliability).split('\n')];
   lines.push('PRIMARY (pre-registered): stage-level kappa on the check session, at a matched budget of 2 reactions per stage. Paired hits over the same real moments, against null.');
   for (const [letter, p] of Object.entries(sb.players)) {
     let any = false;
-    for (const name of ALL_PREDICTORS) {
+    for (const name of PREDICTORS) {
       const c = p.predictors[name]?.check;
       if (!c) continue;
       any = true;
@@ -155,7 +159,9 @@ export async function runCommand(argv: string[], deps: Deps = {}): Promise<void>
     if (!Object.keys(study.players).length) throw new Error(`no players in ${join(root, 'study.json')}`);
     const sb = await scoreboard(study, { root, client: client(), log: out });
     await writeFile(join(root, 'scoreboard.json'), JSON.stringify(sb, null, 2));
-    for (const line of scoreboardLines(sb)) out(line);
+    let stab: Stability | null = null;
+    try { stab = JSON.parse(await readFile(join(groupDir({ root }), 'stability.json'), 'utf8')); } catch { /* not measured yet */ }
+    for (const line of scoreboardLines(sb, stab)) out(line);
   } else if (cmd === 'sample-labels') {
     const at = rest.indexOf('--n');
     const n = at >= 0 ? Number(rest[at + 1]) : 200;
@@ -166,6 +172,11 @@ export async function runCommand(argv: string[], deps: Deps = {}): Promise<void>
   } else if (cmd === 'reliability') {
     const r = await reliability(root);
     for (const line of reliabilityLine(r).split('\n')) out(line);
+  } else if (cmd === 'stability') {
+    const at = rest.indexOf('--n');
+    const n = at >= 0 ? Number(rest[at + 1]) : 30;
+    if (!Number.isInteger(n) || n < 1) throw new Error(`--n needs a whole number\n${USAGE}`);
+    out(stabilityLine(await stability(root, client(), { n, log: out })));
   } else if (cmd === 'traits') {
     const g = await buildGroupModel({ root });
     for (const [letter, k] of Object.entries(g.traits.kids)) {

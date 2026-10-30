@@ -185,9 +185,28 @@ export type LogoReport = {
 };
 
 // The session a fold predicts from: the game's reference playthrough, else another kid's learn session of it.
-export function foldTarget(all: SessionInfo[], letter: string, game: string): SessionInfo | null {
+// With `overlap` (levels shared with the held-out sessions), a candidate that shares none loses to one that does:
+// the Current Cut reference kept the iPad's saved progress and played w6-w7 while every kid played w1-w5.
+export function foldTarget(all: SessionInfo[], letter: string, game: string, overlap?: Map<string, number>): SessionInfo | null {
   const ofGame = all.filter(s => s.game === game);
-  return ofGame.find(s => s.round === 'reference') ?? ofGame.find(s => s.round === 'learn' && !sameKid(s.kid, letter)) ?? null;
+  const ordered = [...ofGame.filter(s => s.round === 'reference'), ...ofGame.filter(s => s.round === 'learn' && !sameKid(s.kid, letter))];
+  if (overlap) {
+    const best = ordered.find(s => (overlap.get(s.id) ?? 0) > 0);
+    if (best) return best;
+  }
+  return ordered[0] ?? null;
+}
+
+// Levels each candidate target shares with the held-out sessions.
+async function sharedLevels(all: SessionInfo[], held: SessionInfo[], game: string): Promise<Map<string, number>> {
+  const levels = async (dir: string) => { const s = await loadSession(dir); return new Set(stagesOf(s.aligned.events, game)); };
+  const mine = new Set<string>();
+  for (const h of held) for (const k of await levels(h.dir)) mine.add(k);
+  const out = new Map<string, number>();
+  for (const c of all.filter(s => s.game === game && !held.includes(s))) {
+    try { out.set(c.id, [...await levels(c.dir)].filter(k => mine.has(k)).length); } catch { out.set(c.id, 0); }
+  }
+  return out;
 }
 
 // Leave-one-game-out: for each game the player has learn sessions in, rebuild everything without it, predict the
@@ -236,7 +255,9 @@ export async function logo(
     const scores: Partial<Record<AnyPredictor, Score>> = {};
     const perSession: Partial<Record<AnyPredictor, Score[]>> = {};
     const joy: Partial<Record<Variant, number[]>> = {};
-    const ref = foldTarget(all, letter, game);
+    const overlap = await sharedLevels(all, held, game);
+    const ref = foldTarget(all, letter, game, overlap);
+    if (ref && !overlap.get(ref.id)) log(`logo ${letter}: ${ref.id} shares no levels with ${game} held-out play; scores will be empty`);
     const selfTarget = !ref;
     if (selfTarget) log(`logo ${letter}: no reference or other kid's session for ${game}; self-target fold, left out of the mean`);
     const shared = ref ? await predictSession(letter, ref.dir, client, predictors, { ...fold, group: group ?? undefined, sims: o.sims }) : null;

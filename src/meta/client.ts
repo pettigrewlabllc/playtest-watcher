@@ -107,23 +107,29 @@ export function createMetaClient(opts: Opts): MetaClient {
         const f = fakeRespond(req.schema?.name);
         return { data: f.data as T, text: JSON.stringify(f.data), usage: f.usage };
       }
-      await guard();
-      const body: Record<string, unknown> = {
-        model: req.model,
-        input: [{ role: 'user', content: req.content }],
-        max_output_tokens: Math.max(req.maxOutputTokens ?? 4000, 4000),
-      };
-      if (req.schema) body.text = { format: { type: 'json_schema', name: req.schema.name, schema: req.schema.schema, strict: true } };
-      const res = await call('/responses', () => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }));
-      const json: any = await res.json();
-      const usage: Usage = { input_tokens: json.usage?.input_tokens ?? 0, output_tokens: json.usage?.output_tokens ?? 0 };
-      await record(req.model, req.kind, usage);
-      const text = pickText(json);
-      let data: unknown = text;
-      if (req.schema) {
-        try { data = JSON.parse(text); } catch { throw new Error(`model returned non-JSON for ${req.kind}: ${text.slice(0, 200)}`); }
+      // A cut-off or non-JSON answer gets one more try at twice the cap
+      // (reasoning tokens count against it), then fails with the stop reason.
+      let cap = Math.max(req.maxOutputTokens ?? 4000, 4000);
+      for (let attempt = 0; ; attempt++) {
+        await guard();
+        const body: Record<string, unknown> = { model: req.model, input: [{ role: 'user', content: req.content }], max_output_tokens: cap };
+        if (req.schema) body.text = { format: { type: 'json_schema', name: req.schema.name, schema: req.schema.schema, strict: true } };
+        const res = await call('/responses', () => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }));
+        const json: any = await res.json();
+        const usage: Usage = { input_tokens: json.usage?.input_tokens ?? 0, output_tokens: json.usage?.output_tokens ?? 0 };
+        await record(req.model, req.kind, usage);
+        const text = pickText(json);
+        const stop = json.status === 'incomplete' ? `incomplete (${json.incomplete_details?.reason ?? 'unknown'})` : '';
+        let data: unknown = text;
+        let bad = stop;
+        if (!bad && req.schema) {
+          try { data = JSON.parse(text); } catch { bad = 'non-JSON'; }
+        }
+        if (!bad) return { data: data as T, text, usage };
+        if (attempt >= 1) throw new Error(`model returned ${bad} for ${req.kind} at ${cap} tokens: ${text.slice(0, 200)}`);
+        console.warn(`${req.kind}: ${bad} at ${cap} tokens, retrying at ${cap * 2}`);
+        cap *= 2;
       }
-      return { data: data as T, text, usage };
     },
 
     async transcribe(wavPath, o) {
