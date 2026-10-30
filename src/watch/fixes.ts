@@ -45,7 +45,8 @@ export async function fixesStage(dir: string, client: MetaClient): Promise<strin
       evidence: m.evidence, game_context: m.game_context, fix_hint: m.fix_hint,
     }));
     const r = await client.respond<{ fixes: Fix[] }>({
-      model: 'muse-wonder-1.0', kind: 'fixes', schema: FIXES_SCHEMA, maxOutputTokens: 6000,
+      // Reasoning counts against the cap; 6000 ran out before the JSON on an 8-moment session.
+      model: 'muse-wonder-1.0', kind: 'fixes', schema: FIXES_SCHEMA, maxOutputTokens: 16000,
       content: [{
         type: 'input_text',
         text: [
@@ -56,7 +57,9 @@ export async function fixesStage(dir: string, client: MetaClient): Promise<strin
         ].join('\n'),
       }],
     });
-    const fixes = [...(r.data.fixes ?? [])].sort((a, b) => (RANK[a.severity] ?? 3) - (RANK[b.severity] ?? 3));
+    // An empty list for real moments is a bad answer, not "nothing to fix": fail so fixes.md is not written blank.
+    if (!Array.isArray(r.data?.fixes) || !r.data.fixes.length) throw new Error(`fixes came back empty for ${real.length} moments: ${r.text.slice(0, 300)}`);
+    const fixes = [...r.data.fixes].sort((a, b) => (RANK[a.severity] ?? 3) - (RANK[b.severity] ?? 3));
     const body = fixes.map(f => {
       const links = f.evidence_moment_ids.filter(id => byId.has(id)).map(id => `[${id} at ${mmss(byId.get(id)!.startMs)}](#${id})`);
       return [`## ${f.title}`, '', `Severity: ${f.severity}`, '', f.why, '', `Fix: ${f.suggestion}`, ...(links.length ? ['', `Moments: ${links.join(', ')}`] : [])].join('\n');
