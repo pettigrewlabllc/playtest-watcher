@@ -59,3 +59,10 @@ Written before any check session is scored (freeze adds it if it is missing, and
 | check-b-hoard-keeper-v2 | model | 6e4db3a25232dc1c5f68931abdf7efe8d1006e97cfb74821d74ab548a95f1d72 | 2026-10-30T23:37:02.267Z |
 | check-b-hoard-keeper-v2 | model-traits | 683225e0f14e564c96b82c266d775f4a99ef9900527246a8b63dc29e5e42b61b | 2026-10-30T23:37:02.267Z |
 | check-b-hoard-keeper-v2 | model-kid | 3a5ce501cbff0e69a39b3fa04445dc1f8a89af361fa869b6ae504fe8ac3cb99e | 2026-10-30T23:37:02.267Z |
+| check-c-bond-swap-v2 | null | 993031fd0d86c80fb3f042ae537bb7539129f23dd551266258465d89b475afe8 | 2026-10-30T23:40:26.599Z |
+| check-c-bond-swap-v2 | baseline | fc7c968086c037a0c813bb160d4e12ec4a58203f926d16c56b8c81797c39c544 | 2026-10-30T23:40:26.599Z |
+| check-c-bond-swap-v2 | questionnaire | 9e2afd5f9d3ccf47075ef938bfe90d60a64458dd10cebf6b59c7bf4cdd858e1f | 2026-10-30T23:40:26.599Z |
+| check-c-bond-swap-v2 | persona | 8c8c7cac71957f192d0d36ea6b6405d2101c76461ab948e7be073cee528c2105 | 2026-10-30T23:40:26.599Z |
+| check-c-bond-swap-v2 | model | 1c3cea578fe8ee78bb4b2b2b77d05366c520b39748266d657317dd54ab6f0430 | 2026-10-30T23:40:26.599Z |
+| check-c-bond-swap-v2 | model-traits | 99828c97cb41e1819960594c8e105bd4eff35b97d0adb1fb7360cea9a759b33b | 2026-10-30T23:40:26.599Z |
+| check-c-bond-swap-v2 | model-kid | bb66e60ae9aa3cf02ed96ed1cd87d015027aeacaacff328bff22082ef4bd5338 | 2026-10-30T23:40:26.599Z |
