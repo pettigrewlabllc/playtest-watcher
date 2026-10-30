@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Label moments</title>
+<style>
+  body { font: 15px system-ui, sans-serif; margin: 16px; background: #111; color: #eee; }
+  button { font: inherit; }
+  .muted { color: #999; }
+  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  #progress { font-variant-numeric: tabular-nums; }
+  #tag { background: #713f12; color: #fde68a; padding: 2px 8px; border-radius: 4px; font-size: 13px; }
+  video { width: 100%; max-height: 60vh; background: #000; border-radius: 6px; margin: 12px 0; }
+  .labels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .labels button { padding: 16px 8px; font-size: 18px; background: #222; color: #eee; border: 1px solid #444; border-radius: 8px; }
+  .labels button:hover { background: #2563eb; border-color: #2563eb; }
+  .labels kbd { display: block; font-size: 12px; color: #999; margin-top: 4px; }
+  .side button { padding: 8px 16px; background: #222; color: #eee; border: 1px solid #444; border-radius: 6px; }
+  code { background: #222; padding: 2px 6px; border-radius: 4px; }
+  @media (max-width: 600px) { .labels { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<h1>Label moments</h1>
+<p class="muted">Watch the clip, then pick what the kid was feeling. Muse's guess stays hidden so it can't steer you.</p>
+
+<div id="work" hidden>
+  <div class="row"><span id="progress"></span><span id="who" class="muted"></span><span id="tag" hidden>Counts toward the agreement check</span></div>
+  <video id="clip" controls autoplay playsinline></video>
+  <div class="labels" id="labels"></div>
+  <div class="row side" style="margin-top:12px">
+    <button id="skip">Skip</button>
+    <button id="undo" disabled>Undo</button>
+  </div>
+</div>
+<p id="empty" hidden>Nothing to label yet. Once the moments are explained, run <code>npm run predict -- sample-labels</code> and reload.</p>
+<p id="done" hidden>That's all of them. Run <code>npm run predict -- reliability</code> to see how often you and Muse agree.</p>
+<p id="err" hidden></p>
+
+<script>
+const LABELS = [['confused', 'Confused'], ['stuck', 'Stuck'], ['bored', 'Bored'], ['frustrated', 'Frustrated'], ['delighted', 'Delighted'], ['none', 'None of these']];
+const $ = id => document.getElementById(id);
+let queue = [], total = 0, done = 0, history = [];
+
+LABELS.forEach(([value, text], i) => {
+  const b = document.createElement('button');
+  b.innerHTML = `${text}<kbd>${i + 1}</kbd>`;
+  b.onclick = () => label(value);
+  $('labels').append(b);
+});
+
+async function save(item, value) {
+  const r = await fetch(`/api/sessions/${item.session}/labels`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ moment: item.moment, label: value }) });
+  if (!r.ok) throw new Error((await r.json()).error);
+}
+
+function show() {
+  $('work').hidden = !queue.length;
+  $('done').hidden = !!queue.length || !total;
+  $('empty').hidden = !!total;
+  $('undo').disabled = !history.length;
+  if (!queue.length) return;
+  const item = queue[0];
+  $('progress').textContent = `${done} of ${total} labelled`;
+  $('who').textContent = `Kid ${item.kid.toUpperCase()} · ${item.game} · ${item.moment}`;
+  $('tag').hidden = !item.reliability;
+  $('clip').src = `/clips/${item.session}/${item.moment}.mp4`;
+}
+
+async function label(value) {
+  const item = queue[0];
+  if (!item) return;
+  try { await save(item, value); } catch (e) { return fail(e); }
+  history.push({ item, labelled: true });
+  queue.shift(); done++;
+  show();
+}
+
+function skip() {
+  const item = queue.shift();
+  if (!item) return;
+  queue.push(item);
+  history.push({ item, labelled: false });
+  show();
+}
+
+async function undo() {
+  const last = history.pop();
+  if (!last) return;
+  if (last.labelled) {
+    try { await save(last.item, null); } catch (e) { history.push(last); return fail(e); }
+    done--;
+  } else {
+    queue.pop();
+  }
+  queue.unshift(last.item);
+  show();
+}
+
+function fail(e) { $('err').hidden = false; $('err').textContent = `That didn't save: ${e.message}`; }
+
+$('skip').onclick = skip;
+$('undo').onclick = undo;
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const n = Number(e.key);
+  if (n >= 1 && n <= LABELS.length) label(LABELS[n - 1][0]);
+  else if (e.key === 's') skip();
+  else if (e.key === 'z' || e.key === 'Backspace') undo();
+  else if (e.key === ' ') { e.preventDefault(); const v = $('clip'); v.paused ? v.play() : v.pause(); }
+});
+
+fetch('/api/label-queue').then(r => r.json()).then(q => {
+  queue = q.items; total = q.total; done = q.done;
+  show();
+}).catch(fail);
+</script>
+</body>
+</html>

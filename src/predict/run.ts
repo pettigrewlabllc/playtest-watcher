@@ -16,6 +16,7 @@ import { listSessions, loadStudy, playerSessions, sameKid } from './study.ts';
 import { buildGroupModel, groupDir } from './traits.ts';
 import { fitReaction } from './reaction.ts';
 import { reliability, reliabilityLine } from './reliability.ts';
+import { sampleLabels, writeQueue } from '../label/queue.ts';
 import type { Scoreboard } from './score.ts';
 import type { Trait } from './traits.ts';
 
@@ -31,7 +32,8 @@ const USAGE = `usage: npm run predict -- <command> [--live]
   scoreboard
   traits            (AFM and trait estimators for every kid, from all learn sessions)
   reaction          (pooled reaction model, both variants and baselines, leave-one-game-out)
-  reliability       (Cohen's kappa between Joel's hand labels and Muse's)`;
+  reliability       (Cohen's kappa between Joel's hand labels and Muse's)
+  sample-labels [--n 200]   (moments for Joel to label, stratified by Muse's label, into label-queue.json)`;
 
 type Deps = { root?: string; client?: MetaClient; out?: (line: string) => void; commit?: (file: string, message: string) => Promise<void>; docFile?: string };
 
@@ -154,6 +156,13 @@ export async function runCommand(argv: string[], deps: Deps = {}): Promise<void>
     const sb = await scoreboard(study, { root, client: client(), log: out });
     await writeFile(join(root, 'scoreboard.json'), JSON.stringify(sb, null, 2));
     for (const line of scoreboardLines(sb)) out(line);
+  } else if (cmd === 'sample-labels') {
+    const at = rest.indexOf('--n');
+    const n = at >= 0 ? Number(rest[at + 1]) : 200;
+    if (!Number.isInteger(n) || n < 1) throw new Error(`--n needs a whole number\n${USAGE}`);
+    const q = await sampleLabels(root, { n });
+    await writeQueue(root, q);
+    out(`label-queue.json: ${q.length} moments (first ${q.filter(x => x.reliability).length} for the reliability check)`);
   } else if (cmd === 'reliability') {
     const r = await reliability(root);
     for (const line of reliabilityLine(r).split('\n')) out(line);

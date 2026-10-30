@@ -1,10 +1,12 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
 import { join, normalize, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
 import { createStore } from './store.ts';
 import { QUESTIONS, scoreAnswers } from './questionnaire.ts';
+import { pendingQueue, setLabel, clipPath } from '../label/queue.ts';
 
 const PUBLIC = fileURLToPath(new URL('../../public/', import.meta.url));
 const TYPES: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
@@ -25,6 +27,23 @@ async function body(req: IncomingMessage): Promise<Buffer> {
 function send(res: ServerResponse, status: number, obj?: unknown, extra: Record<string, string> = {}) {
   if (obj === undefined) { res.writeHead(status, extra).end(); return; }
   res.writeHead(status, { 'content-type': 'application/json', ...extra }).end(JSON.stringify(obj));
+}
+
+// Range requests, so the browser can seek and replay a clip.
+async function sendFile(req: IncomingMessage, res: ServerResponse, file: string, type: string) {
+  let size: number;
+  try { size = (await stat(file)).size; } catch { return send(res, 404, { error: 'not found' }); }
+  const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
+  if (!m || (!m[1] && !m[2])) {
+    res.writeHead(200, { 'content-type': type, 'content-length': size, 'accept-ranges': 'bytes' });
+    createReadStream(file).pipe(res);
+    return;
+  }
+  const start = m[1] ? Number(m[1]) : Math.max(0, size - Number(m[2]));
+  const end = m[1] && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
+  if (start > end) { res.writeHead(416, { 'content-range': `bytes */${size}` }).end(); return; }
+  res.writeHead(206, { 'content-type': type, 'content-length': end - start + 1, 'content-range': `bytes ${start}-${end}/${size}`, 'accept-ranges': 'bytes' });
+  createReadStream(file, { start, end }).pipe(res);
 }
 
 export function createApp(root: string) {
@@ -63,7 +82,18 @@ export function createApp(root: string) {
         return send(res, 200, await store.summary(seg[2]));
       }
 
+      if (req.method === 'GET' && path === '/api/label-queue') return send(res, 200, await pendingQueue(root));
+
+      if (req.method === 'GET' && seg[0] === 'clips' && seg.length === 3 && seg[2].endsWith('.mp4')) {
+        return sendFile(req, res, clipPath(root, seg[1], seg[2].slice(0, -4)), 'video/mp4');
+      }
+
       if (seg[0] === 'api' && seg[1] === 'sessions' && req.method === 'POST') {
+        if (seg.length === 4 && seg[3] === 'labels') {
+          const { moment, label } = JSON.parse((await body(req)).toString('utf8'));
+          await setLabel(root, seg[2], String(moment ?? ''), label ?? null);
+          return send(res, 204);
+        }
         if (seg.length === 2) {
           const meta = JSON.parse((await body(req)).toString('utf8'));
           return send(res, 200, { id: await store.createSession(meta) });
