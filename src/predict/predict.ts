@@ -58,7 +58,7 @@ async function loadTarget(dir: string, letter: string): Promise<Target> {
   return { id: basename(dir), game: meta.game ?? 'unknown', aligned, screenNotes };
 }
 
-type StageSummary = { stage: string; startMs: number; endMs: number; kinds: Record<string, number>; types: Record<string, number>; screen: string[] };
+export type StageSummary = { stage: string; startMs: number; endMs: number; kinds: Record<string, number>; types: Record<string, number>; screen: string[] };
 
 function summarize(t: Target): StageSummary[] {
   const events = t.aligned.events;
@@ -122,11 +122,19 @@ export function capPerStage(items: PredictedItem[]): PredictedItem[] {
   return out;
 }
 
-function clean(items: PredictedItem[] | undefined, stages: StageSummary[]): PredictedItem[] {
+// Muse copies the stage line it was shown, so "stage w1-01 (00:00 to 00:12)" has to find w1-01. An exact-only
+// match once dropped every item of a frozen prediction set without a word.
+export function matchStage(raw: string, stages: StageSummary[]): StageSummary | undefined {
   const byStage = new Map(stages.map(s => [s.stage, s]));
+  const t = String(raw).trim().replace(/^stage\s+/i, '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+  return byStage.get(String(raw)) ?? byStage.get(t)
+    ?? [...stages].sort((a, b) => b.stage.length - a.stage.length).find(s => t.startsWith(s.stage + ' ') || t.startsWith(s.stage + ':'));
+}
+
+export function clean(items: PredictedItem[] | undefined, stages: StageSummary[]): PredictedItem[] {
   const kept: PredictedItem[] = [];
   for (const it of items ?? []) {
-    const s = byStage.get(String(it.stage));
+    const s = matchStage(String(it.stage), stages);
     if (!s || !REACTIONS.includes(it.label as Label)) continue;
     const types = Object.entries(s.types).sort((a, b) => b[1] - a[1]).map(x => x[0]);
     kept.push({
@@ -232,6 +240,8 @@ export async function predictSession(
         content: [{ type: 'input_text', text: [who, '', world, '', TASK].join('\n') }],
       });
       items = clean(res.data.items, stages);
+      const asked = (res.data.items ?? []).length;
+      if (client.live && asked && !items.length) throw new Error(`predict ${name}: none of Muse's ${asked} predictions matched a stage (first: "${res.data.items[0]?.stage}")`);
     }
     out[name] = { predictor: name, target: t.id, items };
   }

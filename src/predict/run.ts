@@ -157,7 +157,12 @@ export async function runCommand(argv: string[], deps: Deps = {}): Promise<void>
   } else if (cmd === 'scoreboard') {
     const study = await loadStudy(root);
     if (!Object.keys(study.players).length) throw new Error(`no players in ${join(root, 'study.json')}`);
-    const sb = await scoreboard(study, { root, client: client(), log: out });
+    // Without --live, leave-one-game-out folds are only read from cache: building them on the fake client
+    // would cache canned personas as if they were real.
+    const c = client();
+    const skipLogo = !deps.client && !c.live;
+    if (skipLogo) out('scoreboard: not live, so leave-one-game-out uses cached folds only (npm run predict -- scoreboard --live to build them)');
+    const sb = await scoreboard(study, { root, client: c, log: out, skipLogo });
     await writeFile(join(root, 'scoreboard.json'), JSON.stringify(sb, null, 2));
     let stab: Stability | null = null;
     try { stab = JSON.parse(await readFile(join(groupDir({ root }), 'stability.json'), 'utf8')); } catch { /* not measured yet */ }

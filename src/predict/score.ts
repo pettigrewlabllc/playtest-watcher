@@ -326,7 +326,7 @@ export function pairedCounts(scores: Partial<Record<AnyPredictor, Score>>): Part
 }
 
 function checkLabel(study: Study, letter: string, game: string): string {
-  for (const [label, c] of Object.entries(study.checks ?? {})) if (c.letter === letter && c.game === game) return label;
+  for (const [label, c] of Object.entries(study.checks ?? {})) if (c.letter === letter && c.game === game && !c.void) return label;
   return `${letter}-${game}`;
 }
 
@@ -347,7 +347,7 @@ async function verifyFrozen(study: Study, root: string, label: string): Promise<
 // Reads study.json's shape (passed in). Verifies every frozen file before it scores anything.
 // normalized = recall / the player's replay ceiling recall. The ceiling comes from a replayed learn game, not the check game, so it is a per-player yardstick.
 export async function scoreboard(
-  study: Study, o: Opts & { client: MetaClient; log?: (line: string) => void; refreshLogo?: boolean; sims?: number },
+  study: Study, o: Opts & { client: MetaClient; log?: (line: string) => void; refreshLogo?: boolean; sims?: number; skipLogo?: boolean },
 ): Promise<Scoreboard> {
   const root = recordingsRoot(o);
   const sessions = await listSessions(root);
@@ -366,7 +366,7 @@ export async function scoreboard(
     let report: LogoReport | null = null;
     const cached = join(playerDir(letter, { root }), 'logo.json');
     if (!o.refreshLogo && existsSync(cached)) report = JSON.parse(await readFile(cached, 'utf8'));
-    else report = await logo(letter, o.client, { root, log: o.log, sims: o.sims });
+    else if (!o.skipLogo) report = await logo(letter, o.client, { root, log: o.log, sims: o.sims });
 
     const checkSession = mine.find(s => s.game === p.check && s.round === 'check');
     const rows: Partial<Record<AnyPredictor, PredictorRow>> = {};
