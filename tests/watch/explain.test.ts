@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { writeFile, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { align } from '../../src/watch/align.ts';
-import { cameraWarnings, compositeClip, explainStage } from '../../src/watch/explain.ts';
+import { buildPrompt, cameraWarnings, compositeClip, explainStage } from '../../src/watch/explain.ts';
 import { probeDurationMs, probeSize, hasStream } from '../../src/watch/ffmpeg.ts';
 import { createMetaClient, type MetaClient } from '../../src/meta/client.ts';
 import { fakeSession, tmp, T0 } from './helpers.ts';
@@ -100,7 +100,24 @@ describe('camera roles in the prompt', () => {
     const client: MetaClient = { ...base, respond: async (req: any) => { texts.push(req.content[0].text); return base.respond(req); } };
     await explainStage(dir, client);
     expect(texts[0].startsWith('WARNING: the left panel was recorded from the camera "MacBook Pro Desk View Camera"')).toBe(true);
-    expect(cameraWarnings({ tracks: { face: { label: 'Anker PowerConf C200' } } })).toEqual([]);
+    expect(cameraWarnings({ tracks: { face: { label: 'Anker PowerConf C200' } } })).toHaveLength(1);
+    expect(cameraWarnings({ tracks: { face: { label: 'MacBook Pro Camera (0000:0001)' } } })).toEqual([]);
     expect(cameraWarnings(undefined)).toEqual([]);
   }, 30000);
+});
+
+describe('explain prompt', () => {
+  it('says what each input is and what each output field must hold', () => {
+    const c = { id: 'c001', startMs: 10_000, endMs: 22_000, triggers: ['fail_burst:short', 'sweep'] };
+    const aligned: any = { events: [{ ms: 12_500, type: 'level_fail', kind: 'fail', data: { level: 3 } }] };
+    const turns: any = [{ startMs: 11_000, endMs: 12_000, who: 'kid', text: 'ugh' }];
+    const p = buildPrompt('current-cut', c, aligned, turns, [], 11);
+    for (const part of ['WHAT YOU ARE GIVEN', 'WHAT TO JUDGE', 'WHAT TO RETURN', 'LEFT, face', 'MIDDLE, hands', 'RIGHT, screen', 'The child is 11 years old', '12.0-second clip']) expect(p).toContain(part);
+    expect(p).toContain('fail_burst:short (several failures of one kind close together)');
+    expect(p).toContain('sweep (a routine sample');
+    expect(p).toContain('+00:02.5 level_fail {"level":3}');
+    expect(p).toContain('+00:01.0 kid: ugh');
+    for (const field of ['- label:', '- confidence:', '  - face:', '  - voice:', '  - hands:', '  - screen:', '- game_context:', '- fix_hint:']) expect(p).toContain(field);
+    expect(buildPrompt('g', c, aligned, [], [])).not.toMatch(/years old/);
+  });
 });

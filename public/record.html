@@ -97,11 +97,12 @@ document.querySelectorAll('.pick').forEach(group => {
   if (saved && buttons.some(b => b.textContent === saved)) choose(saved);
 });
 
-// Face: the USB camera (the Anker) at the kid's eye level. Hands: the MacBook's Desk View, looking down at the iPad.
+// As the desk is set up: the MacBook's own camera faces the kid; the USB camera (the Anker) looks down at the iPad.
+// (Until 2026-10-29 this had them the other way round, and 13 sessions were recorded with the roles swapped.)
 function defaultCameras(cameras) {
-  const builtIn = c => /MacBook|FaceTime|Desk View|iPhone|iPad/i.test(c.label);
-  const face = cameras.find(c => /Anker|PowerConf/i.test(c.label)) || cameras.find(c => c.label && !builtIn(c));
-  const hands = cameras.find(c => /Desk View/i.test(c.label));
+  const usb = c => c.label && !/MacBook|FaceTime|Desk View|iPhone|iPad/i.test(c.label);
+  const face = cameras.find(c => /MacBook|FaceTime/i.test(c.label) && !/Desk View/i.test(c.label));
+  const hands = cameras.find(c => /Anker|PowerConf/i.test(c.label)) || cameras.find(usb) || cameras.find(c => /Desk View/i.test(c.label));
   return { face: face && face.deviceId, hands: hands && hands.deviceId };
 }
 
@@ -113,12 +114,12 @@ async function fillDevices() {
     if (saved && list.some(d => d.deviceId === saved)) s.value = saved;
     s.onchange = () => store.set(key, s.value);
   }
-  // Camera roles changed (face = USB camera, hands = Desk View): picks saved under the old roles are dropped once.
+  // Camera roles changed (face = MacBook camera, hands = USB camera): picks saved under the old roles are dropped once.
   const roles = defaultCameras(cameras);
-  const fresh = store.get('cameraRoles') !== '2';
+  const fresh = store.get('cameraRoles') !== '3';
   if (fresh || !store.get('face')) { if (roles.face) { $('face').value = roles.face; store.set('face', roles.face); } }
   if (fresh || !store.get('hands')) { if (roles.hands) { $('hands').value = roles.hands; store.set('hands', roles.hands); } }
-  store.set('cameraRoles', '2');
+  store.set('cameraRoles', '3');
   if (!store.get('mic')) { const m = mics.find(m => /Anker|PowerConf/i.test(m.label)); if (m) $('mic').value = m.deviceId; }
 }
 
