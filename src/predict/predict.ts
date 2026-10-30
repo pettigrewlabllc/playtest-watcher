@@ -228,7 +228,7 @@ export async function predictSession(
         who = `WHO THEY ARE: ${child}. A persona built from watching them play other games (JSON):\n${persona}`;
       }
       const res = await client.respond<{ items: PredictedItem[] }>({
-        model: MODEL, kind: `predict:${letter}:${name}:${t.id}`, schema: PREDICTION_SCHEMA, maxOutputTokens: 4000,
+        model: MODEL, kind: `predict:${letter}:${name}:${t.id}`, schema: PREDICTION_SCHEMA, maxOutputTokens: 16000,   // a 53-level reference ran out at 8000 even after the retry
         content: [{ type: 'input_text', text: [who, '', world, '', TASK].join('\n') }],
       });
       items = clean(res.data.items, stages);

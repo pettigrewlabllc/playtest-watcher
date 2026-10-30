@@ -28,6 +28,7 @@ func _ready() -> void:
 		set_process(false)
 		set_process_input(false)
 		return
+	fresh_start("user://")
 	http = HTTPRequest.new()
 	http.timeout = 5.0
 	http.request_completed.connect(_on_done)
@@ -35,6 +36,20 @@ func _ready() -> void:
 	get_tree().auto_accept_quit = false
 	log_event("logger_start", {"kind": "progress", "url": "res://", "w": get_viewport().size.x, "h": get_viewport().size.y})
 
+
+## A playtest starts from the beginning: the first launch of each session deletes the game's saved files in
+## `dir` (everything at its top level), so a kid never picks up where the last player stopped. Runs from this
+## autoload's _ready, before the main scene loads any save. A relaunch in the same session keeps progress.
+func fresh_start(dir: String) -> bool:
+	var flag := dir.path_join("pw_fresh.txt")
+	if FileAccess.file_exists(flag) and FileAccess.get_file_as_string(flag).strip_edges() == session:
+		return false
+	for f in DirAccess.get_files_at(dir):
+		DirAccess.remove_absolute(dir.path_join(f))
+	var out := FileAccess.open(flag, FileAccess.WRITE)
+	if out:
+		out.store_string(session)
+	return true
 
 ## Turns a page query string (?playtest=...&pw=...) into the same args the desktop build gets.
 func web_args(search: String) -> PackedStringArray:
