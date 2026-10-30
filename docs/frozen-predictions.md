@@ -11,6 +11,10 @@ Written before any check session is scored (freeze adds it if it is missing, and
 - **Read beside reliability:** the scoreboard prints the label reliability line first. Below kappa 0.6 between the hand labels and Muse's, no prediction score is taken as meaningful.
 - Everything else (recall, precision, mix, AUC, leave-one-game-out, traits transfer) is secondary.
 
+## Voided freezes
+
+- `check-a-current-cut`, `check-b-hoard-keeper`, `check-c-bond-swap`, `check-d-factor-slicer` (2026-10-30): Frozen 2026-10-30 with a stage-matching bug: Muse wrote stages as 'start (00:00 to 00:02)' and an exact-only match dropped them, so the persona predictor was empty in all four (baseline in three, questionnaire in three). Voided before any check session was recorded; re-frozen as -v2. Their rows stay in the table below as the record; scoring skips them.
+
 | Check | Predictor | SHA-256 | Frozen at |
 | --- | --- | --- | --- |
 | check-c-bond-swap | null | 993031fd0d86c80fb3f042ae537bb7539129f23dd551266258465d89b475afe8 | 2026-10-30T22:35:45.208Z |

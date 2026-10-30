@@ -7,7 +7,7 @@ import type { AnyPredictor } from './predict.ts';
 export type Study = {
   players: Record<string, { learn: string[]; check: string; replay?: string }>;
   frozen: Record<string, Partial<Record<AnyPredictor, string>>>;
-  checks?: Record<string, { letter: string; game: string }>;
+  checks?: Record<string, { letter: string; game: string; void?: string }>;   // void: frozen but never scored, and why
 };
 
 export const emptyStudy = (): Study => ({ players: {}, frozen: {}, checks: {} });
