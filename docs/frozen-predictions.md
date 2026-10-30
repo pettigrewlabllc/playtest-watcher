@@ -66,3 +66,10 @@ Written before any check session is scored (freeze adds it if it is missing, and
 | check-c-bond-swap-v2 | model | 1c3cea578fe8ee78bb4b2b2b77d05366c520b39748266d657317dd54ab6f0430 | 2026-10-30T23:40:26.599Z |
 | check-c-bond-swap-v2 | model-traits | 99828c97cb41e1819960594c8e105bd4eff35b97d0adb1fb7360cea9a759b33b | 2026-10-30T23:40:26.599Z |
 | check-c-bond-swap-v2 | model-kid | bb66e60ae9aa3cf02ed96ed1cd87d015027aeacaacff328bff22082ef4bd5338 | 2026-10-30T23:40:26.599Z |
+| check-d-factor-slicer-v2 | null | e75c803f4edd785cec19400aba7df82bfede30ac2531afbcd517019c7b9e1b95 | 2026-10-30T23:45:20.138Z |
+| check-d-factor-slicer-v2 | baseline | d0cf6a2625456af28bf1595a85a4f904b2d9068e47128b42deb9bdd489c2ddeb | 2026-10-30T23:45:20.138Z |
+| check-d-factor-slicer-v2 | questionnaire | 6c4588fc3f8f07c9a1c595a547a0c9b67a2a90bc2211e7e01af2e0235315e18d | 2026-10-30T23:45:20.138Z |
+| check-d-factor-slicer-v2 | persona | bf3164b958ac34d05014f8b88dbfcf93fc8afbb255d08ac17ab6898bda9b3a4d | 2026-10-30T23:45:20.138Z |
+| check-d-factor-slicer-v2 | model | 2afec827039e1b733eff91bf80727e99557e08b09a28f6fcc1786fcad4f0d2e6 | 2026-10-30T23:45:20.138Z |
+| check-d-factor-slicer-v2 | model-traits | 83c34f99d6e92cf8df4dbd2be19303600bab0f74dc9c92f7b1a7de88753e1d4c | 2026-10-30T23:45:20.138Z |
+| check-d-factor-slicer-v2 | model-kid | 38831b2f1572414a692c7e1fae7c4feedf1217ce8c0e93a9f74e4526fa267b88 | 2026-10-30T23:45:20.138Z |
