@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { buildPersona, renderPersonaMd } from '../../src/predict/persona.ts';
+import { buildPersona, proseProblems, renderPersonaMd } from '../../src/predict/persona.ts';
 import { ev, failStream, moment, recordingClient, tempRoot, writeSession } from './helpers.ts';
 
 async function setup() {
@@ -57,7 +57,36 @@ describe('buildPersona', () => {
     await buildPersona('A', [dir], client, { root });
     const text = client.calls[0].text;
     expect(text).toContain('explore_share');
-    expect((text.match(/\[a-g1-learn:m\d+\]/g) ?? []).length).toBe(40);
+    expect((text.match(/\[M\d+\]/g) ?? []).length).toBe(40);
+    expect(text).toContain('[M1] game=g1 stuck (confidence 0.99)');
+  });
+
+  it('maps short refs like M1 (bracketed or not) back to full moment refs', async () => {
+    const { root, dirs } = await setup();
+    const client = recordingClient({ lens: () => ({ observations: [{ claim: 'short ref', evidence: ['[M1]', 'm2'] }] }) });
+    const p = await buildPersona('A', dirs, client, { root });
+    const obs = p.lenses['game designer'];
+    expect(obs).toHaveLength(1);
+    expect(obs[0].evidence.every(e => /^a-g[12]-learn:/.test(e))).toBe(true);
+    expect(p.dropped_observations).toBe(0);
+  });
+
+  it('rejects identifier soup and empty tells, retries synthesis once, then throws', async () => {
+    const good = { summary: 'Plays fast and retries quickly.', tolerances: { fail_streak: 3, recovery_s: 2, idle_before_bored_s: 15 }, reads: 'skims', explores: 'a little', delights: [], confuses: [], tells: { stuck: 'goes quiet', bored: 'looks away', delighted: 'laughs' }, said_vs_did: [], predictions_guidance: 'Expect quick retries.' };
+    const soup = { ...good, predictions_guidance: 'Do not expect the said_V foo_confuses_V pattern', tells: { ...good.tells, stuck: '' } };
+    expect(proseProblems(good)).toEqual([]);
+    expect(proseProblems(soup).join(' ')).toMatch(/tells.stuck is empty.*predictions_guidance uses internal names \(said_V, foo_confuses_V\)|predictions_guidance uses internal names.*tells.stuck is empty/);
+    expect(proseProblems({ ...good, tolerances: { fail_streak: 0.33, recovery_s: 2, idle_before_bored_s: 15 } })).toHaveLength(1);
+
+    const { root, dirs } = await setup();
+    let n = 0;
+    const client = recordingClient({ persona: () => (n++ === 0 ? soup : good) });
+    const p = await buildPersona('A', dirs, client, { root, log: () => {} });
+    expect(p.predictions_guidance).toBe('Expect quick retries.');
+    expect(client.calls[4].text).toMatch(/rejected: .*said_V/);
+
+    const bad = recordingClient({ persona: soup });
+    await expect(buildPersona('A', dirs, bad, { root, log: () => {} })).rejects.toThrow(/prose check twice/);
   });
 
   it('renders markdown that never says personality', async () => {
@@ -112,6 +141,9 @@ describe('buildPersona with the player model', () => {
     expect(text).toMatch(/compendium_open .*accidental/);
     expect(text).toContain('said less persist than most');
     expect(p.lenses['game designer']).toEqual([{ claim: 'quick to retry', evidence: ['recovery'] }]);
+    const q = recordingClient({ lens: () => ({ observations: [{ claim: 'real quote', evidence: ["they said: 'I hit that accidentally"] }, { claim: 'fake quote', evidence: ["they said: 'I loved every level of it"] }] }) });
+    const p2 = await buildPersona('A', [dir], q, { root, traits: traits as never, log: () => {} });
+    expect(p2.lenses['game designer'].map(o => o.claim)).toEqual(['real quote']);
     expect(client.calls[3].text).toContain('TRAITS');
     expect(client.calls[3].text).toMatch(/said/i);
   });

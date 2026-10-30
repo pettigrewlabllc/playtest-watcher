@@ -92,7 +92,9 @@ describe.skipIf(!venvAvailable())('logo (needs analysis/.venv)', () => {
     const perFold = 7;
     const personaCalls = client.calls.slice(perFold, perFold + 4);
     expect(personaCalls.map(c => c.schema)).toEqual(['lens', 'lens', 'lens', 'persona']);
-    for (const c of personaCalls) { expect(c.text).not.toContain('a-g2-learn'); expect(c.text).not.toContain('"g2"'); expect(c.text).toContain('a-g1-learn'); }
+    // prompts cite moments as M1, M2...; the game name shows which sessions went in
+    for (const c of personaCalls) { expect(c.text).not.toContain('a-g2-learn'); expect(c.text).not.toContain('"g2"'); expect(c.text).not.toContain('game=g2'); }
+    for (const c of personaCalls.slice(0, 3)) expect(c.text).toContain('game=g1');
     const logoDir = join(root, 'players', 'A', 'logo');
     const fold = (await readdir(logoDir)).find(n => n.startsWith('g2-'))!;
     const csv = await readFile(join(logoDir, fold, 'rows.csv'), 'utf8');
@@ -215,6 +217,9 @@ describe('scoreboard lines', () => {
     expect(lines.join('\n')).toMatch(/frustrated 0\.70/);
     expect(lines.join('\n')).toMatch(/traits transfer .*kappa  0\.15/);
     expect(lines.at(-1)).toMatch(/ranking check .*model-traits  1\.00, model-kid -1\.00/);
+    const withStab = scoreboardLines(sb as never, { n: 30, kappa: 0.5, agreement: 0.6, secondary_agreement: 0.8, per_label: {}, pairs: [] });
+    expect(withStab[0]).toMatch(/label stability: Muse asked twice about 30 clips agreed 60%/);
+    expect(withStab[1]).toMatch(/kappa 0\.42/);
   });
 });
 

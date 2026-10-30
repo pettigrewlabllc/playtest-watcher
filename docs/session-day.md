@@ -34,6 +34,8 @@ One kid, one game, 10 minutes. Run through this every time.
 
 Check sessions happen only after the predictions are frozen (Mon Nov 2). Before that, record one **reference** playthrough of each game yourself.
 
+**Clear the game's saved progress on the iPad before every check and reference session.** The games remember where the last player got to. The first Current Cut reference started at w6 because of that, so it shared no levels with any kid and couldn't be scored. Scoring now falls back to another kid's run when the reference shares no levels, but a check session that starts mid-game has the same problem and nothing to fall back to.
+
 **Replay round:** two kids replay one of their learning games on a later day (round `replay`, 10 minutes). It measures how consistent a kid is with themselves, which is the ceiling a prediction is scored against.
 
 ## Notes

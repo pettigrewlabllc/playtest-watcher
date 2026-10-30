@@ -53,6 +53,23 @@ describe('meta client', () => {
     expect(r.data.a).toBe(1);
   });
 
+  it('retries a cut-off or non-JSON answer once at twice the cap, then throws', async () => {
+    const caps: number[] = [];
+    const replies = [
+      json({ status: 'incomplete', incomplete_details: { reason: 'max_output_tokens' }, output_text: '{"a":' }),
+      json({ status: 'completed', output_text: '{"a":2}' }),
+    ];
+    const fetchImpl = (async (_u: string, init: any) => { caps.push(JSON.parse(init.body).max_output_tokens); return replies.shift()!; }) as unknown as typeof fetch;
+    const c = createMetaClient({ live: true, apiKey: 'k', budgetUsd: 10, spendLog: join(dir, 's.jsonl'), fetchImpl });
+    const r = await c.respond<{ a: number }>({ model: 'muse-wonder-1.0', content, schema: { name: 'x', schema: {} }, maxOutputTokens: 5000, kind: 'k' });
+    expect(r.data.a).toBe(2);
+    expect(caps).toEqual([5000, 10000]);
+
+    const bad = (async () => json({ output_text: 'not json' })) as unknown as typeof fetch;
+    const c2 = createMetaClient({ live: true, apiKey: 'k', budgetUsd: 10, spendLog: join(dir, 's2.jsonl'), fetchImpl: bad });
+    await expect(c2.respond({ model: 'muse-wonder-1.0', content, schema: { name: 'x', schema: {} }, kind: 'k' })).rejects.toThrow(/non-JSON for k at 8000/);
+  });
+
   it('live transcribe posts a multipart request part and maps turns', async () => {
     const wav = join(dir, 'a.wav');
     await writeFile(wav, Buffer.from('RIFF'));
