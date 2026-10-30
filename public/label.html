@@ -12,9 +12,10 @@
   #progress { font-variant-numeric: tabular-nums; }
   #tag { background: #713f12; color: #fde68a; padding: 2px 8px; border-radius: 4px; font-size: 13px; }
   video { width: 100%; max-height: 60vh; background: #000; border-radius: 6px; margin: 12px 0; }
-  .labels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .labels { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
   .labels button { padding: 16px 8px; font-size: 18px; background: #222; color: #eee; border: 1px solid #444; border-radius: 8px; }
   .labels button:hover { background: #2563eb; border-color: #2563eb; }
+  .labels small { display: block; font-size: 13px; color: #bbb; margin-top: 4px; }
   .labels kbd { display: block; font-size: 12px; color: #999; margin-top: 4px; }
   .side button { padding: 8px 16px; background: #222; color: #eee; border: 1px solid #444; border-radius: 6px; }
   code { background: #222; padding: 2px 6px; border-radius: 4px; }
@@ -39,13 +40,22 @@
 <p id="err" hidden></p>
 
 <script>
-const LABELS = [['confused', 'Confused'], ['stuck', 'Stuck'], ['bored', 'Bored'], ['frustrated', 'Frustrated'], ['delighted', 'Delighted'], ['none', 'None of these']];
+const LABELS = [
+  ['confused', 'Confused', "doesn't get what it means"],
+  ['stuck', 'Stuck', "knows the goal, can't get there"],
+  ['bored', 'Bored', 'drifting, nothing holding them'],
+  ['frustrated', 'Frustrated', 'annoyed at failing'],
+  ['focused', 'Focused', 'quiet, heads down'],
+  ['engaged', 'Engaged', 'into it, playing happily'],
+  ['delighted', 'Delighted', 'a laugh, a grin, a cheer'],
+  ['none', 'None of these', 'nothing to see, or not playing'],
+];
 const $ = id => document.getElementById(id);
 let queue = [], total = 0, done = 0, history = [];
 
-LABELS.forEach(([value, text], i) => {
+LABELS.forEach(([value, text, hint], i) => {
   const b = document.createElement('button');
-  b.innerHTML = `${text}<kbd>${i + 1}</kbd>`;
+  b.innerHTML = `${text}<small>${hint}</small><kbd>${i + 1}</kbd>`;
   b.onclick = () => label(value);
   $('labels').append(b);
 });

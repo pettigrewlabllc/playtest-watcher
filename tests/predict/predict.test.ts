@@ -82,7 +82,7 @@ describe('predictSession (prompted predictors)', () => {
     const items = res.null.items;
     expect([...new Set(items.map(i => i.stage))]).toEqual(['1', '2']);
     for (const st of ['1', '2']) expect(items.filter(i => i.stage === st)).toHaveLength(2);
-    expect(new Set(items.map(i => i.p))).toEqual(new Set([1 / 5]));
+    expect(new Set(items.map(i => i.p))).toEqual(new Set([1 / 7]));   // one over the seven non-none reactions
   });
 
   it('never reads the player\'s own moments from the target, only another session\'s screen notes', async () => {
