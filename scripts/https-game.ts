@@ -1,7 +1,7 @@
 // Serves a Godot web build over HTTPS so it runs on the iPad (Godot needs a secure context, and a LAN IP over plain
 // http isn't one). POST /events/* is passed through to the watcher, so the game posts to its own origin and the
 // https page never makes a mixed-content call. Self-signed cert, made once into .certs/ (gitignored).
-//   node scripts/https-game.ts <build dir> [port=3062] [watcher=http://localhost:3060]
+//   node scripts/https-game.ts <build dir> [port=3062] [watcher=http://localhost:3058]
 import { createServer } from 'node:https';
 import { request as httpRequest } from 'node:http';
 import { readFileSync, existsSync, mkdirSync, createReadStream, statSync, readdirSync } from 'node:fs';
@@ -13,7 +13,7 @@ const [dir, portArg, watcherArg] = process.argv.slice(2);
 if (!dir) throw new Error('usage: node scripts/https-game.ts <build dir> [port] [watcher url]');
 const root = resolve(dir);
 const port = Number(portArg ?? 3062);
-const watcher = new URL(watcherArg ?? 'http://localhost:3060');
+const watcher = new URL(watcherArg ?? 'http://localhost:3058');
 
 const ips = Object.values(networkInterfaces()).flat().filter(a => a && a.family === 'IPv4' && !a.internal).map(a => a!.address);
 const certDir = resolve(import.meta.dirname, '..', '.certs');

@@ -124,6 +124,15 @@ export async function play(letter: string, o: { game: string; steps: number; url
   let lastScreen = '', failsInRow = 0, seenEvents = 0, badAnswers = 0, sourSteps = 0;
   try {
     for (let n = 1; n <= o.steps; n++) {
+      // The kid's time passes first (first-tap delay on a new screen, else the gap between actions); then the
+      // agent looks and decides with the clock frozen, and acts at once. Looking first and waiting after made it
+      // answer a slip the Rush had already moved past.
+      const glance = await observe(page);
+      const screenKey = glance.buttons.map(b => b.text).join('|');
+      const delayS = jitter(screenKey !== lastScreen ? h.firstTapS : h.actionGapS, r);
+      lastScreen = screenKey;
+      await page.clock.runFor(Math.round(delayS * 1000));
+      gameMs += delayS * 1000;
       const seen = await observe(page);
       const fresh = seen.texts.filter(t => !decided.has(t.key));
       for (const t of fresh) decided.set(t.key, r() < h.readShare);
@@ -165,11 +174,6 @@ export async function play(letter: string, o: { game: string; steps: number; url
         if (++badAnswers >= 3) { log(`stopping: three bad answers in a row (${(e as Error).message.slice(0, 80)})`); break; }
         d = { action: 'wait', button: 0, label: 'none', why: `no usable answer: ${(e as Error).message.slice(0, 80)}`, would_quit: false, say: '' };
       }
-      const screenKey = seen.buttons.map(b => b.text).join('|');
-      const delayS = jitter(screenKey !== lastScreen ? h.firstTapS : h.actionGapS, r);
-      lastScreen = screenKey;
-      await page.clock.runFor(Math.round(delayS * 1000));
-      gameMs += delayS * 1000;
 
       let target = '', intended: string | null = null, missed = false;
       if (d.action === 'tap' && seen.buttons.length) {
@@ -218,11 +222,11 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   const args = process.argv.slice(2);
   const letter = args.find(a => /^[A-Za-z]$/.test(a));
   const opt = (k: string, d: string) => { const i = args.indexOf(`--${k}`); return i >= 0 ? args[i + 1] : d; };
-  if (!letter) { console.error('usage: npm run play -- <letter> [--game hoard-keeper] [--steps 40] [--url http://localhost:3054/] [--watcher http://localhost:3060] [--seed 7] --live'); process.exit(1); }
+  if (!letter) { console.error('usage: npm run play -- <letter> [--game hoard-keeper] [--steps 40] [--url http://localhost:3054/] [--watcher http://localhost:3058] [--seed 7] --live'); process.exit(1); }
   const live = args.includes('--live');
   const client = live ? clientFromEnv(REPO) : createMetaClient({ live: false, budgetUsd: 0, spendLog: join(ROOT, 'spend.jsonl') });
   if (live && !client.live) console.warn('--live given but PW_LIVE=1 and MODEL_API_KEY are not both set; fake mode');
-  const out = await play(letter, { game: opt('game', 'hoard-keeper'), steps: Number(opt('steps', '40')), url: opt('url', 'http://localhost:3054/'), watcher: opt('watcher', 'http://localhost:3060'), seed: Number(opt('seed', '7')), client });
+  const out = await play(letter, { game: opt('game', 'hoard-keeper'), steps: Number(opt('steps', '40')), url: opt('url', 'http://localhost:3054/'), watcher: opt('watcher', 'http://localhost:3058'), seed: Number(opt('seed', '7')), client });
   const sum = summarize(out.steps);
   await writeFile(join(ROOT, out.session, 'summary.json'), JSON.stringify(sum, null, 2));
   console.log(JSON.stringify(sum));
