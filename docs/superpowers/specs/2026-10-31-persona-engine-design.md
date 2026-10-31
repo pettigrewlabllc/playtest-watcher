@@ -273,14 +273,19 @@ Factor Slicer style swiping can only be walked through or replayed, not played.
 the real kids' spread), `src/agent/play.ts` (live play on Hoard Keeper with the frozen page clock),
 `analysis/compare_runs.py` (an agent run against the real kid), and `public/runs.html` (two runs side by side).
 
-**Transfer of limits (Hoard Keeper, built only from each kid's other three games, against what they did):**
-reading speed orders the four kids right in 5 of 6 pairs, first-tap delay in 4 of 6; how often they read,
-error rate and idling are at chance. Error rates are under-predicted because Hoard Keeper was much harder for
+**Transfer of limits (built only from each kid's other three games, against what they did; pairs ordered
+right out of 6 per game, pooled over all four games after a later review):** on Hoard Keeper reading speed was
+5/6 and first tap 4/6, but pooled nothing clears chance (first tap 14/24, error rate 15/24, reading speed 13/21,
+action gap 9/24, idling 11/24). With four kids this is a hint at most. (First taps are measured strictly after the
+screen appears; counting a tap on the same millisecond had made half of the agents' first taps 0.0 s.) Error rates are under-predicted because Hoard Keeper was much harder for
 the kids than for the reference player (C: predicted 9%, real 64%).
 
 **Live play:** the personas play recognisably differently and stay in character (A, 8: slower first tap,
 skips text, misses taps, talks about building; B, 14: reads everything, talks about the story and collecting),
-and neither quits early, matching the kids. But Muse files 39-47% of Rush slips wrong against the kids' 18-19%.
+and neither quits early, though that is the harness's rule and the runs cover two to three game-minutes against the
+kids' seven to eleven. The agents' first taps land about a second after their limit, consistently (the game's
+screen event fires before the harness starts counting). Muse files 39-47% of Rush slips wrong in the first fixed
+runs and about a third in the final ones (`results/group/agent-vs-kid.json`), against the kids' 18-19%.
 Four harness bugs were found and fixed on the way, each of which had inflated that number: events going to
 another server on the same port; looking before waiting (acting on a moved-on screen); screenshots a frame
 behind under the frozen clock; and Muse misreading the dragon art (now given each picture's alt text, size and

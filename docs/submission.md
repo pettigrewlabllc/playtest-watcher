@@ -18,21 +18,25 @@ It records the game screen, the kid's face, their hands and their voice, lines a
 
 Then it builds a persona. Not a paragraph about a kid. A set of measured limits: how long they look at a new screen before they tap, how fast they go once they're moving, how much of the instructions they actually read, how often they miss, how many fails before they sour. You can build one from recordings, from a short interview where the kid watches their own clips, or from a sentence describing a kid.
 
-A persona plays live. Muse Spark plays the real game in a browser, and a harness holds it to the kid's limits. The game's clock stops while the model thinks and moves on by the kid's own reaction time. Text the kid wouldn't have read is hidden. Some taps land on the wrong button. After the kid's fail streak, it's frustrated, and the harness decides when it quits. Every run is logged like a real playtest, so it can be checked against the real kid.
+A persona plays live. Muse Spark plays the real game in a browser, from a screenshot plus the page's buttons and text, and a harness holds it to the kid's limits. The game's clock stops while the model thinks and moves on by the kid's own reaction time. Text the kid wouldn't have read is hidden. Some taps land on the wrong button. After the kid's fail streak, it's frustrated, and the harness decides when it quits. Every run is logged like a real playtest, so it can be checked against the real kid.
 
 ## How it uses Meta's models
 
-- `muse-spark-1.2` watches every moment (face, hands and screen side by side, with sound) and is the player in live persona runs, from screenshots.
+- `muse-spark-1.2` watches every moment (face, hands and screen side by side, with sound) and is the player in live persona runs.
 - `muse-voice-transcribe-1.0` separates the kid's voice from mine.
 - `muse-wonder-1.0` writes the fix lists, reads the interviews, and turns a written description into a persona.
 
 ## What I found
 
-- My kids checked Muse's work. Watching their own clips, they agreed with Muse on good vs bad about three times in four, but on the exact word only 5 times in 20. Muse kept calling a quiet kid who was concentrating "bored". So the tool now asks the kid.
-- Predictions I froze before four check sessions didn't beat knowing a kid's age. That's why the persona moved from a description to measured limits that are enforced.
-- Some limits carry from one game to another and some don't. Reading speed and time to first tap did. Error rate didn't.
+Every number has a file in the repo's `results/` folder.
+
+- My kids checked Muse's work. Watching their own clips, they agreed with Muse on good vs bad about three times in four, but on the exact word only 5 times in 20. Twice Muse read a kid sitting still and concentrating as bored. So the tool now asks the kid.
+- Predictions I froze before four check sessions tied with knowing only the kid's age. They were scored against Muse's labels, so it's a weak test either way. That's why the persona moved from a description to measured limits that get enforced.
+- With four kids, nothing carried from one game to the next better than a coin flip. It's a hint at best, and the table is in the repo.
 - Told to act like a kid, the model quit after 37 seconds, reciting that kid's own interview words. None of my kids quit early. Limits have to be enforced, not requested.
-- The persona players still read a busy screen worse than my kids do. That's partly the model and partly a real design problem in the game, and the run found it.
+- The timing holds, but the persona players read a busy screen worse than my kids do: about a third of slips filed wrong, against under a fifth for the kids. That's partly the model and partly a real design problem in the game, and the run found it.
+
+The whole build cost $59 in Meta API calls, every call logged.
 
 Along the way the playtests produced a ranked fix list for each of my four games, ready to go into the games.
 
@@ -43,11 +47,11 @@ Personas that play any web game or app, the same harness for Claude, Gemini and 
 ## Demo video shot list (about 3 minutes)
 
 1. 0:00 The problem in one line.
-2. 0:15 A kid playing (face blurred), with the viewer's timeline filling in with moments as the pipeline runs.
+2. 0:15 A kid playing (face blurred), with the viewer's timeline filling in with moments (sped up; it takes a few minutes).
 3. 0:40 The fix list for that session, scrolling, with one moment clicked to jump to the clip.
-4. 1:00 The interview: a kid watching their own clip and picking "Concentrating" where Muse said "bored".
-5. 1:25 Two persona cards side by side (8-year-old and 14-year-old): the limits, and how few traits are clearly different.
-6. 1:45 The runs page playing both personas through Hoard Keeper at once: one skipping text and missing taps, one reading everything.
+4. 1:00 The interview: a kid watching their own clip and picking "Concentrating" where Muse said "bored" (captions over muted audio).
+5. 1:25 Two persona cards side by side (the youngest kid and the oldest): the limits, and how few traits are clearly different.
+6. 1:45 The runs page replaying both personas' runs through Hoard Keeper from their step logs: one skipping text and missing taps, one reading everything.
 7. 2:20 A described kid ("skips every instruction, taps really fast") built from one sentence and playing.
 8. 2:40 The honest results slide, then the repo link.
 

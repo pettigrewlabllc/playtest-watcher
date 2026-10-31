@@ -1,0 +1,104 @@
+[
+  {
+    "agent": "20261031-214957-a-hoard-keeper-agent",
+    "kid": "20261030-014556-a-hoard-keeper-learn",
+    "agent_run": {
+      "minutes": 2.6,
+      "first_tap_s": 8.293,
+      "action_gap_s": 2.0519999999999996,
+      "read_ms_per_char": 118.27997448979592,
+      "read_share": 0.5,
+      "error_rate": 0.3333333333333333,
+      "idle_per_min": 2.6424401046909605,
+      "progress": {
+        "rush_start": 1,
+        "rush_end": 1,
+        "audit_start": 3,
+        "audit_answer": 3
+      },
+      "mix": {
+        "frustrated": 0.47,
+        "focused": 0.3,
+        "confused": 0.1,
+        "engaged": 0.07,
+        "bored": 0.03,
+        "none": 0.03
+      },
+      "mix_from": "agent's own labels"
+    },
+    "kid_run": {
+      "minutes": 9.1,
+      "first_tap_s": 6.619,
+      "action_gap_s": 1.369,
+      "read_ms_per_char": 32.74,
+      "read_share": 0.4444444444444444,
+      "error_rate": 0.18681318681318682,
+      "idle_per_min": 2.1888862946532806,
+      "progress": {
+        "rush_start": 3,
+        "rush_end": 3,
+        "audit_start": 7,
+        "audit_answer": 7,
+        "upgrade_unlocked": 5
+      },
+      "mix": {
+        "confused": 0.53,
+        "bored": 0.21,
+        "stuck": 0.16,
+        "focused": 0.11
+      },
+      "mix_from": "Muse on video"
+    }
+  },
+  {
+    "agent": "20261031-214957-b-hoard-keeper-agent",
+    "kid": "20261031-161432-b-hoard-keeper-check",
+    "agent_run": {
+      "minutes": 1.8,
+      "first_tap_s": 6.031,
+      "action_gap_s": 1.6425,
+      "read_ms_per_char": 117.55869472789117,
+      "read_share": 0.5,
+      "error_rate": 0.34285714285714286,
+      "idle_per_min": 0.5438625115570783,
+      "progress": {
+        "rush_start": 1,
+        "rush_end": 1,
+        "audit_start": 1,
+        "audit_answer": 1
+      },
+      "mix": {
+        "focused": 0.45,
+        "confused": 0.35,
+        "frustrated": 0.12,
+        "engaged": 0.07
+      },
+      "mix_from": "agent's own labels"
+    },
+    "kid_run": {
+      "minutes": 11.4,
+      "first_tap_s": 3.131,
+      "action_gap_s": 0.892,
+      "read_ms_per_char": 60.12,
+      "read_share": 0.36363636363636365,
+      "error_rate": 0.18315018315018314,
+      "idle_per_min": 1.056229553889712,
+      "progress": {
+        "rush_start": 5,
+        "rush_end": 5,
+        "audit_start": 17,
+        "audit_answer": 17,
+        "upgrade_unlocked": 7
+      },
+      "mix": {
+        "bored": 0.27,
+        "confused": 0.23,
+        "stuck": 0.19,
+        "frustrated": 0.15,
+        "focused": 0.12,
+        "engaged": 0.04
+      },
+      "mix_from": "Muse on video"
+    }
+  }
+]

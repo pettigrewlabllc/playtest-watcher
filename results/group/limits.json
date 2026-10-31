@@ -1,0 +1,1274 @@
+{
+  "per_game": {
+    "D": {
+      "bond-swap": {
+        "first_tap_s": 2.211,
+        "action_gap_s": 2.675,
+        "read_ms_per_char": 20.57177033492823,
+        "read_share": 0.25,
+        "error_rate": 0.4127906976744186,
+        "idle_per_min": 1.3901691868999724
+      },
+      "hoard-keeper": {
+        "first_tap_s": 6.386,
+        "action_gap_s": 1.685,
+        "read_ms_per_char": 66.95666666666666,
+        "read_share": 0.5555555555555556,
+        "error_rate": 0.24324324324324326,
+        "idle_per_min": 1.9730449180117626
+      },
+      "current-cut": {
+        "first_tap_s": 1.802,
+        "action_gap_s": 4.867,
+        "read_ms_per_char": 20.9176640070922,
+        "read_share": 0.043478260869565216,
+        "error_rate": 0.08602150537634409,
+        "idle_per_min": 0.7742006838772707
+      },
+      "factor-slicer": {
+        "first_tap_s": 3.5505,
+        "action_gap_s": 1.258,
+        "read_ms_per_char": 159.04,
+        "read_share": 0.8571428571428571,
+        "error_rate": 0.15527950310559005,
+        "idle_per_min": 0.5594953352076427
+      }
+    },
+    "A": {
+      "factor-slicer": {
+        "first_tap_s": 3.466,
+        "action_gap_s": 1.534,
+        "read_ms_per_char": 188.84,
+        "read_share": 0.9,
+        "error_rate": 0.19161676646706588,
+        "idle_per_min": 1.4679838371215472
+      },
+      "bond-swap": {
+        "first_tap_s": 3.146,
+        "action_gap_s": 1.65,
+        "read_ms_per_char": 6.1103896103896105,
+        "read_share": 0.0,
+        "error_rate": 0.6518987341772152,
+        "idle_per_min": 2.0030989118459734
+      },
+      "hoard-keeper": {
+        "first_tap_s": 6.619,
+        "action_gap_s": 1.369,
+        "read_ms_per_char": 32.74,
+        "read_share": 0.4444444444444444,
+        "error_rate": 0.18681318681318682,
+        "idle_per_min": 2.1888862946532806
+      },
+      "current-cut": {
+        "first_tap_s": 1.501,
+        "action_gap_s": 3.2024999999999997,
+        "read_ms_per_char": 18.563968015992003,
+        "read_share": 0.05172413793103448,
+        "error_rate": 0.06722689075630252,
+        "idle_per_min": 0.9659774685755456
+      }
+    },
+    "B": {
+      "factor-slicer": {
+        "first_tap_s": 2.124,
+        "action_gap_s": 1.35,
+        "read_ms_per_char": 86.0,
+        "read_share": 1.0,
+        "error_rate": 0.06985294117647059,
+        "idle_per_min": 0.7454487690333481
+      },
+      "bond-swap": {
+        "first_tap_s": 2.189,
+        "action_gap_s": 3.101,
+        "read_ms_per_char": null,
+        "read_share": null,
+        "error_rate": 0.1527777777777778,
+        "idle_per_min": 0.7279370091841386
+      },
+      "current-cut": {
+        "first_tap_s": 1.9155,
+        "action_gap_s": 2.02,
+        "read_ms_per_char": 28.61491935483871,
+        "read_share": 0.15454545454545454,
+        "error_rate": 0.05194805194805195,
+        "idle_per_min": 0.9972228853586527
+      },
+      "hoard-keeper": {
+        "first_tap_s": 3.131,
+        "action_gap_s": 0.892,
+        "read_ms_per_char": 60.12,
+        "read_share": 0.36363636363636365,
+        "error_rate": 0.18315018315018314,
+        "idle_per_min": 1.056229553889712
+      }
+    },
+    "C": {
+      "factor-slicer": {
+        "first_tap_s": 5.512499999999999,
+        "action_gap_s": 1.6335,
+        "read_ms_per_char": 238.96612244897958,
+        "read_share": 1.0,
+        "error_rate": 0.12403100775193798,
+        "idle_per_min": 1.1943804400296605
+      },
+      "hoard-keeper": {
+        "first_tap_s": 5.259,
+        "action_gap_s": 1.1925,
+        "read_ms_per_char": 157.72916666666666,
+        "read_share": 0.7142857142857143,
+        "error_rate": 0.6436781609195402,
+        "idle_per_min": 1.4310876265962131
+      },
+      "current-cut": {
+        "first_tap_s": 1.732,
+        "action_gap_s": 2.4435000000000002,
+        "read_ms_per_char": 16.825185185185184,
+        "read_share": 0.1,
+        "error_rate": 0.05714285714285714,
+        "idle_per_min": 0.9365049634763064
+      },
+      "bond-swap": {
+        "first_tap_s": 4.611,
+        "action_gap_s": 2.808,
+        "read_ms_per_char": 131.11688311688312,
+        "read_share": 0.6666666666666666,
+        "error_rate": 0.46923076923076923,
+        "idle_per_min": 1.1614013539124268
+      }
+    },
+    "J": {
+      "factor-slicer": {
+        "first_tap_s": 1.948,
+        "action_gap_s": 1.516,
+        "read_ms_per_char": 90.86792452830188,
+        "read_share": 0.6666666666666666,
+        "error_rate": 0.07692307692307693,
+        "idle_per_min": 0.5622096714118725
+      },
+      "bond-swap": {
+        "first_tap_s": 3.001,
+        "action_gap_s": 4.467,
+        "read_ms_per_char": 82.5451388888889,
+        "read_share": 0.5,
+        "error_rate": 0.13541666666666666,
+        "idle_per_min": 2.3598665364369946
+      },
+      "current-cut": {
+        "first_tap_s": 0.977,
+        "action_gap_s": 1.8359999999999999,
+        "read_ms_per_char": 17.17439668174962,
+        "read_share": 0.05,
+        "error_rate": 0.2054794520547945,
+        "idle_per_min": 0.7549797204058436
+      },
+      "hoard-keeper": {
+        "first_tap_s": 4.565,
+        "action_gap_s": 1.267,
+        "read_ms_per_char": 67.60816326530612,
+        "read_share": 0.5555555555555556,
+        "error_rate": 0.054945054945054944,
+        "idle_per_min": 1.4977014443111614
+      }
+    }
+  },
+  "held_out": {
+    "D": {
+      "bond-swap": {
+        "first_tap_s": {
+          "value": 5.469738449691992,
+          "ratio": 1.8226386036960986,
+          "lo": 1.3989047097480831,
+          "hi": 1.8444216990788127,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "action_gap_s": {
+          "value": 5.940722178374113,
+          "ratio": 1.3299131807419102,
+          "lo": 0.8298153034300791,
+          "hi": 2.650871459694989,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "read_ms_per_char": {
+          "value": 100.53636891544289,
+          "ratio": 1.2179562633091132,
+          "lo": 0.9903636400225388,
+          "hi": 1.7502325581395348,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "read_share": {
+          "value": 0.5,
+          "ratio": 1.0,
+          "lo": 0.8695652173913043,
+          "hi": 1.2857142857142858,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "error_rate": {
+          "value": 0.2733566252587991,
+          "ratio": 2.0186335403726705,
+          "lo": 0.4186379928315413,
+          "hi": 4.4270270270270276,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "idle_per_min": {
+          "value": 2.4199461746952458,
+          "ratio": 1.025458913599818,
+          "lo": 0.9951720215032707,
+          "hi": 1.3173819959285853,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        }
+      },
+      "current-cut": {
+        "first_tap_s": {
+          "value": 1.3667299014238772,
+          "ratio": 1.3989047097480831,
+          "lo": 0.736754415194935,
+          "hi": 1.8226386036960986,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "action_gap_s": {
+          "value": 1.5235408970976252,
+          "ratio": 0.8298153034300791,
+          "lo": 0.598835907768077,
+          "hi": 1.3299131807419102,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "read_ms_per_char": {
+          "value": 17.008898012928565,
+          "ratio": 0.9903636400225388,
+          "lo": 0.24921843505065958,
+          "hi": 1.7502325581395348,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "read_share": {
+          "value": 0.05,
+          "ratio": 1.0,
+          "lo": 0.5,
+          "hi": 1.2857142857142858,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "error_rate": {
+          "value": 0.6263631239738281,
+          "ratio": 3.04830053667263,
+          "lo": 2.0186335403726705,
+          "hi": 4.4270270270270276,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "idle_per_min": {
+          "value": 0.7513346945502575,
+          "ratio": 0.9951720215032707,
+          "lo": 0.5890880545299381,
+          "hi": 1.3173819959285853,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        }
+      },
+      "factor-slicer": {
+        "first_tap_s": {
+          "value": 2.725066374589266,
+          "ratio": 1.3989047097480831,
+          "lo": 0.736754415194935,
+          "hi": 1.8444216990788127,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "action_gap_s": {
+          "value": 2.016148382004736,
+          "ratio": 1.3299131807419102,
+          "lo": 0.598835907768077,
+          "hi": 2.650871459694989,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "read_ms_per_char": {
+          "value": 89.9922884971424,
+          "ratio": 0.9903636400225388,
+          "lo": 0.24921843505065958,
+          "hi": 1.2179562633091132,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "read_share": {
+          "value": 0.5797101449275361,
+          "ratio": 0.8695652173913043,
+          "lo": 0.5,
+          "hi": 1.0,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "error_rate": {
+          "value": 0.2344846566671254,
+          "ratio": 3.04830053667263,
+          "lo": 0.4186379928315413,
+          "hi": 4.4270270270270276,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "idle_per_min": {
+          "value": 0.5765229188613294,
+          "ratio": 1.025458913599818,
+          "lo": 0.5890880545299381,
+          "hi": 1.3173819959285853,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        }
+      },
+      "hoard-keeper": {
+        "first_tap_s": {
+          "value": 8.32034522587269,
+          "ratio": 1.8226386036960986,
+          "lo": 0.736754415194935,
+          "hi": 1.8444216990788127,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "action_gap_s": {
+          "value": 1.0513759894459103,
+          "ratio": 0.8298153034300791,
+          "lo": 0.598835907768077,
+          "hi": 2.650871459694989,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "read_ms_per_char": {
+          "value": 82.3437858998047,
+          "ratio": 1.2179562633091132,
+          "lo": 0.24921843505065958,
+          "hi": 1.7502325581395348,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "read_share": {
+          "value": 0.4830917874396135,
+          "ratio": 0.8695652173913043,
+          "lo": 0.5,
+          "hi": 1.2857142857142858,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "error_rate": {
+          "value": 0.11091393078970717,
+          "ratio": 2.0186335403726705,
+          "lo": 0.4186379928315413,
+          "hi": 3.04830053667263,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "idle_per_min": {
+          "value": 1.4904705739435067,
+          "ratio": 0.9951720215032707,
+          "lo": 0.5890880545299381,
+          "hi": 1.025458913599818,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        }
+      }
+    },
+    "A": {
+      "bond-swap": {
+        "first_tap_s": {
+          "value": 4.6105435005117705,
+          "ratio": 1.5363357215967246,
+          "lo": 1.449945235487404,
+          "hi": 1.7792607802874745,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "action_gap_s": {
+          "value": 4.826616416732439,
+          "ratio": 1.0805051302288873,
+          "lo": 1.011873350923483,
+          "hi": 1.744281045751634,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "read_ms_per_char": {
+          "value": 89.2238223330034,
+          "ratio": 1.0809094700670918,
+          "lo": 0.48426104805602516,
+          "hi": 2.0781810631229236,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "read_share": {
+          "value": 0.5172413793103448,
+          "ratio": 1.0344827586206895,
+          "lo": 0.7999999999999999,
+          "hi": 1.35,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "error_rate": {
+          "value": 0.3373253493013972,
+          "ratio": 2.4910179640718564,
+          "lo": 0.32717086834733894,
+          "hi": 3.4,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "idle_per_min": {
+          "value": 3.448938063349205,
+          "ratio": 1.461497084727735,
+          "lo": 1.2794747229187546,
+          "hi": 2.6110967344887746,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        }
+      },
+      "current-cut": {
+        "first_tap_s": {
+          "value": 1.4165964950711938,
+          "ratio": 1.449945235487404,
+          "lo": 1.048317227590803,
+          "hi": 1.7792607802874745,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "action_gap_s": {
+          "value": 1.8577994722955147,
+          "ratio": 1.011873350923483,
+          "lo": 0.36937541974479515,
+          "hi": 1.0805051302288873,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "read_ms_per_char": {
+          "value": 8.316891336833992,
+          "ratio": 0.48426104805602516,
+          "lo": 0.07402482681160172,
+          "hi": 2.0781810631229236,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "read_share": {
+          "value": 0.04,
+          "ratio": 0.7999999999999999,
+          "lo": 0.0,
+          "hi": 1.35,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "error_rate": {
+          "value": 0.6986301369863013,
+          "ratio": 3.4,
+          "lo": 2.4910179640718564,
+          "hi": 4.814021421616359,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "idle_per_min": {
+          "value": 1.103400660401701,
+          "ratio": 1.461497084727735,
+          "lo": 0.8488187280583753,
+          "hi": 2.6110967344887746,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        }
+      },
+      "factor-slicer": {
+        "first_tap_s": {
+          "value": 2.824493318729463,
+          "ratio": 1.449945235487404,
+          "lo": 1.048317227590803,
+          "hi": 1.5363357215967246,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "action_gap_s": {
+          "value": 1.6380457774269932,
+          "ratio": 1.0805051302288873,
+          "lo": 0.36937541974479515,
+          "hi": 1.744281045751634,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "read_ms_per_char": {
+          "value": 44.00379636675127,
+          "ratio": 0.48426104805602516,
+          "lo": 0.07402482681160172,
+          "hi": 1.0809094700670918,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "read_share": {
+          "value": 0.5333333333333332,
+          "ratio": 0.7999999999999999,
+          "lo": 0.0,
+          "hi": 1.0344827586206895,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "error_rate": {
+          "value": 0.26153846153846155,
+          "ratio": 3.4,
+          "lo": 0.32717086834733894,
+          "hi": 4.814021421616359,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "idle_per_min": {
+          "value": 0.7193330635519497,
+          "ratio": 1.2794747229187546,
+          "lo": 0.8488187280583753,
+          "hi": 1.461497084727735,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        }
+      },
+      "hoard-keeper": {
+        "first_tap_s": {
+          "value": 7.013372569089048,
+          "ratio": 1.5363357215967246,
+          "lo": 1.048317227590803,
+          "hi": 1.7792607802874745,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "action_gap_s": {
+          "value": 1.2820435356200528,
+          "ratio": 1.011873350923483,
+          "lo": 0.36937541974479515,
+          "hi": 1.744281045751634,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "read_ms_per_char": {
+          "value": 73.07830392731145,
+          "ratio": 1.0809094700670918,
+          "lo": 0.07402482681160172,
+          "hi": 2.0781810631229236,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "read_share": {
+          "value": 0.5747126436781609,
+          "ratio": 1.0344827586206895,
+          "lo": 0.0,
+          "hi": 1.35,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "error_rate": {
+          "value": 0.13686911890504705,
+          "ratio": 2.4910179640718564,
+          "lo": 0.32717086834733894,
+          "hi": 4.814021421616359,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "idle_per_min": {
+          "value": 1.9162711404750419,
+          "ratio": 1.2794747229187546,
+          "lo": 0.8488187280583753,
+          "hi": 2.6110967344887746,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        }
+      }
+    },
+    "B": {
+      "bond-swap": {
+        "first_tap_s": {
+          "value": 3.272137577002053,
+          "ratio": 1.0903490759753593,
+          "lo": 0.6858707557502737,
+          "hi": 1.9605936540429887,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "action_gap_s": {
+          "value": 3.9778693931398417,
+          "ratio": 0.8905013192612138,
+          "lo": 0.7040252565114444,
+          "hi": 1.1002178649237473,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "read_ms_per_char": {
+          "value": 78.12307787698414,
+          "ratio": 0.9464285714285715,
+          "lo": 0.8892417290509539,
+          "hi": 1.6661382571445067,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "read_share": {
+          "value": 0.75,
+          "ratio": 1.5,
+          "lo": 0.6545454545454545,
+          "hi": 3.090909090909091,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "error_rate": {
+          "value": 0.12297028186274508,
+          "ratio": 0.9080882352941176,
+          "lo": 0.2528138528138528,
+          "hi": 3.333333333333333,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "idle_per_min": {
+          "value": 3.1170544756645824,
+          "ratio": 1.3208604925475216,
+          "lo": 0.7052337152385563,
+          "hi": 1.3259266194430785,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        }
+      },
+      "current-cut": {
+        "first_tap_s": {
+          "value": 0.7126467844051984,
+          "ratio": 0.7294235254915029,
+          "lo": 0.6858707557502737,
+          "hi": 1.0903490759753593,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "action_gap_s": {
+          "value": 1.292590370955012,
+          "ratio": 0.7040252565114444,
+          "lo": 0.6942019252294606,
+          "hi": 0.8905013192612138,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "read_ms_per_char": {
+          "value": 15.763264958670945,
+          "ratio": 0.9178351502397627,
+          "lo": 0.8892417290509539,
+          "hi": 0.9464285714285715,
+          "from": [
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "read_share": {
+          "value": 0.053863636363636364,
+          "ratio": 1.0772727272727272,
+          "lo": 0.6545454545454545,
+          "hi": 1.5,
+          "from": [
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "error_rate": {
+          "value": 0.23182297154899897,
+          "ratio": 1.1282051282051284,
+          "lo": 0.9080882352941176,
+          "hi": 3.333333333333333,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "idle_per_min": {
+          "value": 0.5324371531515796,
+          "ratio": 0.7052337152385563,
+          "lo": 0.3084653296890265,
+          "hi": 1.3259266194430785,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        }
+      },
+      "factor-slicer": {
+        "first_tap_s": {
+          "value": 1.4209170276574477,
+          "ratio": 0.7294235254915029,
+          "lo": 0.6858707557502737,
+          "hi": 1.9605936540429887,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "action_gap_s": {
+          "value": 1.0673022888713497,
+          "ratio": 0.7040252565114444,
+          "lo": 0.6942019252294606,
+          "hi": 1.1002178649237473,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "read_ms_per_char": {
+          "value": 116.10103786337112,
+          "ratio": 1.2776899930977303,
+          "lo": 0.8892417290509539,
+          "hi": 1.6661382571445067,
+          "from": [
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "read_share": {
+          "value": 1.0,
+          "ratio": 1.8727272727272726,
+          "lo": 0.6545454545454545,
+          "hi": 3.090909090909091,
+          "from": [
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "error_rate": {
+          "value": 0.08678500986193297,
+          "ratio": 1.1282051282051284,
+          "lo": 0.2528138528138528,
+          "hi": 3.333333333333333,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "idle_per_min": {
+          "value": 0.39648921531284276,
+          "ratio": 0.7052337152385563,
+          "lo": 0.3084653296890265,
+          "hi": 1.3208604925475216,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        }
+      },
+      "hoard-keeper": {
+        "first_tap_s": {
+          "value": 4.977443531827515,
+          "ratio": 1.0903490759753593,
+          "lo": 0.7294235254915029,
+          "hi": 1.9605936540429887,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "action_gap_s": {
+          "value": 1.1282651715039578,
+          "ratio": 0.8905013192612138,
+          "lo": 0.6942019252294606,
+          "hi": 1.1002178649237473,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "read_ms_per_char": {
+          "value": 88.31542234384585,
+          "ratio": 1.3062834142865392,
+          "lo": 0.9464285714285715,
+          "hi": 1.6661382571445067,
+          "from": [
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "read_share": {
+          "value": 1.0,
+          "ratio": 2.2954545454545454,
+          "lo": 1.5,
+          "hi": 3.090909090909091,
+          "from": [
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "error_rate": {
+          "value": 0.049894957983193274,
+          "ratio": 0.9080882352941176,
+          "lo": 0.2528138528138528,
+          "hi": 1.1282051282051284,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "idle_per_min": {
+          "value": 1.978254667421975,
+          "ratio": 1.3208604925475216,
+          "lo": 0.3084653296890265,
+          "hi": 1.3259266194430785,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        }
+      }
+    },
+    "C": {
+      "bond-swap": {
+        "first_tap_s": {
+          "value": 5.320094165813716,
+          "ratio": 1.7727737973387923,
+          "lo": 1.152026286966046,
+          "hi": 2.82982546201232,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "action_gap_s": {
+          "value": 4.813221965699208,
+          "ratio": 1.0775065963060686,
+          "lo": 0.9411996842936069,
+          "hi": 1.3308823529411766,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "read_ms_per_char": {
+          "value": 192.576980951795,
+          "ratio": 2.3329899682041373,
+          "lo": 0.9796667386321916,
+          "hi": 2.6298182080141026,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "read_share": {
+          "value": 0.75,
+          "ratio": 1.5,
+          "lo": 1.2857142857142856,
+          "hi": 2.0,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "error_rate": {
+          "value": 0.21834625322997414,
+          "ratio": 1.6124031007751938,
+          "lo": 0.2780952380952381,
+          "hi": 11.714942528735632,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "idle_per_min": {
+          "value": 2.9272663421036964,
+          "ratio": 1.2404372437618363,
+          "lo": 0.9555226323857984,
+          "hi": 2.12443951209559,
+          "from": [
+            "current-cut",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        }
+      },
+      "current-cut": {
+        "first_tap_s": {
+          "value": 1.501148617127624,
+          "ratio": 1.5364878373875375,
+          "lo": 1.152026286966046,
+          "hi": 2.82982546201232,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "action_gap_s": {
+          "value": 1.728042620363062,
+          "ratio": 0.9411996842936069,
+          "lo": 0.628609805238415,
+          "hi": 1.0775065963060686,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "read_ms_per_char": {
+          "value": 40.067695168480284,
+          "ratio": 2.3329899682041373,
+          "lo": 1.588426464378174,
+          "hi": 2.6298182080141026,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "read_share": {
+          "value": 0.06666666666666667,
+          "ratio": 1.3333333333333333,
+          "lo": 1.2857142857142856,
+          "hi": 1.5,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "error_rate": {
+          "value": 0.7120045391910512,
+          "ratio": 3.4650887573964497,
+          "lo": 1.6124031007751938,
+          "hi": 11.714942528735632,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        },
+        "idle_per_min": {
+          "value": 0.7214002098400857,
+          "ratio": 0.9555226323857984,
+          "lo": 0.4921470498352629,
+          "hi": 2.12443951209559,
+          "from": [
+            "bond-swap",
+            "factor-slicer",
+            "hoard-keeper"
+          ]
+        }
+      },
+      "factor-slicer": {
+        "first_tap_s": {
+          "value": 2.993078307230923,
+          "ratio": 1.5364878373875375,
+          "lo": 1.152026286966046,
+          "hi": 1.7727737973387923,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "action_gap_s": {
+          "value": 1.426858721389108,
+          "ratio": 0.9411996842936069,
+          "lo": 0.628609805238415,
+          "hi": 1.3308823529411766,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "read_ms_per_char": {
+          "value": 144.33701608387332,
+          "ratio": 1.588426464378174,
+          "lo": 0.9796667386321916,
+          "hi": 2.3329899682041373,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "read_share": {
+          "value": 0.8888888888888888,
+          "ratio": 1.3333333333333333,
+          "lo": 1.2857142857142856,
+          "hi": 2.0,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "error_rate": {
+          "value": 0.2665452890304961,
+          "ratio": 3.4650887573964497,
+          "lo": 0.2780952380952381,
+          "hi": 11.714942528735632,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        },
+        "idle_per_min": {
+          "value": 0.5372040651802271,
+          "ratio": 0.9555226323857984,
+          "lo": 0.4921470498352629,
+          "hi": 1.2404372437618363,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "hoard-keeper"
+          ]
+        }
+      },
+      "hoard-keeper": {
+        "first_tap_s": {
+          "value": 8.092712384851588,
+          "ratio": 1.7727737973387923,
+          "lo": 1.5364878373875375,
+          "hi": 2.82982546201232,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "action_gap_s": {
+          "value": 1.3652008575197887,
+          "ratio": 1.0775065963060686,
+          "lo": 0.628609805238415,
+          "hi": 1.3308823529411766,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "read_ms_per_char": {
+          "value": 107.39059573861255,
+          "ratio": 1.588426464378174,
+          "lo": 0.9796667386321916,
+          "hi": 2.6298182080141026,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "read_share": {
+          "value": 0.8333333333333334,
+          "ratio": 1.5,
+          "lo": 1.3333333333333333,
+          "hi": 2.0,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "error_rate": {
+          "value": 0.08859357696566998,
+          "ratio": 1.6124031007751938,
+          "lo": 0.2780952380952381,
+          "hi": 3.4650887573964497,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        },
+        "idle_per_min": {
+          "value": 1.8578046515594584,
+          "ratio": 1.2404372437618363,
+          "lo": 0.4921470498352629,
+          "hi": 2.12443951209559,
+          "from": [
+            "bond-swap",
+            "current-cut",
+            "factor-slicer"
+          ]
+        }
+      }
+    }
+  },
+  "metrics": [
+    "first_tap_s",
+    "action_gap_s",
+    "read_ms_per_char",
+    "read_share",
+    "error_rate",
+    "idle_per_min"
+  ]
+}

@@ -21,7 +21,7 @@ PW_LIVE=1 npm run play -- A --game hoard-keeper --steps 40 --live
 PW_LIVE=1 npm run play -- --describe "a 9-year-old who skips every instruction" --name X --live
 ```
 
-Muse Spark plays the real game in Chrome. The harness holds it to the persona's limits so it can't play like an AI:
+Muse Spark plays the real game in Chrome, from a screenshot plus the page's buttons and text. The harness holds it to the persona's limits so it can't play like an AI:
 
 - **Time.** The game's clock stops while Muse thinks, then moves on by the kid's own time to act. A slow kid's persona burns more of a timed round than a fast one's.
 - **Reading.** Text the kid wouldn't have read is hidden from the screenshot. Muse only gets the first few words.
@@ -30,13 +30,17 @@ Muse Spark plays the real game in Chrome. The harness holds it to the persona's 
 
 The game's own logger stays on, so every run is a normal session with events, a step log and a screenshot per step. `/runs.html` plays two runs side by side.
 
+**See it without a key:** `npm install`, `npm start`, then open http://localhost:3058/runs.html. It plays three committed runs from `results/runs/`: the youngest kid's persona, the oldest's, and the kid described in one sentence.
+
 ## What I learned building it
 
-- **Watching isn't the same as knowing.** Muse agrees with itself 83% of the time. When the kids watched their own clips, they picked the same word as Muse on 5 of 20 clips and agreed on good vs bad about three times in four. Muse kept reading a quiet kid who was concentrating as bored.
-- **The predictions didn't beat age alone.** I froze predictions before four check sessions. The persona was the best predictor for two kids and below chance for one, and on average it tied with knowing nothing but their age.
-- **Some limits carry over to a new game and some don't.** Built only from each kid's other games, reading speed ranked the four of them right in 5 of 6 pairs and first-tap time in 4 of 6. Error rate and idling didn't carry over at all.
-- **The model has to be held to the limits, not asked.** Told to play like the kid, it quit after 37 seconds reciting the kid's interview words. None of the real kids quit early. Now the harness decides.
-- **Muse still reads one screen worse than a kid.** In Hoard Keeper the agents filed 39 to 47% of slips wrong, against 18 to 19% for the real kids. The harness taps right every time when it knows the answer, so the gap is the model reading a busy screen: it keeps taking a blue gem icon for a frost dragon. That's also a useful note about the game.
+Every number here has a file in `results/`, which you get with the clone.
+
+- **Watching isn't the same as knowing.** Muse gives the same label to the same clip 83% of the time (`group/stability.json`). When the kids watched their own clips, they picked the same word as Muse on 5 of 20 and agreed on good vs bad about three times in four (`kid-check.json`). Twice it read a kid sitting still and concentrating as bored.
+- **The predictions tied with knowing only the kid's age** (`group/scoreboard.json`). I froze them before four check sessions. They were scored against Muse's labels, which the kids only matched 5 times in 20, so it's a weak test either way. That's why the persona moved from a description to limits that get enforced.
+- **With four kids, nothing carried from one game to another better than a coin flip.** Built only from each kid's other games and compared with what they did, the best were error rate (right order in 15 of 24 pairs) and time to first tap (14 of 24) (`group/limits.json`). That's a hint, not a finding.
+- **The model has to be held to the limits, not asked.** Told to play like the kid, it quit after 37 seconds, reciting the kid's own interview words. Told not to repeat them, it still did. So the harness decides when a persona quits, and a kid's words never go into the rules it plays from.
+- **The timing holds; the reading of the screen doesn't.** The agent's first taps land about a second after its limit, consistently, because the game shows the screen a moment before the harness starts counting. But in Hoard Keeper the agents filed about a third of the slips wrong, against 18 to 19% for the real kids (`group/agent-vs-kid.json`). In a probe where the harness read each slip's answer from the page and tapped it, all 8 filed right (that probe isn't in the repo), so the gap is the model reading a busy screen. It keeps taking a blue gem icon for a frost dragon, which is also a useful note about the game.
 
 ## Watching a playtest
 
@@ -48,7 +52,7 @@ PW_LIVE=1 npm run watch -- <sessionId> --live
 npm run blur          # blurred face video for the viewer
 ```
 
-Copy `.env.example` to `.env.local` and put your Meta Model API key in it first. [docs/session-day.md](docs/session-day.md) is the checklist I use with my kids. Games send events with [public/playtest-log.js](public/playtest-log.js) (web) or [godot/playtest_log.gd](godot/playtest_log.gd) (Godot), and a playtest link always starts the game from the beginning.
+**What you need:** Node 22.18 or newer (it runs the TypeScript directly), ffmpeg on your PATH (or `FFMPEG_PATH`), and Google Chrome for live play. For anything live, copy `.env.example` to `.env.local` and put your Meta Model API key in it. Live play also needs a web game running with the event logger on it. The one I used, Hoard Keeper, is my own game and isn't public yet, so for your own game pass its address with `--url`. [docs/session-day.md](docs/session-day.md) is the checklist I use with my kids. Games send events with [public/playtest-log.js](public/playtest-log.js) (web) or [godot/playtest_log.gd](godot/playtest_log.gd) (Godot), and a playtest link always starts the game from the beginning.
 
 | Stage | What it does | Model |
 |---|---|---|
@@ -62,7 +66,7 @@ Copy `.env.example` to `.env.local` and put your Meta Model API key in it first.
 
 ## Privacy
 
-Raw recordings stay in `recordings/`, which git ignores. Only short clips and session audio go to the Meta API, every upload expires after an hour, and the client refuses any `-contributor` model id. The viewer only ever serves the blurred face. The kids are Kid A to D everywhere in this repo, and a persona never repeats a kid's own words.
+Raw recordings stay in `recordings/`, which git ignores. Only short clips and session audio go to the Meta API, every upload expires after an hour, and the client refuses any `-contributor` model id. The viewer only ever serves the blurred face. The kids are Kid A to D everywhere in this repo, and the rules a persona plays from never carry a kid's own words. Their quotes stay on the card, which is for people, and never leave this laptop.
 
 ## Tests
 
