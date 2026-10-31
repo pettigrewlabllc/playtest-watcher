@@ -52,7 +52,9 @@ def session_limits(events, game, duration_ms):
     shown = [e for e in ev if e["type"] == "screen"]
     firsts = [e for e in ev if e["type"] == "first_touch"]
     for s in shown:
-        nxt = next((f for f in firsts if f["ms"] >= s["ms"]), None)
+        # strictly after: under a frozen page clock the tap that opens a screen and the screen's own event share a
+        # millisecond, and counting that tap made half the first taps 0.0 s
+        nxt = next((f for f in firsts if f["ms"] > s["ms"]), None)
         if nxt and nxt["ms"] - s["ms"] < 60000:
             taps.append((nxt["ms"] - s["ms"]) / 1000)
     if taps:

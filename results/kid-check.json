@@ -1,0 +1,114 @@
+{
+  "A": {
+    "clips": 5,
+    "exact": 1,
+    "same_direction": 2,
+    "kappa": 0.047619047619047596,
+    "pairs": [
+      {
+        "kid": "confused",
+        "muse": "confused"
+      },
+      {
+        "kid": "focused",
+        "muse": "bored"
+      },
+      {
+        "kid": "frustrated",
+        "muse": "stuck"
+      },
+      {
+        "kid": "bored",
+        "muse": "focused"
+      },
+      {
+        "kid": "stuck",
+        "muse": "engaged"
+      }
+    ]
+  },
+  "B": {
+    "clips": 5,
+    "exact": 1,
+    "same_direction": 4,
+    "kappa": 0.13043478260869565,
+    "pairs": [
+      {
+        "kid": "focused",
+        "muse": "bored"
+      },
+      {
+        "kid": "none",
+        "muse": "focused"
+      },
+      {
+        "kid": "frustrated",
+        "muse": "confused"
+      },
+      {
+        "kid": "frustrated",
+        "muse": "stuck"
+      },
+      {
+        "kid": "engaged",
+        "muse": "engaged"
+      }
+    ]
+  },
+  "C": {
+    "clips": 5,
+    "exact": 0,
+    "same_direction": 4,
+    "kappa": -0.08695652173913046,
+    "pairs": [
+      {
+        "kid": "engaged",
+        "muse": "confused"
+      },
+      {
+        "kid": "delighted",
+        "muse": "focused"
+      },
+      {
+        "kid": "focused",
+        "muse": "engaged"
+      },
+      {
+        "kid": "frustrated",
+        "muse": "bored"
+      },
+      {
+        "kid": "frustrated",
+        "muse": "stuck"
+      }
+    ]
+  },
+  "D": {
+    "clips": 5,
+    "exact": 3,
+    "same_direction": 5,
+    "kappa": 0.49999999999999994,
+    "pairs": [
+      {
+        "kid": "confused",
+        "muse": "confused"
+      },
+      {
+        "kid": "bored",
+        "muse": "bored"
+      },
+      {
+        "kid": "stuck",
+        "muse": "frustrated"
+      },
+      {
+        "kid": "bored",
+        "muse": "stuck"
+      },
+      {
+        "kid": "focused",
+        "muse": "focused"
+      }
+    ]
+  }
+}
