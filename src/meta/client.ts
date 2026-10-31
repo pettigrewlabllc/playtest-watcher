@@ -8,7 +8,8 @@ export type { Usage };
 export type ContentPart =
   | { type: 'input_text'; text: string }
   | { type: 'input_video'; file_id: string }
-  | { type: 'input_audio'; data: string; format: 'wav' };
+  | { type: 'input_audio'; data: string; format: 'wav' }
+  | { type: 'input_image'; image_url: string };
 
 export interface MetaClient {
   live: boolean;
