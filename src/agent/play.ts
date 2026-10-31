@@ -14,7 +14,8 @@ import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { chromium, type Page } from 'playwright';
 import { clientFromEnv, createMetaClient, type MetaClient } from '../meta/client.ts';
-import { buildPersonaFile, writePersonaFile } from '../persona/build.ts';
+import { buildPersonaFile, writePersonaFile, type PersonaFile } from '../persona/build.ts';
+import { describePersona } from '../persona/describe.ts';
 import { compile, rulesText, type Harness } from '../persona/compile.ts';
 import { LABELS } from '../watch/explain.ts';
 
@@ -106,9 +107,9 @@ async function readEvents(session: string): Promise<{ t: number; type: string; d
   try { return (await readFile(join(ROOT, session, 'events.jsonl'), 'utf8')).split('\n').filter(Boolean).map(l => JSON.parse(l)); } catch { return []; }
 }
 
-export async function play(letter: string, o: { game: string; steps: number; url: string; watcher: string; client: MetaClient; seed?: number; log?: (l: string) => void }) {
+export async function play(letter: string, o: { game: string; steps: number; url: string; watcher: string; client: MetaClient; seed?: number; log?: (l: string) => void; persona?: PersonaFile }) {
   const log = o.log ?? console.log;
-  const persona = await buildPersonaFile(ROOT, letter, o.game);
+  const persona = o.persona ?? await buildPersonaFile(ROOT, letter, o.game);
   await writePersonaFile(ROOT, persona);
   const compiled = compile(persona);
   const h: Harness = compiled.harness;
@@ -238,13 +239,19 @@ export function summarize(steps: Step[]) {
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
   const args = process.argv.slice(2);
-  const letter = args.find(a => /^[A-Za-z]$/.test(a));
   const opt = (k: string, d: string) => { const i = args.indexOf(`--${k}`); return i >= 0 ? args[i + 1] : d; };
-  if (!letter) { console.error('usage: npm run play -- <letter> [--game hoard-keeper] [--steps 40] [--url http://localhost:3054/] [--watcher http://localhost:3058] [--seed 7] --live'); process.exit(1); }
+  const description = opt('describe', '');
+  const letter = description ? opt('name', 'X').toUpperCase() : args.find(a => /^[A-Za-z]$/.test(a));
+  if (!letter) { console.error('usage: npm run play -- <letter> | --describe "<a kid in words>" [--name X]  [--game hoard-keeper] [--steps 40] [--url http://localhost:3054/] [--watcher http://localhost:3058] [--seed 7] --live'); process.exit(1); }
   const live = args.includes('--live');
   const client = live ? clientFromEnv(REPO) : createMetaClient({ live: false, budgetUsd: 0, spendLog: join(ROOT, 'spend.jsonl') });
   if (live && !client.live) console.warn('--live given but PW_LIVE=1 and MODEL_API_KEY are not both set; fake mode');
-  const out = await play(letter, { game: opt('game', 'hoard-keeper'), steps: Number(opt('steps', '40')), url: opt('url', 'http://localhost:3054/'), watcher: opt('watcher', 'http://localhost:3058'), seed: Number(opt('seed', '7')), client });
+  let persona: PersonaFile | undefined;
+  if (description) {
+    persona = await describePersona(ROOT, letter, description, opt('game', 'hoard-keeper'), client);
+    console.log(`described persona ${letter}: ${persona.distinguishable}`);
+  }
+  const out = await play(letter, { persona, game: opt('game', 'hoard-keeper'), steps: Number(opt('steps', '40')), url: opt('url', 'http://localhost:3054/'), watcher: opt('watcher', 'http://localhost:3058'), seed: Number(opt('seed', '7')), client });
   const sum = summarize(out.steps);
   await writeFile(join(ROOT, out.session, 'summary.json'), JSON.stringify(sum, null, 2));
   console.log(JSON.stringify(sum));

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Persona runs</title>
+<style>
+  body { font: 15px system-ui, sans-serif; margin: 16px; background: #111; color: #eee; }
+  button, select { font: inherit; background: #222; color: #eee; border: 1px solid #444; border-radius: 6px; padding: 6px 12px; }
+  .muted { color: #999; }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  h1 { font-size: 20px; margin: 0; }
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 12px; }
+  .side { background: #181818; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px; }
+  .card h2 { font-size: 17px; margin: 0 0 4px; }
+  .card ul { margin: 6px 0; padding-left: 18px; color: #ccc; font-size: 14px; }
+  .lims { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+  .lim { background: #222; border: 1px solid #333; border-radius: 6px; padding: 4px 8px; font-size: 13px; }
+  .lim b { color: #fff; }
+  .shot { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 12px; margin-top: 10px; align-items: start; }
+  .shot img { width: 200px; border-radius: 8px; background: #000; display: block; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 13px; color: #111; font-weight: 600; }
+  .say { font-size: 17px; margin: 8px 0; }
+  .meta { font-size: 13px; color: #aaa; margin: 4px 0; }
+  .miss { color: #fca5a5; }
+  .strip { display: flex; gap: 2px; margin-top: 10px; height: 14px; }
+  .strip span { flex: 1; border-radius: 2px; cursor: pointer; opacity: .8; }
+  .strip span.on { outline: 2px solid #fff; opacity: 1; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="row">
+  <h1>Persona runs</h1>
+  <button id="prev">◀</button><button id="play">Play</button><button id="next">▶</button>
+  <span id="at" class="muted"></span>
+</div>
+<div class="cols">
+  <div class="side"><select id="pickA"></select><div id="A"></div></div>
+  <div class="side"><select id="pickB"></select><div id="B"></div></div>
+</div>
+<script>
+const COLORS = { confused: '#fbbf24', stuck: '#fb923c', frustrated: '#f87171', bored: '#9ca3af', focused: '#60a5fa', engaged: '#4ade80', delighted: '#f472b6', none: '#555' };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const runs = { A: null, B: null };
+let step = 0, timer = null;
+
+function card(r) {
+  const h = r.harness, pct = x => `${Math.round(x * 100)}%`;
+  const rules = r.rules.split('\n').filter(l => l.startsWith('- ')).map(l => `<li>${esc(l.slice(2))}</li>`).join('');
+  return `<div class="card"><h2>Player ${esc(r.letter)}${r.age ? `, age ${r.age}` : ''} · ${esc(r.game)}</h2>
+    <div class="muted">${esc(r.distinguishable)}</div>
+    <div class="lims">
+      <span class="lim">first tap <b>${h.firstTapS.toFixed(1)} s</b></span><span class="lim">between taps <b>${h.actionGapS.toFixed(1)} s</b></span>
+      <span class="lim">reads <b>${pct(h.readShare)}</b></span><span class="lim">misses <b>${pct(h.errorRate)}</b></span><span class="lim">sours after <b>${h.sourAfterFails} fails</b></span>
+    </div><ul>${rules}</ul></div><div class="body"></div><div class="strip"></div>`;
+}
+
+function show(side) {
+  const r = runs[side], el = document.getElementById(side);
+  if (!r) return;
+  const s = r.steps[Math.min(step, r.steps.length - 1)];
+  const body = el.querySelector('.body');
+  if (!s) { body.innerHTML = '<p class="muted">No steps.</p>'; return; }
+  const done = step >= r.steps.length;
+  body.innerHTML = `<div class="shot"><img src="/shots/${encodeURIComponent(r.id)}/${String(s.n).padStart(3, '0')}.jpg" alt="Game screen at step ${s.n}">
+    <div><div><span class="pill" style="background:${COLORS[s.label] ?? '#555'}">${esc(s.label)}${s.forced ? ' (limit)' : ''}</span> <span class="muted">step ${s.n} · ${s.t.toFixed(1)} s game time${done ? ' · finished' : ''}</span></div>
+    ${s.say ? `<div class="say">“${esc(s.say)}”</div>` : `<div class="meta">${esc(s.why)}</div>`}
+    <div class="meta">${s.action === 'tap' ? `tapped <b>${esc(s.target)}</b>` : esc(s.action)}${s.missed ? ` <span class="miss">(meant ${esc(s.intended)})</span>` : ''}${s.would_quit ? ' · wanted to stop' : ''}</div>
+    ${s.skipped.length ? `<div class="meta">skipped reading: ${s.skipped.map(t => `“${esc(t.slice(0, 40))}…”`).join(', ')}</div>` : ''}
+    </div></div>`;
+  el.querySelectorAll('.strip span').forEach((x, i) => x.classList.toggle('on', i === Math.min(step, r.steps.length - 1)));
+}
+
+function render() {
+  const max = Math.max(runs.A?.steps.length ?? 0, runs.B?.steps.length ?? 0);
+  document.getElementById('at').textContent = max ? `step ${Math.min(step + 1, max)} of ${max}` : '';
+  show('A'); show('B');
+}
+
+async function load(side, id) {
+  const r = await (await fetch(`/api/runs/${encodeURIComponent(id)}`)).json();
+  runs[side] = r;
+  const el = document.getElementById(side);
+  el.innerHTML = card(r);
+  el.querySelector('.strip').innerHTML = r.steps.map((s, i) => `<span data-i="${i}" title="${esc(s.label)}" style="background:${COLORS[s.label] ?? '#555'}"></span>`).join('');
+  el.querySelector('.strip').onclick = e => { const i = e.target.dataset.i; if (i != null) { step = Number(i); render(); } };
+  render();
+}
+
+const max = () => Math.max(runs.A?.steps.length ?? 0, runs.B?.steps.length ?? 0);
+document.getElementById('prev').onclick = () => { step = Math.max(0, step - 1); render(); };
+document.getElementById('next').onclick = () => { step = Math.min(max() - 1, step + 1); render(); };
+document.getElementById('play').onclick = e => {
+  if (timer) { clearInterval(timer); timer = null; e.target.textContent = 'Play'; return; }
+  e.target.textContent = 'Pause';
+  timer = setInterval(() => { if (step >= max() - 1) { clearInterval(timer); timer = null; e.target.textContent = 'Play'; return; } step++; render(); }, 1500);
+};
+
+(async () => {
+  const list = await (await fetch('/api/runs')).json();
+  const opt = r => `<option value="${r.id}">Player ${esc(r.persona)}${r.age ? ` (${r.age})` : ''}${r.described ? ', described' : ''} · ${esc(r.game)} · ${r.steps ?? '?'} steps · ${r.id.slice(9, 13)}</option>`;
+  for (const side of ['A', 'B']) {
+    const sel = document.getElementById('pick' + side);
+    sel.innerHTML = list.map(opt).join('');
+    sel.onchange = () => load(side, sel.value);
+  }
+  const q = new URLSearchParams(location.search);
+  const a = q.get('a') ?? list.find(r => r.persona === 'A')?.id, b = q.get('b') ?? list.find(r => r.persona === 'B')?.id;
+  if (a) { document.getElementById('pickA').value = a; await load('A', a); }
+  if (b) { document.getElementById('pickB').value = b; await load('B', b); }
+})();
+</script>
+</body>
+</html>

@@ -8,6 +8,7 @@ import { createStore } from './store.ts';
 import { QUESTIONS, scoreAnswers } from './questionnaire.ts';
 import { pendingQueue, setLabel, clipPath } from '../label/queue.ts';
 import { listViewable, mediaPath, viewData } from './view.ts';
+import { listRuns, runData, shotPath } from './runs.ts';
 import { pickClips } from '../interview/pick.ts';
 import { ANSWERS, COPY, FEELINGS, PITCHES } from '../interview/script.ts';
 
@@ -92,6 +93,9 @@ export function createApp(root: string) {
         const clips = (await pickClips(root, seg[2])).map(({ session, id, game }) => ({ session, id, game }));
         return send(res, 200, { clips, feelings: FEELINGS.map(f => f.word), pitches: PITCHES.map(({ id, text }) => ({ id, text })), answers: ANSWERS, copy: COPY });
       }
+      if (req.method === 'GET' && path === '/api/runs') return send(res, 200, await listRuns(root));
+      if (req.method === 'GET' && seg[0] === 'api' && seg[1] === 'runs' && seg.length === 3) return send(res, 200, await runData(root, seg[2]));
+      if (req.method === 'GET' && seg[0] === 'shots' && seg.length === 3) return sendFile(req, res, shotPath(root, seg[1], seg[2]), 'image/jpeg');
       if (req.method === 'GET' && path === '/api/view') return send(res, 200, await listViewable(root));
       if (req.method === 'GET' && seg[0] === 'api' && seg[1] === 'view' && seg.length === 3) return send(res, 200, await viewData(root, seg[2]));
       if (req.method === 'GET' && seg[0] === 'media' && seg.length === 3 && seg[2].endsWith('.mp4')) {

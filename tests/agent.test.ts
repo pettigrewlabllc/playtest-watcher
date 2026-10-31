@@ -23,7 +23,7 @@ const persona = (over: Record<string, unknown> = {}) => ({
 describe('compiler', () => {
   it('writes rules only for clearly different dimensions and strong drives, and clamps the harness', () => {
     const c = compile(persona());
-    expect(c.rules.map(r => r.from)).toEqual(['skill', 'drive:creativity', 'drive:mastery', 'interview']);
+    expect(c.rules.map(r => r.from)).toEqual(['skill', 'drive:creativity', 'drive:mastery']);
     expect(c.harness).toMatchObject({ firstTapS: 7, actionGapS: 1.3, readShare: 1, readMsPerChar: 67, errorRate: 0.14, sourAfterFails: 3 });
     const text = rulesText(c, 'A', 8);
     expect(text).toMatch(/Player A, a child aged 9/);
