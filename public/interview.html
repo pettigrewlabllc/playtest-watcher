@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interview</title>
+<style>
+  body { font: 18px system-ui, sans-serif; margin: 0; background: #111; color: #eee; }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 120px; }
+  .muted { color: #999; font-size: 15px; }
+  h1 { font-size: 30px; line-height: 1.25; margin: 10px 0 18px; font-weight: 650; }
+  video { width: 100%; max-height: 58vh; background: #000; border-radius: 8px; display: block; }
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+  .grid button, .answers button { font: inherit; font-size: 22px; padding: 18px 8px; background: #222; color: #eee; border: 1px solid #444; border-radius: 10px; cursor: pointer; }
+  .grid button.on, .answers button.on { background: #2563eb; border-color: #2563eb; }
+  .answers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 24px; }
+  .pitch { font-size: 40px; line-height: 1.3; margin: 40px 0 10px; font-weight: 600; }
+  nav { position: fixed; left: 0; right: 0; bottom: 0; background: #0b0b0bee; border-top: 1px solid #333; padding: 12px 16px; display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+  nav button { font: inherit; padding: 12px 22px; border-radius: 8px; border: 1px solid #444; background: #222; color: #eee; cursor: pointer; }
+  nav #next { background: #16a34a; border-color: #16a34a; color: #fff; }
+  #warn { background: #b91c1c; color: #fff; padding: 10px 14px; border-radius: 6px; }
+  @media (max-width: 700px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pitch { font-size: 28px; } }
+</style>
+</head>
+<body>
+<main id="main"></main>
+<nav>
+  <button id="back">Back</button>
+  <span id="where" class="muted"></span>
+  <button id="next">Next</button>
+</nav>
+<script>
+// Steps: intro, then per clip (watch + ask, then pick a word), the games question, the pitches, the last question.
+// Every step shown and every tap goes to the watcher as an event on the interview session, so the recording can be
+// read back step by step. Not playtest-log.js: that clears this origin's storage, where the recorder keeps its camera picks.
+const q = new URLSearchParams(location.search);
+const kid = (q.get('kid') || '').toUpperCase(), session = q.get('playtest'), origin = q.get('pw');
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let queue = [];
+const log = (type, data) => { if (session && origin) queue.push({ t: Date.now(), type, data: { kind: 'progress', ...data } }); };
+setInterval(() => {
+  if (!queue.length) return;
+  const batch = queue; queue = [];
+  fetch(`${origin}/events/${session}`, { method: 'POST', body: JSON.stringify(batch), headers: { 'content-type': 'application/json' } })
+    .catch(() => { queue = batch.concat(queue); });
+}, 500);
+
+let script = null, steps = [], at = 0;
+const picked = {};
+
+function build() {
+  const c = script.copy;
+  steps = [{ kind: 'intro' }];
+  script.clips.forEach((clip, i) => steps.push({ kind: 'clip', clip, i }, { kind: 'feel', clip, i }));
+  steps.push({ kind: 'games' }, { kind: 'pitchIntro' });
+  script.pitches.forEach((p, i) => steps.push({ kind: 'pitch', p, i }));
+  steps.push({ kind: 'last' }, { kind: 'done' });
+}
+
+const itemOf = s => s.kind === 'clip' || s.kind === 'feel' ? `clip:${s.clip.session}:${s.clip.id}` : s.kind === 'pitch' ? `pitch:${s.p.id}` : s.kind;
+
+function show() {
+  const s = steps[at], c = script.copy, m = $('main');
+  log('interview_step', { step: s.kind, item: itemOf(s) });
+  $('where').textContent = `${at + 1} of ${steps.length}`;
+  $('back').disabled = at === 0;
+  $('next').textContent = at === steps.length - 1 ? 'Finish' : 'Next';
+  if (s.kind === 'intro') m.innerHTML = `<p class="muted">Kid ${esc(kid)}</p><h1>${esc(c.intro)}</h1>`;
+  else if (s.kind === 'clip') {
+    m.innerHTML = `<p class="muted">Clip ${s.i + 1} of ${script.clips.length} · ${esc(s.clip.game)}</p><h1>${esc(c.clipAsk)}</h1>
+      <video id="v" controls autoplay playsinline src="/clips/${encodeURIComponent(s.clip.session)}/${encodeURIComponent(s.clip.id)}.mp4"></video>`;
+  } else if (s.kind === 'feel') {
+    const key = itemOf(s);
+    m.innerHTML = `<p class="muted">Clip ${s.i + 1} of ${script.clips.length}</p><h1>${esc(c.clipPick)}</h1>
+      <div class="grid">${script.feelings.map(w => `<button class="${picked[key] === w ? 'on' : ''}">${esc(w)}</button>`).join('')}</div>`;
+    m.querySelectorAll('.grid button').forEach(b => b.onclick = () => {
+      picked[key] = b.textContent;
+      m.querySelectorAll('.grid button').forEach(x => x.classList.toggle('on', x === b));
+      log('interview_answer', { item: key, answer: b.textContent });
+    });
+  } else if (s.kind === 'games') m.innerHTML = `<h1>${esc(c.gamesAsk)}</h1>`;
+  else if (s.kind === 'pitchIntro') m.innerHTML = `<h1>${esc(c.pitchIntro)}</h1>`;
+  else if (s.kind === 'pitch') {
+    const key = itemOf(s);
+    m.innerHTML = `<p class="muted">Idea ${s.i + 1} of ${script.pitches.length}</p><div class="pitch">${esc(s.p.text)}</div><p class="muted">${esc(c.pitchAsk)}</p>
+      <div class="answers">${script.answers.map(a => `<button class="${picked[key] === a ? 'on' : ''}">${esc(a)}</button>`).join('')}</div>`;
+    m.querySelectorAll('.answers button').forEach(b => b.onclick = () => {
+      picked[key] = b.textContent;
+      m.querySelectorAll('.answers button').forEach(x => x.classList.toggle('on', x === b));
+      log('interview_answer', { item: key, answer: b.textContent });
+    });
+  } else if (s.kind === 'last') m.innerHTML = `<h1>${esc(c.last)}</h1>`;
+  else m.innerHTML = `<h1>${esc(c.done)}</h1>`;
+}
+
+$('next').onclick = () => { if (at < steps.length - 1) { at++; show(); } else log('interview_end', {}); };
+$('back').onclick = () => { if (at > 0) { at--; show(); } };
+
+(async () => {
+  if (!/^[A-Z]$/.test(kid)) { $('main').innerHTML = '<p id="warn">Open this from the recorder: it needs a kid letter.</p>'; return; }
+  if (!session) $('main').insertAdjacentHTML('beforebegin', '<p id="warn">Not attached to a recording session, so nothing is saved. Open it from the recorder.</p>');
+  script = await (await fetch(`/api/interview/${kid}`)).json();
+  build();
+  show();
+})();
+</script>
+</body>
+</html>
