@@ -265,3 +265,35 @@ Factor Slicer style swiping can only be walked through or replayed, not played.
 - The dimension list (§3): anything missing from how you'd describe your kids, or anything here you'd never tune?
 - `talkativeness` and `expressiveness` stay observer-only; agree?
 - Description input: is age plus a paragraph enough, or should it ask a few fixed questions?
+
+## 12. Results so far (2026-10-31, end of day)
+
+**Built:** `analysis/limits.py` (per-game limits from kid-closed text), `src/persona/build.ts` (persona file),
+`src/persona/compile.ts` (rules and harness settings), `src/persona/describe.ts` (a written description onto
+the real kids' spread), `src/agent/play.ts` (live play on Hoard Keeper with the frozen page clock),
+`analysis/compare_runs.py` (an agent run against the real kid), and `public/runs.html` (two runs side by side).
+
+**Transfer of limits (Hoard Keeper, built only from each kid's other three games, against what they did):**
+reading speed orders the four kids right in 5 of 6 pairs, first-tap delay in 4 of 6; how often they read,
+error rate and idling are at chance. Error rates are under-predicted because Hoard Keeper was much harder for
+the kids than for the reference player (C: predicted 9%, real 64%).
+
+**Live play:** the personas play recognisably differently and stay in character (A, 8: slower first tap,
+skips text, misses taps, talks about building; B, 14: reads everything, talks about the story and collecting),
+and neither quits early, matching the kids. But Muse files 39-47% of Rush slips wrong against the kids' 18-19%.
+Four harness bugs were found and fixed on the way, each of which had inflated that number: events going to
+another server on the same port; looking before waiting (acting on a moved-on screen); screenshots a frame
+behind under the frozen clock; and Muse misreading the dragon art (now given each picture's alt text, size and
+place). What remains is the game's own screen: a blue snowflake hint sits above every slip and the slips carry
+colour-coded gem and moon icons, and the agent reads the blue gem as "frost". With the answer read from the
+page, the harness files 8 of 8 correctly, so the remaining gap is the model's reading of this screen.
+
+**Two things the model would not do on instruction alone,** now enforced by the harness instead: quitting
+early (an early run recited the kid's quit reasons and left at 37 s; all four real kids played the full ten
+minutes) and repeating the kid's own interview words (told not to, it still did; the quotes are now kept out
+of the rules and stay on the card).
+
+**What it is honest to claim:** the engine turns interviews, play recordings or a description into a persona
+whose limits are measured per game and enforced on a live agent, and every run is logged like a real session
+and compared with the real kid where one exists. It does not yet reproduce a kid's error rate on a screen the
+model reads worse than a child, and the check-session predictions remain tied with age-only.

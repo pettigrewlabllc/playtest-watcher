@@ -3,6 +3,9 @@ import type { Usage } from './prices.ts';
 
 export function fakeRespond(schemaName: string | undefined): { data: unknown; usage: Usage } {
   const usage = { input_tokens: 1000, output_tokens: 200 };
+  if (schemaName === 'described_persona') {
+    return { usage, data: { age: 9, dims: [{ name: 'reading', level: -2, because: 'fake: skips instructions' }], limits: [{ name: 'read_share', level: -2, because: 'fake' }, { name: 'action_gap_s', level: -1, because: 'fake: fast' }], patience: 2, drives: [{ drive: 'speed', pull: 0.8, because: 'fake' }], plays_for: 'fake: winning fast', keeps_going: 'fake: quick wins', quits_when: 'fake: two fails' } };
+  }
   if (schemaName === 'agent_step') {
     return { usage, data: { action: 'tap', button: 0, label: 'focused', why: 'fake: trying the first button', would_quit: false, say: '' } };
   }

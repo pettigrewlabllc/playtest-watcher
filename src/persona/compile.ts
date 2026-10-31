@@ -31,9 +31,8 @@ export function compile(p: PersonaFile): Compiled {
     if (d.pull >= 0.6) rules.push({ text: `You love games about ${d.drive}; notice and enjoy it when this game has some.`, from: `drive:${d.drive}` });
     if (d.pull <= -0.6) rules.push({ text: `Games about ${d.drive} put you off; say so if this game is like that.`, from: `drive:${d.drive}` });
   }
-  // Background, not a script: an early run recited these words and quit at 37 s, while the real kids all played
-  // their full ten minutes. Quitting is the harness's call (play.ts), not the model's.
-  if (p.card.quits_when) rules.push({ text: `Things that have bothered you in other games (background, not a script; don't repeat these words): ${p.card.quits_when}`, from: 'interview' });
+  // The interview's quit reasons stay on the card (for people) and out of the rules: told to treat them as
+  // background, the model still recited the kid's own words. The drives and dimensions carry what they mean.
   const L = p.limits;
   return {
     rules,
