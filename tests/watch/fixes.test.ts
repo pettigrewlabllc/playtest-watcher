@@ -51,3 +51,19 @@ describe('fixesStage', () => {
     expect(md).toMatch(/No moments/);
   });
 });
+
+describe('fixesStage with an empty answer', () => {
+  it('asks once more with the moment count, then fails if still empty', async () => {
+    const dir = await setup([moment('c004', 192_000, 'stuck'), moment('c006', 220_000, 'bored')]);
+    const base = createMetaClient({ live: false, budgetUsd: 1, spendLog: '/dev/null' });
+    const texts: string[] = [];
+    const answers = [[], [{ title: 'Explain the audit', why: 'w', evidence_moment_ids: ['c004'], severity: 'high', suggestion: 's' }]];
+    const client: MetaClient = { ...base, respond: (async (req: any) => { texts.push(req.content[0].text); return { data: { fixes: answers.shift() }, text: '', usage: {} }; }) as any };
+    const md = await fixesStage(dir, client);
+    expect(md).toContain('## Explain the audit');
+    expect(texts[1]).toContain('There are 2 flagged moments, so return at least one fix.');
+    const never = stub([]);
+    await expect(fixesStage(await setup([moment('c004', 1000, 'stuck')]), never.client)).rejects.toThrow(/came back empty/);
+    expect(never.calls).toHaveLength(2);
+  });
+});
