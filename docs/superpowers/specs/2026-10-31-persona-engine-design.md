@@ -5,6 +5,40 @@ Written 2026-10-31, after the four check sessions and interviews. It replaces th
 persona engine**. The recorder, the watch pipeline, the traits and the scoring all stay; they become the
 inputs and the calibration of this engine.
 
+## 0. Revision after the Fable review (2026-10-31, later the same day)
+
+A plan review (verdict: rework needed) found three blockers; each was checked against the data before
+changing this spec. What changed:
+
+1. **The §2 table measured the games, not the kids.** Factor Slicer's fact cards close themselves after
+   1.1 s (`playtest-hooks.js:88`); Current Cut's `learn:` and `real:` texts are tapped through at 14-20 ms a
+   character while its `line:` texts stay open the whole level (~128 ms a character). Pooling those made "every
+   kid skims", which is backwards: texts kids chose to close (Factor Slicer lessons, Hoard Keeper coach) stayed
+   open longer than reading time. The numbers also came from an uncommitted script. Now: every limit is
+   **per game**, reading counts **only text the kid closed**, a committed `analysis/limits.py` writes
+   `recordings/group/limits.json`, and a limit on a new game is a **ratio to a reference run** on that game
+   (Joel's run, or the game's balance bot). A new game needs one reference run first.
+2. **Replay "calibration" was circular** (the agent would see the kid's own fails and idles). Dropped. A
+   persona is scored only on a game its kid has not played, from Joel's reference run, the same way the frozen
+   checks were; anything scored after 2026-10-31 is labelled post-hoc.
+3. **A screenshot walkthrough can't exercise timing or accuracy limits.** Replaced by **live play on Hoard
+   Keeper** (Joel's pick): Playwright drives the real game in Chrome; Muse Spark sees a screenshot plus the
+   page's buttons and text and chooses an action. Playwright controls the page clock: game time is frozen
+   while Muse thinks and advanced by the persona's own measured time per action, so a slow kid's persona spends
+   more of the 60-second Rush than a fast one's. Text the persona wouldn't have read is cut before Muse sees
+   it; a share of swipes and taps land on the wrong target by the persona's error rate. The game's own event
+   logger stays on, so every run is an ordinary session the scorer and viewer already read.
+
+Also from the review: only dimensions whose 90% range clears 0 produce rule lines, and the card says how many
+that is; `time_pressure` and `novelty_need` are "not measurable with these games" (timers and repetition are
+tied to which game it is); bored-derived dimensions are low-confidence for every kid (kid-vs-Muse kappa per kid
+0.05 / 0.13 / -0.09 / 0.50 on 20 clips, chosen where Muse was most confident); forced labels in the step log
+carry `forced: true`; the check result is "tied with age-only", not "best for two of four"; and the original
+rule stands: this is a player behaviour model, never a personality profile.
+
+Sections below are kept as written except where this revision overrides them; §2's table is superseded by
+`limits.json`.
+
 ## 1. What it is
 
 A developer gives the engine what they know about a player:
@@ -47,9 +81,8 @@ maths and never mis-tap. A child does all of these differently, and differently 
 | Idle stretches (8 s or more) per minute | 1.66 | 0.88 | 1.18 | 1.17 |
 | Moments where they asked for help, per minute | 0.58 | 0.19 | 0.51 | 0.76 |
 
-Reading at 15 characters a second takes about 67 ms a character. Every kid closes text faster than that, so
-they skim. That is a limit, not a description: the harness shows the agent only as much of each text as this
-kid would have read in the time they keep it open.
+(Superseded, see §0: these pooled numbers mix tap-throughs, auto-closing cards and texts left open during a
+task. The per-game, kid-closed version lives in `recordings/group/limits.json`.)
 
 So the persona carries two layers, and the second one is enforced by code, not asked of the model:
 
