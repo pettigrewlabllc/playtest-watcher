@@ -46,21 +46,25 @@ export async function fixesStage(dir: string, client: MetaClient): Promise<strin
       attention: m.attention, asked_for_help: m.asked_for_help, understood_goal: m.understood_goal, quote: m.quote,
       evidence: m.evidence, game_context: m.game_context, fix_hint: m.fix_hint,
     }));
-    const r = await client.respond<{ fixes: Fix[] }>({
+    const ask = (nudge: string) => client.respond<{ fixes: Fix[] }>({
       // Reasoning counts against the cap; 6000 ran out before the JSON on an 8-moment session.
       model: 'muse-wonder-1.0', kind: 'fixes', schema: FIXES_SCHEMA, maxOutputTokens: 16000,
       content: [{
         type: 'input_text',
         text: [
           `A child playtested a kids' game called "${game}". Below are the moments an observer flagged, as JSON.`,
-          'Group related moments into a short ranked list of changes the developer should make. Each fix needs a short title, why it matters (what the kid did or felt), the ids of the moments that show it, a severity (high: blocks or sours the game; medium: slows or confuses; low: polish), and one concrete suggestion. Only cite ids that appear below. Do not name the child.',
+          'Group related moments into a short ranked list of changes the developer should make. Each fix needs a short title, why it matters (what the kid did or felt), the ids of the moments that show it, a severity (high: blocks or sours the game; medium: slows or confuses; low: polish), and one concrete suggestion. Only cite ids that appear below. Do not name the child.' + nudge,
           '',
           JSON.stringify(payload, null, 1),
         ].join('\n'),
       }],
     });
+    const empty = (x: { data?: { fixes?: Fix[] } }) => !Array.isArray(x.data?.fixes) || !x.data!.fixes!.length;
+    // Muse sometimes answers a valid empty list; asking once more with the count usually gets the fixes.
+    let r = await ask('');
+    if (empty(r)) r = await ask(` There are ${real.length} flagged moments, so return at least one fix.`);
     // An empty list for real moments is a bad answer, not "nothing to fix": fail so fixes.md is not written blank.
-    if (!Array.isArray(r.data?.fixes) || !r.data.fixes.length) throw new Error(`fixes came back empty for ${real.length} moments: ${r.text.slice(0, 300)}`);
+    if (empty(r)) throw new Error(`fixes came back empty for ${real.length} moments: ${r.text.slice(0, 300)}`);
     const fixes = [...r.data.fixes].sort((a, b) => (RANK[a.severity] ?? 3) - (RANK[b.severity] ?? 3));
     const body = fixes.map(f => {
       const links = f.evidence_moment_ids.filter(id => byId.has(id)).map(id => `[${id} at ${mmss(byId.get(id)!.startMs)}](#${id})`);

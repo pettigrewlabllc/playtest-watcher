@@ -94,6 +94,9 @@ document.querySelectorAll('.pick').forEach(group => {
   const buttons = [...group.querySelectorAll('button')];
   const choose = v => { sel[field] = v; buttons.forEach(b => b.classList.toggle('on', b.textContent === v)); store.set(field, v); };
   buttons.forEach(b => b.onclick = () => choose(b.textContent));
+  // Only the device carries over. A remembered round came back as "learn" on two check sessions (2026-10-31),
+  // so kid, game and round are picked fresh every time.
+  if (field !== 'device') return;
   const saved = store.get(field);
   if (saved && buttons.some(b => b.textContent === saved)) choose(saved);
 });
