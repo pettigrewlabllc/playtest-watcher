@@ -18,12 +18,13 @@ import { fitReaction } from './reaction.ts';
 import { reliability, reliabilityLine } from './reliability.ts';
 import { stability, stabilityLine } from './stability.ts';
 import type { Stability } from './stability.ts';
+import { readInterview, interviewLine } from '../interview/read.ts';
 import { sampleLabels, writeQueue } from '../label/queue.ts';
 import type { Scoreboard } from './score.ts';
 import type { Trait } from './traits.ts';
 
 const REPO = resolve(import.meta.dirname, '..', '..');
-export const COMMANDS = ['fingerprint', 'train', 'persona', 'predict', 'freeze', 'logo', 'scoreboard', 'traits', 'reaction', 'reliability', 'stability'] as const;
+export const COMMANDS = ['fingerprint', 'train', 'persona', 'predict', 'freeze', 'logo', 'scoreboard', 'traits', 'reaction', 'reliability', 'stability', 'interview'] as const;
 const USAGE = `usage: npm run predict -- <command> [--live]
   fingerprint <letter>
   train <letter>
@@ -35,6 +36,7 @@ const USAGE = `usage: npm run predict -- <command> [--live]
   traits            (AFM and trait estimators for every kid, from all learn sessions)
   reaction          (pooled reaction model, both variants and baselines, leave-one-game-out)
   reliability       (Cohen's kappa between Joel's hand labels and Muse's)
+  interview <letter> (reads a recorded interview: the kid's word per clip vs Muse, and with --live a motivation profile)
   stability [--n 30] (Muse asked twice about the same clips: how often it gives the same label; live, ~$0.03 a clip)
   sample-labels [--n 200]   (moments for Joel to label, stratified by Muse's label, into label-queue.json)`;
 
@@ -177,6 +179,11 @@ export async function runCommand(argv: string[], deps: Deps = {}): Promise<void>
   } else if (cmd === 'reliability') {
     const r = await reliability(root);
     for (const line of reliabilityLine(r).split('\n')) out(line);
+  } else if (cmd === 'interview') {
+    const letter = needLetter();
+    const iv = await readInterview(root, letter, client(), { log: out });
+    out(interviewLine(iv));
+    if (iv.motivation) out(`  chasing: ${iv.motivation.chasing}\n  keeps going: ${iv.motivation.keeps_going}\n  quits when: ${iv.motivation.quits_when}`);
   } else if (cmd === 'stability') {
     const at = rest.indexOf('--n');
     const n = at >= 0 ? Number(rest[at + 1]) : 30;

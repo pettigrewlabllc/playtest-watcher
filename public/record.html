@@ -32,7 +32,7 @@
   <fieldset><legend>Session</legend>
     <div class="pick" data-field="kid">Kid <button>A</button><button>B</button><button>C</button><button>D</button><button>J</button></div>
     <div class="pick" data-field="game">Game <button>factor-slicer</button><button>bond-swap</button><button>hoard-keeper</button><button>current-cut</button></div>
-    <div class="pick" data-field="round">Round <button>learn</button><button>replay</button><button>check</button><button>reference</button><button>debrief</button></div>
+    <div class="pick" data-field="round">Round <button>learn</button><button>replay</button><button>check</button><button>reference</button><button>debrief</button><button>interview</button></div>
     <div class="pick" data-field="device">Device <button>ipad</button><button>laptop</button></div>
   </fieldset>
   <fieldset><legend>Sources</legend>
@@ -126,6 +126,8 @@ async function fillDevices() {
 let session = null, streams = null, recs = null, startedAt = 0, timer = null, poll = null;
 
 async function ready() {
+  // An interview runs on this laptop and has no game of its own.
+  if (sel.round === 'interview') { sel.game = 'interview'; sel.device = 'laptop'; }
   for (const f of ['kid', 'game', 'round', 'device']) if (!sel[f]) return alert(`Pick a ${f}.`);
   if ($('face').value === $('hands').value) return alert('Pick two different cameras.');
   streams = {
@@ -152,6 +154,11 @@ async function ready() {
 }
 
 async function showGameLink() {
+  if (sel.round === 'interview') {
+    const url = `http://localhost:${location.port}/interview.html?kid=${sel.kid}&playtest=${session}&pw=${encodeURIComponent(`http://localhost:${location.port}`)}`;
+    $('gameLink').innerHTML = `Interview: <a href="${url}" target="_blank">open the interview page</a> (the screen share should show it).`;
+    return;
+  }
   if (sel.game === 'current-cut' && sel.device === 'laptop') {
     $('gameLink').innerHTML = `Run on this laptop: <code>godot --path game -- --playtest=${session} --pw=http://localhost:${location.port}</code>`;
     return;
