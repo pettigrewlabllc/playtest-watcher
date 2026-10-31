@@ -1,5 +1,6 @@
 """Player traits (spec 3b): computed estimators with 90% block-bootstrap intervals, shrunk toward the group on each
 game and game-adjusted (a kid is only compared with other kids on the same game)."""
+import re
 import argparse
 import sys
 from pathlib import Path
@@ -30,7 +31,7 @@ TRAITS = {
     "pace": ("minutes", False, "attempts per minute"),
     "challenge_appetite": ("success-streak events", True, "P(bored) during success streaks of 5 or more; our own measure"),
     "stamina": ("minutes", True, "slope of negative moments per minute across the session (per minute); our own measure"),
-    "expressiveness": ("moments", True, "mean share of face, voice and hands carrying evidence per moment; our own measure"),
+    "expressiveness": ("moments", True, "mean share of face, voice and hands showing something per moment (a visible expression; a laugh, sigh, groan or a charged tone, not plain think-aloud; a gesture or posture beyond playing), read from Muse's evidence with negations left out; our own measure"),
     "confusion_resolves": ("confused moments", True, "share of confused moments not followed by frustration within 30 s"),
 }
 AFM_TRAITS = ("skill", "learning_rate")
@@ -38,6 +39,36 @@ AFM_TRAITS = ("skill", "learning_rate")
 SAID_AXES = {"explore": "exploration_drive", "read": "reading", "challenge": "challenge_appetite",
              "persist": "persistence", "social": "expressiveness", "pace": "pace"}
 SAID_STRONG = 0.5
+
+
+# Muse writes something for face, voice and hands on every moment ("neutral, silent, hands resting" included),
+# so presence says nothing. A channel counts when its evidence describes something happening. A cue right after
+# "no", "not" or "without" ("no smile, frown or sigh") doesn't count.
+FACE_CUES = r"smil|grin|laugh|giggl|frown|grimac|winc|scowl|furrow|raised? (?:his |her |their )?(?:eye)?brows?|brows? (?:rais|lift|knit|draw)|eyes? (?:widen|wide|roll)|eye[- ]?roll|mouth (?:drops|falls)|jaw drop|pout|purse|bites? (?:lip|nail)|lip bit|squint|yawn|sigh|puff|tongue|smirk|beam|shakes? (?:his |her |their )?head|nods?\b|nodding|wrinkl|glare|surpris|delight|excit|annoy|disgust"
+VOICE_CUES = r"laugh|giggl|chuckl|sigh|groan|gasp|grunt|exclaim|shout|yell|scream|whin|squeal|cheer|\b(?:ugh|argh|whoa|yay|wow|oops|aw+)\b|excit|annoy|exasperat|frustrat|complain|delight|surpris|loud|raised voice|emphatic|animated|enthusias|playful|teas|protest"
+HANDS_CUES = r"behind (?:his |her |their )?head|head in (?:his |her |their |both )?hands?|propp|rest(?:s|ing)? (?:his |her |their )?(?:head|chin|cheek|face)|to (?:his |her |their )?(?:face|head|mouth|chin|cheek|forehead|hair|temple|eyes?)\b|on (?:his |her |their )?(?:face|head|chin|cheek|forehead|temple)\b|cover|throws?|threw|raises? (?:both |his |her |their )?(?:hands|arms)|arms? up|hands? up|clap|fist|slap|slam|bang|hits? the|pound|point(?:s|ing|ed)? (?:at|to)|gestur|wav(?:e|es|ing)\b|fidget|drum|rub|scratch|stretch|push(?:es)? (?:the )?(?:ipad|tablet) away|lets? go|crosse?s? (?:his |her |their )?arms|fold"
+NEGATION = r"\b(?:no|not|never|without|nor|neither|zero|lack of|absent)\b"
+CLAUSE = r"[;.:!?]|\b(?:then|but|until|while|before|after|later|now|yet)\b"
+
+
+def _cue(text, cues):
+    # Negation reaches across a list ("no sighs, laughs or groans") up to a clause break or a turn ("no frown, then grins").
+    t = str(text or "").lower()
+    for hit in re.finditer(cues, t):
+        before = t[max(0, hit.start() - 60):hit.start()]
+        breaks = list(re.finditer(CLAUSE, before))
+        if not re.search(NEGATION, before[breaks[-1].end():] if breaks else before):
+            return 1
+    return 0
+
+
+# Voice counts emotional sound only (a laugh, a sigh, a groan, an annoyed or excited tone): the kids think aloud on
+# nearly every moment because we asked them to, so plain talking can't tell them apart. Talk time is reported on
+# its own (talk_share). Body language Muse files under face ("head propped on hand") counts for hands.
+def channels_shown(m):
+    ev = m.get("evidence") or {}
+    body = _cue(ev.get("hands"), HANDS_CUES) or _cue(ev.get("face"), HANDS_CUES)
+    return [_cue(ev.get("face"), FACE_CUES), _cue(ev.get("voice"), VOICE_CUES), body]
 
 
 def _active_or_starts(moments, t, until, labels):
@@ -130,7 +161,7 @@ def session_blocks(s, intents):
             if m["label"] in NEGATIVE:
                 x["neg"] += 1
             ev = m.get("evidence") or {}
-            x["channels"].append([int(bool(str(ev.get(c, "")).strip())) for c in ("face", "voice", "hands")])
+            x["channels"].append(channels_shown(m))
             if m["label"] == "confused":
                 bad = any(o["label"] == "frustrated" and m["endMs"] < o["startMs"] <= m["endMs"] + 30000 for o in moments)
                 x["confused"].append(0 if bad else 1)
@@ -277,7 +308,9 @@ def extras(name, bs, sessions, intents):
         if any(s["transcript"] for s in sessions) and mins > 0:
             talk = len(turns) / mins
         share = {c: (float(np.mean([x[i] for x in ch])) if ch else None) for i, c in enumerate(("face", "voice", "hands"))}
-        return {**share, "talk_per_min": talk}
+        talk_ms = sum(max(0, t["endMs"] - t["startMs"]) for t in turns)
+        talk_share = talk_ms / (mins * 60000) if any(s["transcript"] for s in sessions) and mins > 0 else None
+        return {**share, "talk_per_min": talk, "talk_share": talk_share}
     if name == "frustration_tolerance":
         _, censored = _k50([p for b in bs for p in b["ft"]])
         return {"censored_at": censored} if censored is not None else {}
