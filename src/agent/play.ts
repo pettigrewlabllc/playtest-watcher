@@ -79,6 +79,10 @@ async function observe(page: Page): Promise<Seen> {
       (e as HTMLElement).dataset.pwText = key;
       texts.push({ key, text: t });
     });
+    // Pictures by their alt text, as a screen reader gives them: a kid sees a red fire dragon at a glance, but Muse
+    // misread the dragon art often enough to file over half the slips wrong (the page itself never mis-taps).
+    const pics = [...document.querySelectorAll('img[alt]')].filter(vis).map(e => `[picture: ${e.getAttribute('alt')}]`).filter(t => t.length > 12);
+    for (const t of pics) if (!labels.includes(t) && labels.length < 60) labels.unshift(t);
     const screen = (document.querySelector('h1, h2, .title')?.textContent ?? '').trim().slice(0, 50) || buttons.slice(0, 3).map(b => b.text).join(' | ');
     return { buttons, texts, labels, screen };
   });
@@ -138,6 +142,13 @@ export async function play(letter: string, o: { game: string; steps: number; url
       for (const t of fresh) decided.set(t.key, r() < h.readShare);
       const skipped = seen.texts.filter(t => decided.get(t.key) === false);
       await hideSkipped(page, skipped.map(t => t.key));
+      // With the page clock frozen Chrome may not paint, and screenshots came back a frame behind the page (the
+      // agent filed slips that were already gone). Let ~80 ms of real time run so a fresh frame exists, then freeze.
+      await page.clock.resume();
+      await page.waitForTimeout(80);
+      const nowMs = await page.evaluate(() => Date.now());
+      await page.clock.pauseAt(nowMs + 20);
+      gameMs += 100;
       const shotBuf = await page.screenshot({ type: 'jpeg', quality: 60 });
       await writeFile(join(dir, 'shots', `${String(n).padStart(3, '0')}.jpg`), shotBuf);
       const shot = shotBuf.toString('base64');
