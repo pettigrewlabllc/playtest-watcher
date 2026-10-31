@@ -1,0 +1,1178 @@
+{
+  "reliability": {
+    "n": 0,
+    "kappa": null,
+    "agreement": null,
+    "below_gate": true,
+    "gate": 0.6,
+    "per_label": {},
+    "sessions": []
+  },
+  "players": {
+    "A": {
+      "ceiling": null,
+      "predictors": {
+        "null": {
+          "logo": null,
+          "check": {
+            "recall": 0.4375,
+            "precision": 0.0660377358490566,
+            "mix_similarity": 0.4375,
+            "real": 16,
+            "predicted": 106,
+            "hits": 7,
+            "matched": 7,
+            "kappa": 0,
+            "auc": {
+              "bored": 0.5,
+              "confused": 0.5,
+              "engaged": 0.5,
+              "focused": 0.5,
+              "stuck": 0.5
+            },
+            "mix_distance": 0.5625,
+            "hit_ids": [
+              "c004",
+              "c006",
+              "c007",
+              "c008",
+              "c009",
+              "c013",
+              "c016"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "baseline": {
+          "logo": null,
+          "check": {
+            "recall": 0,
+            "precision": null,
+            "mix_similarity": null,
+            "real": 16,
+            "predicted": 0,
+            "hits": 0,
+            "matched": 0,
+            "kappa": 0,
+            "auc": {
+              "bored": 0.5,
+              "confused": 0.5,
+              "engaged": 0.5,
+              "focused": 0.5,
+              "stuck": 0.5
+            },
+            "mix_distance": null,
+            "hit_ids": []
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "questionnaire": {
+          "logo": null,
+          "check": {
+            "recall": 0.25,
+            "precision": 0.1111111111111111,
+            "mix_similarity": 0.5694444444444444,
+            "real": 16,
+            "predicted": 36,
+            "hits": 4,
+            "matched": 4,
+            "kappa": 0.03125000000000002,
+            "auc": {
+              "bored": 0.38333333333333336,
+              "confused": 0.48148148148148145,
+              "engaged": 0.43333333333333335,
+              "focused": 0.5922619047619048,
+              "stuck": 0.75
+            },
+            "mix_distance": 0.4305555555555556,
+            "hit_ids": [
+              "c001",
+              "c004",
+              "c010",
+              "c015"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "persona": {
+          "logo": null,
+          "check": {
+            "recall": 0.3125,
+            "precision": 0.20833333333333334,
+            "mix_similarity": 0.6875,
+            "real": 16,
+            "predicted": 24,
+            "hits": 5,
+            "matched": 5,
+            "kappa": 0.22499999999999995,
+            "auc": {
+              "bored": 0.5,
+              "confused": 0.75,
+              "engaged": 0.48333333333333334,
+              "focused": 0.5148809523809523,
+              "stuck": 0.5
+            },
+            "mix_distance": 0.3125,
+            "hit_ids": [
+              "c001",
+              "c006",
+              "c010",
+              "c013",
+              "c016"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "model": {
+          "logo": null,
+          "check": {
+            "recall": 0.3125,
+            "precision": 0.04716981132075472,
+            "mix_similarity": 0.5306603773584906,
+            "real": 16,
+            "predicted": 106,
+            "hits": 5,
+            "matched": 5,
+            "kappa": 0,
+            "auc": {
+              "bored": 0.3,
+              "confused": 0.5,
+              "engaged": 0.9333333333333333,
+              "focused": 0.35714285714285715,
+              "stuck": 0.7327586206896551
+            },
+            "mix_distance": 0.4693396226415094,
+            "hit_ids": [
+              "c004",
+              "c010",
+              "c011",
+              "c014",
+              "c015"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "model-traits": {
+          "logo": null,
+          "check": {
+            "recall": 0.375,
+            "precision": 0.04716981132075472,
+            "mix_similarity": 0.375,
+            "real": 16,
+            "predicted": 106,
+            "hits": 6,
+            "matched": 5,
+            "kappa": -0.0021551724137931043,
+            "auc": {
+              "bored": 0.1,
+              "confused": 0.4537037037037037,
+              "engaged": 0.5,
+              "focused": 0.5,
+              "stuck": 0.5
+            },
+            "mix_distance": 0.625,
+            "hit_ids": [
+              "c006",
+              "c008",
+              "c009",
+              "c012",
+              "c013",
+              "c016"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "model-kid": {
+          "logo": null,
+          "check": {
+            "recall": 0.375,
+            "precision": 0.04716981132075472,
+            "mix_similarity": 0.375,
+            "real": 16,
+            "predicted": 106,
+            "hits": 6,
+            "matched": 5,
+            "kappa": -0.0021551724137931043,
+            "auc": {
+              "bored": 0.13333333333333333,
+              "confused": 0.4351851851851852,
+              "engaged": 0.5,
+              "focused": 0.5,
+              "stuck": 0.5
+            },
+            "mix_distance": 0.625,
+            "hit_ids": [
+              "c006",
+              "c008",
+              "c009",
+              "c012",
+              "c013",
+              "c016"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        }
+      },
+      "ranking": null,
+      "transfer": null,
+      "paired": {
+        "null": {
+          "hits": 7,
+          "misses": 9,
+          "vs_null": {
+            "both": 7,
+            "only_this": 0,
+            "only_null": 0,
+            "neither": 9
+          }
+        },
+        "baseline": {
+          "hits": 0,
+          "misses": 16,
+          "vs_null": {
+            "both": 0,
+            "only_this": 0,
+            "only_null": 7,
+            "neither": 9
+          }
+        },
+        "questionnaire": {
+          "hits": 4,
+          "misses": 12,
+          "vs_null": {
+            "both": 1,
+            "only_this": 3,
+            "only_null": 6,
+            "neither": 6
+          }
+        },
+        "persona": {
+          "hits": 5,
+          "misses": 11,
+          "vs_null": {
+            "both": 3,
+            "only_this": 2,
+            "only_null": 4,
+            "neither": 7
+          }
+        },
+        "model": {
+          "hits": 5,
+          "misses": 11,
+          "vs_null": {
+            "both": 1,
+            "only_this": 4,
+            "only_null": 6,
+            "neither": 5
+          }
+        },
+        "model-traits": {
+          "hits": 6,
+          "misses": 10,
+          "vs_null": {
+            "both": 5,
+            "only_this": 1,
+            "only_null": 2,
+            "neither": 8
+          }
+        },
+        "model-kid": {
+          "hits": 6,
+          "misses": 10,
+          "vs_null": {
+            "both": 5,
+            "only_this": 1,
+            "only_null": 2,
+            "neither": 8
+          }
+        }
+      }
+    },
+    "B": {
+      "ceiling": null,
+      "predictors": {
+        "null": {
+          "logo": null,
+          "check": {
+            "recall": 0.23076923076923078,
+            "precision": 0.16666666666666666,
+            "mix_similarity": 0.4230769230769229,
+            "real": 26,
+            "predicted": 42,
+            "hits": 6,
+            "matched": 7,
+            "kappa": -0.1666666666666667,
+            "auc": {
+              "bored": 0.5,
+              "confused": 0.2549019607843137,
+              "engaged": 0.5,
+              "focused": 0.5,
+              "frustrated": 0.5,
+              "stuck": 0.5328947368421053
+            },
+            "mix_distance": 0.5769230769230771,
+            "hit_ids": [
+              "c003",
+              "c009",
+              "c010",
+              "c017",
+              "c025",
+              "c026"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "baseline": {
+          "logo": null,
+          "check": {
+            "recall": 0,
+            "precision": 0,
+            "mix_similarity": 0.41295546558704455,
+            "real": 26,
+            "predicted": 19,
+            "hits": 0,
+            "matched": 0,
+            "kappa": 0.08000000000000002,
+            "auc": {
+              "bored": 0.5,
+              "confused": 0.47058823529411764,
+              "engaged": 0.4090909090909091,
+              "focused": 0.35714285714285715,
+              "frustrated": 0.475,
+              "stuck": 0.5
+            },
+            "mix_distance": 0.5870445344129555,
+            "hit_ids": []
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "questionnaire": {
+          "logo": null,
+          "check": {
+            "recall": 0.15384615384615385,
+            "precision": 0.09090909090909091,
+            "mix_similarity": 0.39160839160839156,
+            "real": 26,
+            "predicted": 22,
+            "hits": 4,
+            "matched": 2,
+            "kappa": 0.008620689655172402,
+            "auc": {
+              "bored": 0.5,
+              "confused": 0.5,
+              "engaged": 0.38636363636363635,
+              "focused": 0.6428571428571429,
+              "frustrated": 0.5,
+              "stuck": 0.5263157894736842
+            },
+            "mix_distance": 0.6083916083916084,
+            "hit_ids": [
+              "c009",
+              "c010",
+              "c012",
+              "c013"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "persona": {
+          "logo": null,
+          "check": {
+            "recall": 0.07692307692307693,
+            "precision": 0.08333333333333333,
+            "mix_similarity": 0.6346153846153846,
+            "real": 26,
+            "predicted": 24,
+            "hits": 2,
+            "matched": 2,
+            "kappa": -0.1552511415525114,
+            "auc": {
+              "bored": 0.5245098039215687,
+              "confused": 0.29411764705882354,
+              "engaged": 0.4090909090909091,
+              "focused": 0.42857142857142855,
+              "frustrated": 0.475,
+              "stuck": 0.5
+            },
+            "mix_distance": 0.3653846153846154,
+            "hit_ids": [
+              "c008",
+              "c017"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "model": {
+          "logo": null,
+          "check": {
+            "recall": 0.19230769230769232,
+            "precision": 0.09523809523809523,
+            "mix_similarity": 0.5659340659340659,
+            "real": 26,
+            "predicted": 42,
+            "hits": 5,
+            "matched": 4,
+            "kappa": -0.06387665198237888,
+            "auc": {
+              "bored": 0.27450980392156865,
+              "confused": 0.45098039215686275,
+              "engaged": 0.36363636363636365,
+              "focused": 0.8095238095238095,
+              "frustrated": 0.5,
+              "stuck": 0.5
+            },
+            "mix_distance": 0.4340659340659341,
+            "hit_ids": [
+              "c008",
+              "c012",
+              "c013",
+              "c018",
+              "c025"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "model-traits": {
+          "logo": null,
+          "check": {
+            "recall": 0.34615384615384615,
+            "precision": 0.19047619047619047,
+            "mix_similarity": 0.38461538461538436,
+            "real": 26,
+            "predicted": 42,
+            "hits": 9,
+            "matched": 8,
+            "kappa": -0.09004739336492898,
+            "auc": {
+              "bored": 0.4803921568627451,
+              "confused": 0.5,
+              "engaged": 0.5,
+              "focused": 0.7857142857142857,
+              "frustrated": 0.5,
+              "stuck": 0.5
+            },
+            "mix_distance": 0.6153846153846156,
+            "hit_ids": [
+              "c001",
+              "c002",
+              "c004",
+              "c005",
+              "c006",
+              "c008",
+              "c012",
+              "c013",
+              "c018"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "model-kid": {
+          "logo": null,
+          "check": {
+            "recall": 0.3076923076923077,
+            "precision": 0.19047619047619047,
+            "mix_similarity": 0.43223443223443203,
+            "real": 26,
+            "predicted": 42,
+            "hits": 8,
+            "matched": 8,
+            "kappa": -0.07333333333333335,
+            "auc": {
+              "bored": 0.46078431372549017,
+              "confused": 0.5588235294117647,
+              "engaged": 0.5,
+              "focused": 0.9523809523809523,
+              "frustrated": 0.5,
+              "stuck": 0.5
+            },
+            "mix_distance": 0.567765567765568,
+            "hit_ids": [
+              "c001",
+              "c002",
+              "c004",
+              "c008",
+              "c012",
+              "c013",
+              "c017",
+              "c018"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        }
+      },
+      "ranking": null,
+      "transfer": null,
+      "paired": {
+        "null": {
+          "hits": 6,
+          "misses": 20,
+          "vs_null": {
+            "both": 6,
+            "only_this": 0,
+            "only_null": 0,
+            "neither": 20
+          }
+        },
+        "baseline": {
+          "hits": 0,
+          "misses": 26,
+          "vs_null": {
+            "both": 0,
+            "only_this": 0,
+            "only_null": 6,
+            "neither": 20
+          }
+        },
+        "questionnaire": {
+          "hits": 4,
+          "misses": 22,
+          "vs_null": {
+            "both": 2,
+            "only_this": 2,
+            "only_null": 4,
+            "neither": 18
+          }
+        },
+        "persona": {
+          "hits": 2,
+          "misses": 24,
+          "vs_null": {
+            "both": 1,
+            "only_this": 1,
+            "only_null": 5,
+            "neither": 19
+          }
+        },
+        "model": {
+          "hits": 5,
+          "misses": 21,
+          "vs_null": {
+            "both": 1,
+            "only_this": 4,
+            "only_null": 5,
+            "neither": 16
+          }
+        },
+        "model-traits": {
+          "hits": 9,
+          "misses": 17,
+          "vs_null": {
+            "both": 0,
+            "only_this": 9,
+            "only_null": 6,
+            "neither": 11
+          }
+        },
+        "model-kid": {
+          "hits": 8,
+          "misses": 18,
+          "vs_null": {
+            "both": 1,
+            "only_this": 7,
+            "only_null": 5,
+            "neither": 13
+          }
+        }
+      }
+    },
+    "C": {
+      "ceiling": null,
+      "predictors": {
+        "null": {
+          "logo": null,
+          "check": {
+            "recall": 0.42105263157894735,
+            "precision": 0.35,
+            "mix_similarity": 0.6315789473684211,
+            "real": 19,
+            "predicted": 20,
+            "hits": 8,
+            "matched": 7,
+            "kappa": -0.29629629629629634,
+            "auc": {
+              "bored": 0.5,
+              "confused": 0.3,
+              "engaged": 0.5,
+              "focused": 0.5,
+              "stuck": 0.7
+            },
+            "mix_distance": 0.36842105263157887,
+            "hit_ids": [
+              "c001",
+              "c005",
+              "c006",
+              "c007",
+              "c008",
+              "c009",
+              "c010",
+              "c011"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "baseline": {
+          "logo": null,
+          "check": {
+            "recall": 0.15789473684210525,
+            "precision": 0.07142857142857142,
+            "mix_similarity": 0.4398496240601504,
+            "real": 19,
+            "predicted": 14,
+            "hits": 3,
+            "matched": 1,
+            "kappa": 0.18604651162790697,
+            "auc": {
+              "bored": 0.5,
+              "confused": 0.5,
+              "engaged": 0.3333333333333333,
+              "focused": 0.7,
+              "stuck": 0.5
+            },
+            "mix_distance": 0.5601503759398496,
+            "hit_ids": [
+              "c002",
+              "c003",
+              "c004"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "questionnaire": {
+          "logo": null,
+          "check": {
+            "recall": 0.15789473684210525,
+            "precision": 0.07142857142857142,
+            "mix_similarity": 0.368421052631579,
+            "real": 19,
+            "predicted": 14,
+            "hits": 3,
+            "matched": 1,
+            "kappa": 0.06666666666666667,
+            "auc": {
+              "bored": 0.5,
+              "confused": 0.5,
+              "engaged": 0.25,
+              "focused": 0.75,
+              "stuck": 0.5
+            },
+            "mix_distance": 0.631578947368421,
+            "hit_ids": [
+              "c002",
+              "c003",
+              "c004"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "persona": {
+          "logo": null,
+          "check": {
+            "recall": 0.15789473684210525,
+            "precision": 0.06666666666666667,
+            "mix_similarity": 0.6526315789473685,
+            "real": 19,
+            "predicted": 15,
+            "hits": 3,
+            "matched": 1,
+            "kappa": 0.20454545454545453,
+            "auc": {
+              "bored": 0.5,
+              "confused": 0.5,
+              "engaged": 0.25,
+              "focused": 0.75,
+              "stuck": 0.5
+            },
+            "mix_distance": 0.34736842105263155,
+            "hit_ids": [
+              "c002",
+              "c003",
+              "c004"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "model": {
+          "logo": null,
+          "check": {
+            "recall": 0.15789473684210525,
+            "precision": 0.1,
+            "mix_similarity": 0.6605263157894737,
+            "real": 19,
+            "predicted": 20,
+            "hits": 3,
+            "matched": 2,
+            "kappa": -0.0425531914893617,
+            "auc": {
+              "bored": 0.5,
+              "confused": 0,
+              "engaged": 0.16666666666666666,
+              "focused": 0.4,
+              "stuck": 0.5
+            },
+            "mix_distance": 0.33947368421052626,
+            "hit_ids": [
+              "c001",
+              "c008",
+              "c009"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "model-traits": {
+          "logo": null,
+          "check": {
+            "recall": 0.2631578947368421,
+            "precision": 0.15,
+            "mix_similarity": 0.6263157894736843,
+            "real": 19,
+            "predicted": 20,
+            "hits": 5,
+            "matched": 3,
+            "kappa": -0.29629629629629634,
+            "auc": {
+              "bored": 0.5,
+              "confused": 0.4,
+              "engaged": 0.25,
+              "focused": 0.3,
+              "stuck": 0.5
+            },
+            "mix_distance": 0.37368421052631573,
+            "hit_ids": [
+              "c001",
+              "c008",
+              "c009",
+              "c010",
+              "c011"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "model-kid": {
+          "logo": null,
+          "check": {
+            "recall": 0.2631578947368421,
+            "precision": 0.15,
+            "mix_similarity": 0.5763157894736842,
+            "real": 19,
+            "predicted": 20,
+            "hits": 5,
+            "matched": 3,
+            "kappa": -0.29629629629629634,
+            "auc": {
+              "bored": 0.5,
+              "confused": 0.4,
+              "engaged": 0.16666666666666666,
+              "focused": 0.4,
+              "stuck": 0.5
+            },
+            "mix_distance": 0.4236842105263158,
+            "hit_ids": [
+              "c001",
+              "c008",
+              "c009",
+              "c010",
+              "c011"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        }
+      },
+      "ranking": null,
+      "transfer": null,
+      "paired": {
+        "null": {
+          "hits": 8,
+          "misses": 11,
+          "vs_null": {
+            "both": 8,
+            "only_this": 0,
+            "only_null": 0,
+            "neither": 11
+          }
+        },
+        "baseline": {
+          "hits": 3,
+          "misses": 16,
+          "vs_null": {
+            "both": 0,
+            "only_this": 3,
+            "only_null": 8,
+            "neither": 8
+          }
+        },
+        "questionnaire": {
+          "hits": 3,
+          "misses": 16,
+          "vs_null": {
+            "both": 0,
+            "only_this": 3,
+            "only_null": 8,
+            "neither": 8
+          }
+        },
+        "persona": {
+          "hits": 3,
+          "misses": 16,
+          "vs_null": {
+            "both": 0,
+            "only_this": 3,
+            "only_null": 8,
+            "neither": 8
+          }
+        },
+        "model": {
+          "hits": 3,
+          "misses": 16,
+          "vs_null": {
+            "both": 3,
+            "only_this": 0,
+            "only_null": 5,
+            "neither": 11
+          }
+        },
+        "model-traits": {
+          "hits": 5,
+          "misses": 14,
+          "vs_null": {
+            "both": 5,
+            "only_this": 0,
+            "only_null": 3,
+            "neither": 11
+          }
+        },
+        "model-kid": {
+          "hits": 5,
+          "misses": 14,
+          "vs_null": {
+            "both": 5,
+            "only_this": 0,
+            "only_null": 3,
+            "neither": 11
+          }
+        }
+      }
+    },
+    "D": {
+      "ceiling": null,
+      "predictors": {
+        "null": {
+          "logo": null,
+          "check": {
+            "recall": 0.8125,
+            "precision": 0.2,
+            "mix_similarity": 0.5,
+            "real": 16,
+            "predicted": 20,
+            "hits": 13,
+            "matched": 4,
+            "kappa": null,
+            "auc": {
+              "delighted": 0.5,
+              "engaged": 0.5
+            },
+            "mix_distance": 0.5,
+            "hit_ids": [
+              "c001",
+              "c002",
+              "c003",
+              "c004",
+              "c005",
+              "c007",
+              "c008",
+              "c010",
+              "c011",
+              "c012",
+              "c013",
+              "c015",
+              "c016"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "baseline": {
+          "logo": null,
+          "check": {
+            "recall": 0.25,
+            "precision": 0.25,
+            "mix_similarity": 0.3125,
+            "real": 16,
+            "predicted": 8,
+            "hits": 4,
+            "matched": 2,
+            "kappa": 0,
+            "auc": {
+              "delighted": 0.75,
+              "engaged": 0.3333333333333333
+            },
+            "mix_distance": 0.6875,
+            "hit_ids": [
+              "c008",
+              "c013",
+              "c014",
+              "c015"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "questionnaire": {
+          "logo": null,
+          "check": {
+            "recall": 0.0625,
+            "precision": 0.06666666666666667,
+            "mix_similarity": 0.1875,
+            "real": 16,
+            "predicted": 15,
+            "hits": 1,
+            "matched": 1,
+            "kappa": 0,
+            "auc": {
+              "delighted": 0.5,
+              "engaged": 0.3333333333333333
+            },
+            "mix_distance": 0.8125,
+            "hit_ids": [
+              "c009"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "persona": {
+          "logo": null,
+          "check": {
+            "recall": 0.6875,
+            "precision": 0.15789473684210525,
+            "mix_similarity": 0.4736842105263157,
+            "real": 16,
+            "predicted": 19,
+            "hits": 11,
+            "matched": 3,
+            "kappa": 0,
+            "auc": {
+              "delighted": 0.5,
+              "engaged": 0.5
+            },
+            "mix_distance": 0.5263157894736843,
+            "hit_ids": [
+              "c001",
+              "c002",
+              "c003",
+              "c004",
+              "c005",
+              "c007",
+              "c008",
+              "c010",
+              "c012",
+              "c013",
+              "c015"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "model": {
+          "logo": null,
+          "check": {
+            "recall": 0.8125,
+            "precision": 0.2,
+            "mix_similarity": 0.5625,
+            "real": 16,
+            "predicted": 20,
+            "hits": 13,
+            "matched": 4,
+            "kappa": 0,
+            "auc": {
+              "delighted": 0.5,
+              "engaged": 0.16666666666666666
+            },
+            "mix_distance": 0.4375,
+            "hit_ids": [
+              "c001",
+              "c002",
+              "c003",
+              "c004",
+              "c005",
+              "c007",
+              "c008",
+              "c010",
+              "c011",
+              "c012",
+              "c013",
+              "c015",
+              "c016"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "model-traits": {
+          "logo": null,
+          "check": {
+            "recall": 0.8125,
+            "precision": 0.2,
+            "mix_similarity": 0.5,
+            "real": 16,
+            "predicted": 20,
+            "hits": 13,
+            "matched": 4,
+            "kappa": null,
+            "auc": {
+              "delighted": 0.5,
+              "engaged": 0.5
+            },
+            "mix_distance": 0.5,
+            "hit_ids": [
+              "c001",
+              "c002",
+              "c003",
+              "c004",
+              "c005",
+              "c007",
+              "c008",
+              "c010",
+              "c011",
+              "c012",
+              "c013",
+              "c015",
+              "c016"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        },
+        "model-kid": {
+          "logo": null,
+          "check": {
+            "recall": 0.8125,
+            "precision": 0.2,
+            "mix_similarity": 0.5,
+            "real": 16,
+            "predicted": 20,
+            "hits": 13,
+            "matched": 4,
+            "kappa": null,
+            "auc": {
+              "delighted": 0.5,
+              "engaged": 0.5
+            },
+            "mix_distance": 0.5,
+            "hit_ids": [
+              "c001",
+              "c002",
+              "c003",
+              "c004",
+              "c005",
+              "c007",
+              "c008",
+              "c010",
+              "c011",
+              "c012",
+              "c013",
+              "c015",
+              "c016"
+            ]
+          },
+          "logo_normalized": null,
+          "check_normalized": null
+        }
+      },
+      "ranking": null,
+      "transfer": null,
+      "paired": {
+        "null": {
+          "hits": 13,
+          "misses": 3,
+          "vs_null": {
+            "both": 13,
+            "only_this": 0,
+            "only_null": 0,
+            "neither": 3
+          }
+        },
+        "baseline": {
+          "hits": 4,
+          "misses": 12,
+          "vs_null": {
+            "both": 3,
+            "only_this": 1,
+            "only_null": 10,
+            "neither": 2
+          }
+        },
+        "questionnaire": {
+          "hits": 1,
+          "misses": 15,
+          "vs_null": {
+            "both": 0,
+            "only_this": 1,
+            "only_null": 13,
+            "neither": 2
+          }
+        },
+        "persona": {
+          "hits": 11,
+          "misses": 5,
+          "vs_null": {
+            "both": 11,
+            "only_this": 0,
+            "only_null": 2,
+            "neither": 3
+          }
+        },
+        "model": {
+          "hits": 13,
+          "misses": 3,
+          "vs_null": {
+            "both": 13,
+            "only_this": 0,
+            "only_null": 0,
+            "neither": 3
+          }
+        },
+        "model-traits": {
+          "hits": 13,
+          "misses": 3,
+          "vs_null": {
+            "both": 13,
+            "only_this": 0,
+            "only_null": 0,
+            "neither": 3
+          }
+        },
+        "model-kid": {
+          "hits": 13,
+          "misses": 3,
+          "vs_null": {
+            "both": 13,
+            "only_this": 0,
+            "only_null": 0,
+            "neither": 3
+          }
+        }
+      }
+    }
+  }
+}

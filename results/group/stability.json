@@ -1,0 +1,312 @@
+{
+  "n": 30,
+  "kappa": 0.8059508408796896,
+  "agreement": 0.8333333333333334,
+  "secondary_agreement": 0.9333333333333333,
+  "per_label": {
+    "confused": {
+      "n": 5,
+      "same": 5
+    },
+    "stuck": {
+      "n": 5,
+      "same": 4
+    },
+    "frustrated": {
+      "n": 4,
+      "same": 3
+    },
+    "focused": {
+      "n": 4,
+      "same": 4
+    },
+    "engaged": {
+      "n": 4,
+      "same": 4
+    },
+    "delighted": {
+      "n": 2,
+      "same": 1
+    },
+    "bored": {
+      "n": 4,
+      "same": 3
+    },
+    "none": {
+      "n": 2,
+      "same": 1
+    }
+  },
+  "pairs": [
+    {
+      "session": "20261027-221910-d-bond-swap-learn",
+      "id": "c001",
+      "label": "confused",
+      "again": "confused",
+      "again_secondary": "stuck",
+      "confidence": 0.87,
+      "again_confidence": 0.88
+    },
+    {
+      "session": "20261027-221910-d-bond-swap-learn",
+      "id": "c004",
+      "label": "stuck",
+      "again": "stuck",
+      "again_secondary": "confused",
+      "confidence": 0.71,
+      "again_confidence": 0.78
+    },
+    {
+      "session": "20261027-221910-d-bond-swap-learn",
+      "id": "c012",
+      "label": "frustrated",
+      "again": "frustrated",
+      "again_secondary": "stuck",
+      "confidence": 0.84,
+      "again_confidence": 0.86
+    },
+    {
+      "session": "20261027-221910-d-bond-swap-learn",
+      "id": "c009",
+      "label": "focused",
+      "again": "focused",
+      "again_secondary": "stuck",
+      "confidence": 0.64,
+      "again_confidence": 0.72
+    },
+    {
+      "session": "20261027-221910-d-bond-swap-learn",
+      "id": "c011",
+      "label": "engaged",
+      "again": "engaged",
+      "again_secondary": "focused",
+      "confidence": 0.72,
+      "again_confidence": 0.73
+    },
+    {
+      "session": "20261027-221910-d-bond-swap-learn",
+      "id": "c007",
+      "label": "delighted",
+      "again": "delighted",
+      "again_secondary": "engaged",
+      "confidence": 0.85,
+      "again_confidence": 0.78
+    },
+    {
+      "session": "20261027-221910-d-bond-swap-learn",
+      "id": "c002",
+      "label": "confused",
+      "again": "confused",
+      "again_secondary": "delighted",
+      "confidence": 0.88,
+      "again_confidence": 0.86
+    },
+    {
+      "session": "20261027-221910-d-bond-swap-learn",
+      "id": "c005",
+      "label": "stuck",
+      "again": "stuck",
+      "again_secondary": "delighted",
+      "confidence": 0.74,
+      "again_confidence": 0.78
+    },
+    {
+      "session": "20261027-221910-d-bond-swap-learn",
+      "id": "c010",
+      "label": "focused",
+      "again": "focused",
+      "again_secondary": "stuck",
+      "confidence": 0.74,
+      "again_confidence": 0.68
+    },
+    {
+      "session": "20261027-221910-d-bond-swap-learn",
+      "id": "c003",
+      "label": "confused",
+      "again": "confused",
+      "again_secondary": "stuck",
+      "confidence": 0.82,
+      "again_confidence": 0.82
+    },
+    {
+      "session": "20261027-221910-d-bond-swap-learn",
+      "id": "c006",
+      "label": "stuck",
+      "again": "stuck",
+      "again_secondary": "frustrated",
+      "confidence": 0.88,
+      "again_confidence": 0.85
+    },
+    {
+      "session": "20261027-221910-d-bond-swap-learn",
+      "id": "c008",
+      "label": "confused",
+      "again": "confused",
+      "again_secondary": "focused",
+      "confidence": 0.84,
+      "again_confidence": 0.85
+    },
+    {
+      "session": "20261027-221910-d-bond-swap-learn",
+      "id": "c013",
+      "label": "confused",
+      "again": "confused",
+      "again_secondary": "frustrated",
+      "confidence": 0.74,
+      "again_confidence": 0.68
+    },
+    {
+      "session": "20261027-225231-a-factor-slicer-learn",
+      "id": "c001",
+      "label": "bored",
+      "again": "focused",
+      "again_secondary": "engaged",
+      "confidence": 0.65,
+      "again_confidence": 0.84
+    },
+    {
+      "session": "20261027-225231-a-factor-slicer-learn",
+      "id": "c004",
+      "label": "none",
+      "again": "frustrated",
+      "again_secondary": "engaged",
+      "confidence": 0.62,
+      "again_confidence": 0.64
+    },
+    {
+      "session": "20261027-225231-a-factor-slicer-learn",
+      "id": "c011",
+      "label": "bored",
+      "again": "bored",
+      "again_secondary": "engaged",
+      "confidence": 0.64,
+      "again_confidence": 0.64
+    },
+    {
+      "session": "20261027-225231-a-factor-slicer-learn",
+      "id": "c007",
+      "label": "engaged",
+      "again": "engaged",
+      "again_secondary": "focused",
+      "confidence": 0.82,
+      "again_confidence": 0.68
+    },
+    {
+      "session": "20261027-225231-a-factor-slicer-learn",
+      "id": "c013",
+      "label": "bored",
+      "again": "bored",
+      "again_secondary": "engaged",
+      "confidence": 0.85,
+      "again_confidence": 0.88
+    },
+    {
+      "session": "20261027-225231-a-factor-slicer-learn",
+      "id": "c002",
+      "label": "frustrated",
+      "again": "bored",
+      "again_secondary": "focused",
+      "confidence": 0.62,
+      "again_confidence": 0.64
+    },
+    {
+      "session": "20261027-225231-a-factor-slicer-learn",
+      "id": "c003",
+      "label": "focused",
+      "again": "focused",
+      "again_secondary": "engaged",
+      "confidence": 0.85,
+      "again_confidence": 0.74
+    },
+    {
+      "session": "20261027-225231-a-factor-slicer-learn",
+      "id": "c009",
+      "label": "engaged",
+      "again": "engaged",
+      "again_secondary": "confused",
+      "confidence": 0.74,
+      "again_confidence": 0.72
+    },
+    {
+      "session": "20261027-225231-a-factor-slicer-learn",
+      "id": "c006",
+      "label": "frustrated",
+      "again": "frustrated",
+      "again_secondary": "focused",
+      "confidence": 0.64,
+      "again_confidence": 0.68
+    },
+    {
+      "session": "20261027-225231-a-factor-slicer-learn",
+      "id": "c005",
+      "label": "focused",
+      "again": "focused",
+      "again_secondary": "engaged",
+      "confidence": 0.88,
+      "again_confidence": 0.88
+    },
+    {
+      "session": "20261027-225231-a-factor-slicer-learn",
+      "id": "c010",
+      "label": "engaged",
+      "again": "engaged",
+      "again_secondary": "engaged",
+      "confidence": 0.78,
+      "again_confidence": 0.78
+    },
+    {
+      "session": "20261027-223643-d-hoard-keeper-learn",
+      "id": "c017",
+      "label": "frustrated",
+      "again": "frustrated",
+      "again_secondary": "confused",
+      "confidence": 0.84,
+      "again_confidence": 0.85
+    },
+    {
+      "session": "20261028-231952-a-bond-swap-learn",
+      "id": "c016",
+      "label": "delighted",
+      "again": "stuck",
+      "again_secondary": "engaged",
+      "confidence": 0.88,
+      "again_confidence": 0.67
+    },
+    {
+      "session": "20261028-231952-a-bond-swap-learn",
+      "id": "c002",
+      "label": "stuck",
+      "again": "stuck",
+      "again_secondary": "confused",
+      "confidence": 0.72,
+      "again_confidence": 0.78
+    },
+    {
+      "session": "20261028-231952-a-bond-swap-learn",
+      "id": "c003",
+      "label": "stuck",
+      "again": "confused",
+      "again_secondary": "stuck",
+      "confidence": 0.64,
+      "again_confidence": 0.67
+    },
+    {
+      "session": "20261029-013722-c-hoard-keeper-learn",
+      "id": "c017",
+      "label": "none",
+      "again": "none",
+      "again_secondary": "engaged",
+      "confidence": 0.88,
+      "again_confidence": 0.85
+    },
+    {
+      "session": "20261027-230904-b-factor-slicer-learn",
+      "id": "c008",
+      "label": "bored",
+      "again": "bored",
+      "again_secondary": "bored",
+      "confidence": 0.88,
+      "again_confidence": 0.89
+    }
+  ]
+}
