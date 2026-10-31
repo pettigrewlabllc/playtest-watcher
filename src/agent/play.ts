@@ -81,7 +81,14 @@ async function observe(page: Page): Promise<Seen> {
     });
     // Pictures by their alt text, as a screen reader gives them: a kid sees a red fire dragon at a glance, but Muse
     // misread the dragon art often enough to file over half the slips wrong (the page itself never mis-taps).
-    const pics = [...document.querySelectorAll('img[alt]')].filter(vis).map(e => `[picture: ${e.getAttribute('alt')}]`).filter(t => t.length > 12);
+    // ...with size and place, so "the big picture in the middle" isn't mistaken for a decoration near it.
+    const where = (e: Element) => {
+      const r = (e as HTMLElement).getBoundingClientRect(), cy = r.y + r.height / 2, cx = r.x + r.width / 2;
+      const v = cy < innerHeight / 3 ? 'top' : cy > (innerHeight * 2) / 3 ? 'bottom' : 'middle', h = cx < innerWidth / 3 ? 'left' : cx > (innerWidth * 2) / 3 ? 'right' : 'centre';
+      return `${r.width * r.height > 5000 ? 'big' : 'small'}, ${v} ${h}`;
+    };
+    const pics = [...document.querySelectorAll('img[alt]')].filter(vis).filter(e => (e.getAttribute('alt') ?? '').length > 2)
+      .map(e => `[picture: ${e.getAttribute('alt')} (${where(e)})]`);
     for (const t of pics) if (!labels.includes(t) && labels.length < 60) labels.unshift(t);
     const screen = (document.querySelector('h1, h2, .title')?.textContent ?? '').trim().slice(0, 50) || buttons.slice(0, 3).map(b => b.text).join(' | ');
     return { buttons, texts, labels, screen };
@@ -166,7 +173,7 @@ export async function play(letter: string, o: { game: string; steps: number; url
         `You are playing a game on a phone. Game time so far: ${Math.round(gameMs / 1000)} s.`,
         sour ? `You have failed ${failsInRow} times in a row. You are frustrated now.` : failsInRow ? `You have failed ${failsInRow} time${failsInRow === 1 ? '' : 's'} in a row.` : '',
         'TEXT ON SCREEN THAT YOU READ:', ...seen.texts.filter(t => decided.get(t.key)).map(t => `- ${t.text}`),
-        'SHORT LABELS YOU CAN SEE:', seen.labels.join(' · ') || '(none)',
+        'SHORT LABELS AND NAMED PICTURES YOU CAN SEE (picture names are reliable; trust them over your reading of the image):', seen.labels.join(' · ') || '(none)',
         'TEXT YOU DID NOT READ (you only glanced at the first words):', ...skipped.map(t => `- ${t.text.split(' ').slice(0, 4).join(' ')}...`),
         'BUTTONS (tap by number):', ...seen.buttons.map(b => `[${b.i}] ${b.text || '(no label)'}`),
         '',
