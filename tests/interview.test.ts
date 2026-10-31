@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { stepsOf, summarize, interviewLine } from '../src/interview/read.ts';
+import { stepsOf, summarize, interviewLine, interviewKidSpeaker } from '../src/interview/read.ts';
 import { pickClips } from '../src/interview/pick.ts';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -40,6 +40,13 @@ describe('reading an interview back', () => {
     expect(iv.pitches.find(p => p.id === 'build')!.answer).toBeNull();
     expect(iv.games).toEqual(['Bond Swap was the best']);
     expect(interviewLine(iv)).toMatch(/matched Muse on 1 of 2 clips.*Stuck vs stuck, Bored vs confused/);
+  });
+
+  it('takes the kid to be the voice that does not read the questions, even when the adult talks more', () => {
+    const t = (speaker: string, text: string, ms: number) => ({ speaker: `0:${speaker}`, text, startMs: 0, endMs: ms });
+    const turns = [t('B', 'What was going on here, buddy?', 9000), t('A', 'I was stuck', 2000), t('B', 'Which word fits best?', 9000), t('B', 'look at you', 20000), t('A', 'annoyed', 1000)];
+    expect(interviewKidSpeaker(turns)).toBe('A');
+    expect(interviewKidSpeaker([t('A', 'hello', 1000)])).toBeNull();
   });
 
   it('finds a fresh interview that has not been aligned yet', async () => {
