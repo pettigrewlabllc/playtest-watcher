@@ -5,10 +5,10 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { MetaClient } from '../meta/client.ts';
 import { align } from '../watch/align.ts';
-import { transcribe } from '../watch/transcribe.ts';
+import { applyKidSpeaker, transcribe } from '../watch/transcribe.ts';
 import { listSessions, sameKid } from '../predict/study.ts';
 import { cohenKappa } from '../predict/reliability.ts';
-import { FEELINGS, PITCHES } from './script.ts';
+import { COPY, FEELINGS, PITCHES } from './script.ts';
 
 type Ev = { ms: number; type: string; data?: Record<string, unknown> };
 type Turn = { startMs: number; endMs: number; text: string; who: string };
@@ -103,6 +103,15 @@ export async function readInterview(root: string, letter: string, client: MetaCl
   else if (client.live) turns = (await transcribe(s.dir, client, { log })).turns as Turn[];
   else log(`interview ${letter}: no transcript yet (run with --live to transcribe); taps only`);
 
+  // In an interview the adult reads the page's questions aloud. "Longest talker is the kid" picked the adult for a
+  // quiet kid on 2026-10-31, so here whoever says the prompts is the adult and the other main voice is the kid.
+  const kid = interviewKidSpeaker(turns as (Turn & { speaker: string })[]);
+  if (kid && !turns.some(t => t.who === 'kid' && (t as Turn & { speaker: string }).speaker.split(':').pop() === kid)) {
+    await applyKidSpeaker(s.dir, kid);
+    turns = JSON.parse(await readFile(join(s.dir, 'transcript.json'), 'utf8')).turns;
+    log(`interview ${letter}: speaker ${kid} is the kid (the other voice reads the questions)`);
+  }
+
   const museLabels = new Map<string, string>();
   for (const x of await listSessions(root)) {
     try { for (const m of JSON.parse(await readFile(join(x.dir, 'moments.json'), 'utf8'))) if (m.status === 'ok') museLabels.set(`${x.id}:${m.id}`, m.label); } catch { /* not analyzed */ }
@@ -113,6 +122,24 @@ export async function readInterview(root: string, letter: string, client: MetaCl
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, 'interview.json'), JSON.stringify(iv, null, 2));
   return iv;
+}
+
+const PROMPTS = [COPY.clipAsk, COPY.clipPick, COPY.gamesAsk, COPY.pitchAsk, COPY.last].map(p => p.toLowerCase().replace(/[^a-z ]/g, '').split(' ').slice(0, 4).join(' '));
+
+// The speaker who says the page's questions is the adult; the kid is the other speaker with the most talk.
+export function interviewKidSpeaker(turns: { speaker: string; text: string; startMs: number; endMs: number }[]): string | null {
+  const label = (t: { speaker: string }) => t.speaker.split(':').pop() ?? '';
+  const asks = new Map<string, number>(), talk = new Map<string, number>();
+  for (const t of turns) {
+    const l = label(t);
+    if (!l || l === 'undefined') continue;
+    const words = t.text.toLowerCase().replace(/[^a-z ]/g, '');
+    if (PROMPTS.some(p => words.includes(p))) asks.set(l, (asks.get(l) ?? 0) + 1);
+    talk.set(l, (talk.get(l) ?? 0) + (t.endMs - t.startMs));
+  }
+  const adult = [...asks.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (!adult) return null;
+  return [...talk.entries()].filter(([l]) => l !== adult).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
 }
 
 export function interviewLine(iv: Interview): string {
