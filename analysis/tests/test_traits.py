@@ -101,8 +101,9 @@ def test_moment_traits(tmp_path):
     assert tr(res, "A", "challenge_appetite", "g")["value"] > 0.5
     assert tr(res, "A", "confusion_resolves", "g")["value"] == 0.5
     ex = tr(res, "A", "expressiveness", "g")
-    assert abs(ex["value"] - np.mean([1 / 3, 2 / 3, 2 / 3, 1 / 3])) < 1e-9
-    assert ex["face"] == 0.75
+    # b1 yawn (face), c1 frown (face; "huh" alone is plain talk), c2 frown (face; tapping is just playing), f1 "argh" (voice)
+    assert abs(ex["value"] - np.mean([1 / 3, 1 / 3, 1 / 3, 1 / 3])) < 1e-9
+    assert ex["face"] == 0.75 and ex["voice"] == 0.25 and ex["hands"] == 0
 
 
 def test_stamina_slope(tmp_path):
@@ -200,3 +201,13 @@ def test_events_outside_the_recording_window_are_left_out(tmp_path):
     a = write_session(tmp_path, "sa", "A", "g", e, duration=ms)
     ex = tr(compute(tmp_path, [a]), "A", "exploration_drive", "g")
     assert ex["value"] == 0 and ex["first_explore_s"] is None
+
+
+def test_channels_read_what_happened_not_whether_muse_wrote_something():
+    from traits import channels_shown
+    m = lambda face="", voice="", hands="", quote="": {"evidence": {"face": face, "voice": voice, "hands": hands}, "quote": quote}
+    assert channels_shown(m("neutral, still", "silent throughout; no sighs, laughs or groans", "hands resting by the iPad")) == [0, 0, 0]
+    assert channels_shown(m("no smile, frown or head-turn", "calm explanatory speech", "taps steadily", quote="so it goes here")) == [0, 0, 0]
+    assert channels_shown(m("no frown, then grins at the adult", "laughs", "throws both hands up")) == [1, 1, 1]
+    assert channels_shown(m("head propped on left hand, flat mouth", "flat 'kind of boring'", "taps")) == [0, 0, 1]
+    assert channels_shown(m("mouth open in calm explanatory speech", "says 'whoa, that was awesome'", "")) == [0, 1, 0]
