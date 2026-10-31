@@ -3,6 +3,9 @@ import type { Usage } from './prices.ts';
 
 export function fakeRespond(schemaName: string | undefined): { data: unknown; usage: Usage } {
   const usage = { input_tokens: 1000, output_tokens: 200 };
+  if (schemaName === 'agent_step') {
+    return { usage, data: { action: 'tap', button: 0, label: 'focused', why: 'fake: trying the first button', would_quit: false, say: '' } };
+  }
   if (schemaName === 'moment') {
     return {
       usage,

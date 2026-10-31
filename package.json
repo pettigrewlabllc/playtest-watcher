@@ -9,7 +9,8 @@
     "predict": "node src/predict/run.ts",
     "forget": "node src/predict/forget.ts",
     "demo": "node scripts/demo.ts",
-    "blur": "node scripts/blur-faces.ts"
+    "blur": "node scripts/blur-faces.ts",
+    "play": "node src/agent/play.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
