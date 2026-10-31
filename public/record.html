@@ -50,6 +50,7 @@
       <div>Session <code id="sid"></code></div>
       <div id="gameLink"></div>
       <div id="status"></div>
+      <div id="ivWarn" hidden style="background:#b91c1c;color:#fff;font-weight:600;padding:10px 14px;border-radius:6px;margin-top:8px">No taps from the interview page yet. If it's open in a tab from an earlier try, close that tab and open the link above.</div>
     </div>
     <div id="qr"></div>
   </div>
@@ -179,6 +180,13 @@ async function showGameLink() {
 
 async function refreshStatus() {
   const s = await (await fetch(`/api/sessions/${session}/summary`)).json();
+  if (sel.round === 'interview') {
+    $('status').textContent = s.eventCount ? `Interview taps received: ${s.eventCount}` : 'Waiting for the interview page...';
+    // An interview tab left open from an earlier try sends its taps to that session, not this one (2026-10-31).
+    const lost = !s.eventCount && startedAt && Date.now() - startedAt > 20000;
+    $('ivWarn').hidden = !lost;
+    return;
+  }
   $('status').textContent = s.eventCount ? `Game events received: ${s.eventCount}` : 'Waiting for the game to send events...';
 }
 
