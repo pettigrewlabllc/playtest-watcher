@@ -9,7 +9,12 @@
   button, select { font: inherit; background: #222; color: #eee; border: 1px solid #444; border-radius: 6px; padding: 6px 12px; }
   .muted { color: #999; }
   .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  h1 { font-size: 20px; margin: 0; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  .intro { color: #ccc; max-width: 900px; margin: 0 0 12px; line-height: 1.45; }
+  .label { font-size: 12px; text-transform: none; color: #8a8a8a; margin: 10px 0 4px; font-weight: 600; }
+  .sum { color: #ddd; font-size: 14px; margin: 8px 0; line-height: 1.45; }
+  .legend { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; margin-top: 6px; }
+  .lim { cursor: help; }
   .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 12px; }
   .side { background: #181818; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px; }
   .card h2 { font-size: 17px; margin: 0 0 4px; }
@@ -26,15 +31,20 @@
   .strip { display: flex; gap: 2px; margin-top: 10px; height: 14px; }
   .strip span { flex: 1; border-radius: 2px; cursor: pointer; opacity: .8; }
   .strip span.on { outline: 2px solid #fff; opacity: 1; }
+  .side select { max-width: 100%; }
+  .side { min-width: 0; }
   @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) { .shot { grid-template-columns: 1fr; } .shot img { width: 100%; max-width: 280px; } }
 </style>
 </head>
 <body>
+<h1>Persona runs</h1>
+<p class="intro">Each side is an AI playing the game as one kid. It's held to that kid's limits: how long they look before tapping, how fast they go, how much they read, how often they miss. Step through to see what it saw, what it did and what it said.</p>
 <div class="row">
-  <h1>Persona runs</h1>
-  <button id="prev">◀</button><button id="play">Play</button><button id="next">▶</button>
+  <button id="prev">◀</button><button id="play">Play both</button><button id="next">▶</button>
   <span id="at" class="muted"></span>
 </div>
+<div class="legend" id="legend"></div>
 <div class="cols">
   <div class="side"><select id="pickA"></select><div id="A"></div></div>
   <div class="side"><select id="pickB"></select><div id="B"></div></div>
@@ -45,15 +55,32 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const runs = { A: null, B: null };
 let step = 0, timer = null;
 
+const LIMITS = [
+  ['firstTapS', 'first tap', x => `${x.toFixed(1)} s`, 'How long they look at a new screen before they tap anything'],
+  ['actionGapS', 'between taps', x => `${x.toFixed(1)} s`, 'How long between taps once they get going'],
+  ['readShare', 'reads', x => `${Math.round(x * 100)}%`, 'How much of the instructions they actually read. The rest is hidden from the AI'],
+  ['errorRate', 'misses', x => `${Math.round(x * 100)}%`, 'How often a tap lands on the button next to the one they meant'],
+  ['sourAfterFails', 'sours after', x => `${x} fails`, 'How many fails in a row before they get frustrated'],
+];
+
 function card(r) {
-  const h = r.harness, pct = x => `${Math.round(x * 100)}%`;
+  const h = r.harness;
   const rules = r.rules.split('\n').filter(l => l.startsWith('- ')).map(l => `<li>${esc(l.slice(2))}</li>`).join('');
-  return `<div class="card"><h2>Player ${esc(r.letter)}${r.age ? `, age ${r.age}` : ''} · ${esc(r.game)}</h2>
-    <div class="muted">${esc(r.distinguishable)}</div>
-    <div class="lims">
-      <span class="lim">first tap <b>${h.firstTapS.toFixed(1)} s</b></span><span class="lim">between taps <b>${h.actionGapS.toFixed(1)} s</b></span>
-      <span class="lim">reads <b>${pct(h.readShare)}</b></span><span class="lim">misses <b>${pct(h.errorRate)}</b></span><span class="lim">sours after <b>${h.sourAfterFails} fails</b></span>
-    </div><ul>${rules}</ul></div><div class="body"></div><div class="strip"></div>`;
+  const steps = r.steps, n = steps.length || 1;
+  const mix = {};
+  for (const s of steps) mix[s.label] = (mix[s.label] ?? 0) + 1;
+  const top = Object.entries(mix).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([l, c]) => `${l} ${Math.round((100 * c) / n)}%`).join(', ');
+  const missed = steps.filter(s => s.missed).length, skipped = new Set(steps.flatMap(s => s.skipped)).size, stop = steps.filter(s => s.would_quit).length;
+  const mins = steps.length ? (steps.at(-1).t / 60).toFixed(1) : '0';
+  const described = /^Described/.test(r.observer ?? '');
+  return `<div class="card"><h2>Player ${esc(r.letter)}${r.age ? `, age ${r.age}` : ''}</h2>
+    <div class="muted">${described ? 'Described in one sentence, not measured.' : 'Built from their recorded play.'} Playing ${esc(r.game)}.</div>
+    <div class="label">Their limits (hover for what each one means)</div>
+    <div class="lims">${LIMITS.map(([k, name, f, tip]) => `<span class="lim" title="${esc(tip)}">${name} <b>${f(h[k])}</b></span>`).join('')}</div>
+    <div class="label">Rules it plays by</div><ul>${rules}</ul>
+    <div class="label">How the run went</div>
+    <div class="sum">${steps.length} steps, ${mins} minutes of game time. Mostly ${esc(top)}. Missed ${missed} tap${missed === 1 ? '' : 's'}, ${skipped ? `skipped ${skipped} thing${skipped === 1 ? '' : 's'} it didn't read` : 'read everything'}${stop ? `, and wanted to stop ${stop} time${stop === 1 ? '' : 's'}` : ''}.</div>
+    </div><div class="label">Every step, colored by how it felt (click one to jump there)</div><div class="strip"></div><div class="body"></div>`;
 }
 
 function show(side) {
@@ -64,10 +91,12 @@ function show(side) {
   if (!s) { body.innerHTML = '<p class="muted">No steps.</p>'; return; }
   const done = step >= r.steps.length;
   body.innerHTML = `<div class="shot"><img src="/shots/${encodeURIComponent(r.id)}/${String(s.n).padStart(3, '0')}.jpg" alt="Game screen at step ${s.n}">
-    <div><div><span class="pill" style="background:${COLORS[s.label] ?? '#555'}">${esc(s.label)}${s.forced ? ' (limit)' : ''}</span> <span class="muted">step ${s.n} · ${s.t.toFixed(1)} s game time${done ? ' · finished' : ''}</span></div>
+    <div><div><span class="pill" style="background:${COLORS[s.label] ?? '#555'}" title="${s.forced ? 'Set by the kid\'s fail limit, not by the AI' : 'How the AI said it felt'}">${esc(s.label)}${s.forced ? ' (by the limit)' : ''}</span> <span class="muted">step ${s.n}, ${s.t.toFixed(1)} s into the game${done ? ' (its last step)' : ''}</span></div>
+    <div class="label">What it said</div>
     ${s.say ? `<div class="say">“${esc(s.say)}”</div>` : `<div class="meta">${esc(s.why)}</div>`}
-    <div class="meta">${s.action === 'tap' ? `tapped <b>${esc(s.target)}</b>` : esc(s.action)}${s.missed ? ` <span class="miss">(meant ${esc(s.intended)})</span>` : ''}${s.would_quit ? ' · wanted to stop' : ''}</div>
-    ${s.skipped.length ? `<div class="meta">skipped reading: ${s.skipped.map(t => `“${esc(t.slice(0, 40))}…”`).join(', ')}</div>` : ''}
+    <div class="label">What it did</div>
+    <div class="meta">${s.action === 'tap' ? `Tapped <b>${esc(s.target)}</b>` : s.action === 'wait' ? 'Waited' : esc(s.action)}${s.missed ? ` <span class="miss">(meant ${esc(s.intended)}, missed)</span>` : ''}${s.would_quit ? '. Wanted to stop.' : ''}</div>
+    ${s.skipped.length ? `<div class="label">What it didn't read</div><div class="meta">${s.skipped.map(t => `“${esc(t.slice(0, 40))}…”`).join(', ')}</div>` : ''}
     </div></div>`;
   el.querySelectorAll('.strip span').forEach((x, i) => x.classList.toggle('on', i === Math.min(step, r.steps.length - 1)));
 }
@@ -92,14 +121,16 @@ const max = () => Math.max(runs.A?.steps.length ?? 0, runs.B?.steps.length ?? 0)
 document.getElementById('prev').onclick = () => { step = Math.max(0, step - 1); render(); };
 document.getElementById('next').onclick = () => { step = Math.min(max() - 1, step + 1); render(); };
 document.getElementById('play').onclick = e => {
-  if (timer) { clearInterval(timer); timer = null; e.target.textContent = 'Play'; return; }
+  if (timer) { clearInterval(timer); timer = null; e.target.textContent = 'Play both'; return; }
   e.target.textContent = 'Pause';
-  timer = setInterval(() => { if (step >= max() - 1) { clearInterval(timer); timer = null; e.target.textContent = 'Play'; return; } step++; render(); }, 1500);
+  timer = setInterval(() => { if (step >= max() - 1) { clearInterval(timer); timer = null; e.target.textContent = 'Play both'; return; } step++; render(); }, 1500);
 };
+
+document.getElementById('legend').innerHTML = Object.entries(COLORS).filter(([l]) => l !== 'none').map(([l, c]) => `<span class="pill" style="background:${c}">${l}</span>`).join('');
 
 (async () => {
   const list = await (await fetch('/api/runs')).json();
-  const opt = r => `<option value="${r.id}">Player ${esc(r.persona)}${r.age ? ` (${r.age})` : ''}${r.described ? ', described' : ''} · ${esc(r.game)} · ${r.steps ?? '?'} steps · ${r.id.slice(9, 13)}</option>`;
+  const opt = r => `<option value="${r.id}">Player ${esc(r.persona)}${r.age ? ` (${r.age})` : ''}${r.described ? ', described' : ''}, ${esc(r.game)}, ${r.steps ?? '?'} steps</option>`;
   for (const side of ['A', 'B']) {
     const sel = document.getElementById('pick' + side);
     sel.innerHTML = list.map(opt).join('');
