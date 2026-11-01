@@ -12,6 +12,15 @@ lion).
 
 ## What changed in the harness
 
+> **Overlap with action mode.** While this was being built, `main` gained `src/agent/action.ts` ("Action mode for
+> fast games", d20c250). It does the same job a different way: Muse plans up to three timed moves every 1.2 s, and
+> the harness fires them with the kid's reaction time and timing error. This branch keeps both. They share no
+> code, and neither touches the other's files. The difference: action mode has Muse time each press itself, while
+> here Muse names what to do about each kind of thing and the adapter times it on the frame. Which one to keep
+> (or how to fold them together) is Joel's call. The reaction ages differ slightly too: this branch's table puts
+> age 8 at 450 ms; action mode uses its own age defaults.
+
+
 `src/agent/realtime.ts` (`npm run play:rt`) and the game adapter `public/adapters/timberline-trek.js`. The tap-game
 harness (`play.ts`), Hoard Keeper live play and the demo are untouched.
 

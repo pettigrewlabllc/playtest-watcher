@@ -9,6 +9,9 @@ export function fakeRespond(schemaName: string | undefined): { data: unknown; us
   if (schemaName === 'rt_step') {
     return { usage, data: { action: 'tap', button: 0, now: 'none', hold_ms: 0, plan: [{ when: 'log', do: 'jump' }, { when: 'rock', do: 'jump' }, { when: 'gap', do: 'jump' }, { when: 'branch', do: 'duck' }, { when: 'food', do: 'eat' }], label: 'focused', why: 'fake: jump what is in the way', would_quit: false, say: '' } };
   }
+  if (schemaName === 'action_plan') {
+    return { usage, data: { moves: [{ kind: 'press', key: 'Space', button: 0, at_ms: 300, for_ms: 0 }], label: 'focused', say: '', why: 'fake: jump', would_quit: false } };
+  }
   if (schemaName === 'agent_step') {
     return { usage, data: { action: 'tap', button: 0, label: 'focused', why: 'fake: trying the first button', would_quit: false, say: '' } };
   }
