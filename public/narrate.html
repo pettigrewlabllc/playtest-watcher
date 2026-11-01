@@ -23,6 +23,11 @@
   .meta b { color: var(--ink); font-weight: 600; }
   .prompt { font-size: 34px; line-height: 1.45; margin: 18px 0 26px; font-weight: 500; }
   .prompt p { margin: 0 0 22px; }
+  .prompt { cursor: text; border-radius: 12px; padding: 6px 10px; margin-left: -10px; }
+  .prompt:hover { background: #181818; }
+  #edit { display: block; width: 100%; font: inherit; font-size: 30px; line-height: 1.45; color: var(--ink); background: #181818; border: 1px solid var(--accent); border-radius: 12px; padding: 14px 16px; margin: 18px 0 12px; resize: vertical; }
+  .hint { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+  nav .dot.stale { color: var(--accent); }
   .gap { display: inline-block; color: var(--accent); margin: 0 10px; font-weight: 700; }
   .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   .bar button { font: inherit; font-size: 17px; font-weight: 650; border-radius: 12px; padding: 12px 22px; border: 1px solid #333; background: #222; color: var(--ink); cursor: pointer; }
@@ -44,12 +49,17 @@
 <div class="wrap">
   <nav>
     <h1>Narration</h1>
-    <p>One beat at a time. Read it, then hit Record. Space starts and stops. A redo keeps the last take as a backup.</p>
+    <p>One beat at a time. Read it, then hit Record. Space starts and stops. A redo keeps the last take as a backup. Click the words to change them; the change goes into the script.</p>
     <div id="list"></div>
   </nav>
   <main>
     <div class="meta" id="meta"></div>
-    <div class="prompt" id="prompt"></div>
+    <div class="prompt" id="prompt" title="Click to change the words"></div>
+    <div id="editor" hidden>
+      <textarea id="edit" rows="6" spellcheck="true"></textarea>
+      <div class="hint">A blank line starts a new paragraph. Type / for a pause. Cmd+Enter saves, Esc cancels.</div>
+      <div class="bar" style="margin-bottom:22px"><button id="esave">Save words</button><button id="ecancel">Cancel</button></div>
+    </div>
     <div class="bar">
       <button id="rec">Record</button>
       <span class="clock" id="clock">0.0 s</span>
@@ -65,8 +75,10 @@
 </div>
 <script>
 const $ = id => document.getElementById(id);
-let beats = [], i = 0, stream = null, rec = null, chunks = [], t0 = 0, tick = null, analyser = null;
+let editing = false, beats = [], i = 0, stream = null, rec = null, chunks = [], t0 = 0, tick = null, analyser = null;
 const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+// a take read before the words were changed (takes saved before edits existed carry no text, so count as current)
+const stale = b => !!b.take && b.take.text != null && b.take.text !== b.text;
 const mmss = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
 const status = (t, err) => { $('status').textContent = t; $('status').className = 'status' + (err ? ' err' : ''); };
 
@@ -81,7 +93,7 @@ function render() {
   let sec = '', html = '';
   beats.forEach((b, n) => {
     if (b.section !== sec) { sec = b.section; html += `<div class="sec">${esc(sec)}</div>`; }
-    html += `<button data-n="${n}" class="${n === i ? 'on' : ''}"><span class="t">${mmss(b.at)}</span><span>${esc(b.picture.split(':')[0])}</span>${b.take ? '<span class="dot">✓</span>' : ''}</button>`;
+    html += `<button data-n="${n}" class="${n === i ? 'on' : ''}"><span class="t">${mmss(b.at)}</span><span>${esc(b.picture.split(':')[0])}</span>${b.take ? (stale(b) ? '<span class="dot stale" title="Words changed since this take">●</span>' : '<span class="dot">✓</span>') : ''}</button>`;
   });
   $('list').innerHTML = html;
   const b = beats[i];
@@ -96,7 +108,8 @@ function render() {
   const play = $('play');
   if (b.take) { play.src = `/narration/${b.take.file}?v=${b.take.at}`; play.hidden = false; }
   else { play.removeAttribute('src'); play.hidden = true; }
-  if (!rec) status(b.take ? overNote(b.take.ms / 1000, b.target) : '');
+  if (!rec) status(!b.take ? '' : stale(b) ? "You changed the words after this take. Redo it when you're ready." : overNote(b.take.ms / 1000, b.target));
+  showEditor(false);
 }
 
 const overNote = (s, target) => s > target + 0.5
@@ -119,7 +132,26 @@ async function mic() {
   return stream;
 }
 
+function showEditor(on) {
+  editing = on;
+  $('editor').hidden = !on; $('prompt').hidden = on;
+  $('rec').disabled = on;
+  if (on) { const t = $('edit'); t.value = beats[i].text; t.rows = Math.max(4, Math.ceil(t.value.length / 48) + 2); t.focus(); }
+}
+
+async function saveWords() {
+  const b = beats[i], text = $('edit').value;
+  if (text.trim() === b.text) return showEditor(false);
+  try {
+    const r = await fetch(`/api/narration/${b.id}/text`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }) });
+    if (!r.ok) throw new Error((await r.json()).error);
+    await load();
+    status(beats[i].take ? "Saved to the script. You changed the words after this take, so redo it when you're ready." : 'Saved to the script.');
+  } catch (e) { status(`The words didn't save: ${e.message}`, true); }
+}
+
 async function start() {
+  if (editing) return;
   try { await mic(); } catch { return status("The mic isn't on. Allow it in the browser's address bar, then reload.", true); }
   const type = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg'].find(t => MediaRecorder.isTypeSupported(t)) ?? '';
   rec = new MediaRecorder(stream, type ? { mimeType: type } : {});
@@ -146,17 +178,25 @@ async function save() {
   $('rec').classList.remove('going');
   status('Saving...');
   try {
-    const r = await fetch(`/api/narration/${b.id}?ms=${Math.round(ms)}`, { method: 'POST', headers: { 'content-type': type }, body: new Blob(chunks, { type }) });
+    const r = await fetch(`/api/narration/${b.id}?ms=${Math.round(ms)}&text=${encodeURIComponent(b.text)}`, { method: 'POST', headers: { 'content-type': type }, body: new Blob(chunks, { type }) });
     if (!r.ok) throw new Error((await r.json()).error);
     await load();
   } catch (e) { status(`That take didn't save: ${e.message}`, true); render(); }
 }
 
 $('rec').onclick = () => rec ? stop() : start();
+$('prompt').onclick = () => { if (!rec) showEditor(true); };
+$('esave').onclick = saveWords;
+$('ecancel').onclick = () => showEditor(false);
+$('edit').onkeydown = e => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveWords(); }
+  if (e.key === 'Escape') showEditor(false);
+};
 $('prev').onclick = () => { i = Math.max(0, i - 1); render(); };
 $('next').onclick = () => { i = Math.min(beats.length - 1, i + 1); render(); };
 $('list').onclick = e => { const n = e.target.closest('button')?.dataset.n; if (n != null && !rec) { i = Number(n); render(); } };
 addEventListener('keydown', e => {
+  if (editing || /^(TEXTAREA|INPUT)$/.test(e.target.tagName)) return;
   if (e.code === 'Space' && e.target.tagName !== 'AUDIO') { e.preventDefault(); rec ? stop() : start(); }
   if (!rec && e.code === 'ArrowRight') $('next').click();
   if (!rec && e.code === 'ArrowLeft') $('prev').click();

@@ -9,7 +9,7 @@ import { QUESTIONS, scoreAnswers } from './questionnaire.ts';
 import { pendingQueue, setLabel, clipPath } from '../label/queue.ts';
 import { listViewable, mediaPath, viewData } from './view.ts';
 import { listRuns, runData, shotPath } from './runs.ts';
-import { narrationData, saveTake, takePath } from './narrate.ts';
+import { narrationData, saveTake, takePath, updateBeatText } from './narrate.ts';
 import { pickClips } from '../interview/pick.ts';
 import { ANSWERS, COPY, FEELINGS, PITCHES } from '../interview/script.ts';
 
@@ -100,7 +100,12 @@ export function createApp(root: string) {
       // Narration for the demo video: the script's beats, and one recorded take per beat.
       if (req.method === 'GET' && path === '/api/narration') return send(res, 200, await narrationData(root));
       if (req.method === 'POST' && seg[0] === 'api' && seg[1] === 'narration' && seg.length === 3) {
-        return send(res, 200, await saveTake(root, seg[2], req.headers['content-type'] ?? '', Number(url.searchParams.get('ms')), await body(req)));
+        const text = url.searchParams.get('text') ?? undefined;
+        return send(res, 200, await saveTake(root, seg[2], req.headers['content-type'] ?? '', Number(url.searchParams.get('ms')), await body(req), text));
+      }
+      if (req.method === 'PUT' && seg[0] === 'api' && seg[1] === 'narration' && seg.length === 4 && seg[3] === 'text') {
+        const { text } = JSON.parse((await body(req)).toString('utf8'));
+        return send(res, 200, await updateBeatText(root, seg[2], String(text ?? '')));
       }
       if (req.method === 'GET' && seg[0] === 'narration' && seg.length === 2) {
         const file = takePath(root, seg[1]);
