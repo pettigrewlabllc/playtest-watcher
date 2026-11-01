@@ -35,7 +35,7 @@ const NNG_KIDS_2019: Source = {
   url: 'https://www.nngroup.com/articles/childrens-websites-usability-issues/', confidence: 'V',
 };
 const OUR_KIDS: Source = {
-  cite: 'Playtest Watcher, four school-age on four web games, October 2026 (results/group/limits.json).',
+  cite: 'Playtest Watcher, four school-age kids on four web games, October 2026 (results/group/limits.json).',
   url: 'results/group/limits.json', confidence: 'M',
 };
 const ROOHI_2020: Source = {

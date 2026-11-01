@@ -28,7 +28,7 @@ all accepted; the sections below are rewritten to match. In short:
    watcher server, sees only real buttons, and a 40-step run outlasts an MCP tool call. Two days, not one (§12).
 7. **The kids' persona/1 cards carry their words verbatim** ("I didn't understand it at all"), and Muse
    recited quotes like these during play. The converter strips them, with a test (§7).
-8. **A described persona is placed inside four school-age on four of my games.** That range now ships
+8. **A described persona is placed inside four school-age kids on four of my games.** That range now ships
    as a named population file printed on the card, and a description can give absolute numbers instead (§3).
 
 Smaller ones, also taken: the intake is a question-by-question state machine, not one tool call (§8);
@@ -117,7 +117,7 @@ game; a single person has no group, so their card says "dimensions: none (needs 
 against)". In a group, dimensions are relative to that group and the card says so.
 
 **A described persona is placed inside a named population.** The engine's `placeLevel` puts a description
-between the slowest, typical and fastest of the people it has seen. Today that is four school-age on four web games (October 2026); it ships as a population file and is printed on every described card.
+between the slowest, typical and fastest of the people it has seen. Today that is four school-age children on four web games (October 2026); it ships as a population file and is printed on every described card.
 A description can also give numbers ("about 5 seconds before the first tap"), which override the placement.
 
 Rules that fall out of the table, and the intake says them out loud:
@@ -252,6 +252,10 @@ by grade and for adults (Brysbaert 2019, with Taylor 1965's grade table), how mu
 instructions read (0.5). A measured number always replaces a norm; a run log names every norm it leaned on.
 
 ## 9. Validation: how far to trust a persona
+
+**Superseded 2026-11-01** for the data we have (one session per kid per game, so no per-person range): validation
+is harness fidelity plus input identification, `analysis/validate.py` (see `docs/hackathon-remaining.md` §1). The
+original text follows for when there is more than one session per person.
 
 **The score:** the share of limits where the agent's run lands inside the real person's range on a session
 held back from the build, shown per limit. It is offered only when the held-out session came from our

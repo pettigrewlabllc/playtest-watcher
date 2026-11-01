@@ -46,7 +46,7 @@ describe('predictSession (prompted predictors)', () => {
     const res = await predictSession('A', tdir, canned, ['baseline', 'questionnaire', 'persona'], { root });
     expect(Object.keys(res)).toEqual(['baseline', 'questionnaire', 'persona']);
     const [b, q, p] = canned.calls;
-    expect(b.text).toMatch(/school-age/);
+    expect(b.text).toMatch(/a school-age child/);
     expect(b.text).not.toContain('You start a new game');
     expect(q.text).toContain('You start a new game. What do you do first?');
     expect(q.text).toContain('Poke around');

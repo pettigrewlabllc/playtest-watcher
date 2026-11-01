@@ -71,7 +71,7 @@ Assumption between web-page data (long pages) and our measured kids (short game 
 
 - Nielsen, J. (2008). How little do users read? Nielsen Norman Group (data: Weinreich et al. 2008, ACM Transactions on the Web; 25 adults, 45,237 page views). [read in the source itself] https://www.nngroup.com/articles/how-little-do-users-read/ ("at most 28% of the words during an average visit")
 - Sherwin, K. & Nielsen, J. (2019). Children's UX: usability issues in designing for young people. Nielsen Norman Group. 125 children aged 3-12; qualitative. [read in the source itself] https://www.nngroup.com/articles/childrens-websites-usability-issues/
-- Playtest Watcher, four school-age on four web games, October 2026 (results/group/limits.json). [measured in this project] results/group/limits.json
+- Playtest Watcher, four school-age kids on four web games, October 2026 (results/group/limits.json). [measured in this project] results/group/limits.json
 
 ### Fails in a row before frustration (`sour_after_fails`)
 
@@ -90,7 +90,7 @@ Used by: src/agent/action.ts reflexFor().
 
 Default 0.06; our four kids measured 5 to 9% in Factor Slicer.
 
-- Playtest Watcher, four school-age on four web games, October 2026 (results/group/limits.json). [measured in this project] results/group/limits.json
+- Playtest Watcher, four school-age kids on four web games, October 2026 (results/group/limits.json). [measured in this project] results/group/limits.json
 
 ### How long someone keeps playing when lost (`session_stamina`)
 
@@ -100,7 +100,7 @@ About ten minutes: every one of our kids played the full ten-minute session, los
 
 The "2-3 minutes of attention per year of age" rule has no primary source; not used.
 
-- Playtest Watcher, four school-age on four web games, October 2026 (results/group/limits.json). [measured in this project] results/group/limits.json
+- Playtest Watcher, four school-age kids on four web games, October 2026 (results/group/limits.json). [measured in this project] results/group/limits.json
 
 ### The ten drives a persona plays for (`drives`)
 

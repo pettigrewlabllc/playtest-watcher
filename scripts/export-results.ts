@@ -39,6 +39,11 @@ async function put(rel: string, text: string) {
   written.push(rel);
 }
 
+// Check every run before clearing results/: a run that must stay home stops the export with results/ untouched.
+for (const id of runs) {
+  const p = await readJson(join(REC, id, 'persona.json'));
+  if (p?.persona?.blend || p?.persona?.who && !String(p.persona.observer?.note ?? '').startsWith('Described')) throw new Error(`${id} is a family-blend or personal-file run: keep it local`);
+}
 await rm(OUT, { recursive: true, force: true });
 for (const f of ['limits.json', 'stability.json', 'agent-vs-kid.json']) if (existsSync(join(REC, 'group', f))) await put(`group/${f}`, await readFile(join(REC, 'group', f), 'utf8'));
 if (existsSync(join(REC, 'scoreboard.json'))) await put('group/scoreboard.json', await readFile(join(REC, 'scoreboard.json'), 'utf8'));
@@ -63,9 +68,11 @@ for (const id of runs) {
   const s = await readJson(join(src, 'session.json'));
   if (s.round !== 'agent') throw new Error(`${id} is not a persona run (round ${s.round})`);
   const p = await readJson(join(src, 'persona.json'));
-  const { card, drives, age, observer, ...rest } = p.persona;   // card and drive evidence quote the kid; age identifies them
+  // card and drive evidence quote the kid; age identifies them. A blend or a saved-file persona also carries who it
+  // is (a family name, a job) and which member a run played, so those stay home and the run can't be published.
+  const { card, drives, age, observer, who, blend, adult, ...rest } = p.persona;
   const persona = { ...rest, age: null, drives: drives.map((d: any) => ({ drive: d.drive, pull: d.pull })), observer: { ...observer, note: observer.note.startsWith('Described') ? observer.note : 'Measured from this kid\'s recorded play; moment labels are Muse\'s.' } };
-  const rules = String(p.rules).replace(/, a child aged \d+/, '');
+  const rules = String(p.rules).replace(/, a child aged \d+/, '').replace(/ \(age \d+\)/, '');
   await put(`runs/${id}/session.json`, JSON.stringify({ id, kid: s.kid, game: s.game, round: 'agent' }, null, 2));
   await put(`runs/${id}/persona.json`, JSON.stringify({ persona, compiled: p.compiled, rules }, null, 2));
   for (const f of ['steps.jsonl', 'summary.json', 'events.jsonl']) if (existsSync(join(src, f))) await put(`runs/${id}/${f}`, await readFile(join(src, f), 'utf8'));

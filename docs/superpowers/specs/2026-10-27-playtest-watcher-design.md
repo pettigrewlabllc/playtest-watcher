@@ -118,7 +118,7 @@ Each unit is one module with one job, reading and writing JSON files in the sess
 12. **Reaction model** (local, Python). Trains one model per kid on that kid's learning sessions. See section 3a.
 13. **Persona.** After a kid's three learning sessions, one Muse Wonder call builds `persona.json` plus a readable `persona.md` from the fingerprint, the questionnaire, the reaction model's strongest features, and the moments. It covers patience before giving up, how much they read, what delights them, what confuses them, how they explore, and their tells (what their face and voice do when stuck). Every trait cites fingerprint numbers or moment IDs as evidence, and it calls out where what the kid said differs from what they did.
 14. **Predict.** Given a held-out game's reference playthrough, three predictors each produce `prediction-<name>.json`, a list of `{event_index, stage, predicted_label, p, why}` **keyed to game events and stages, not clock time**, because the kid's run will not follow the same timing:
-    - `baseline`: Muse Wonder with a generic "school-age" profile;
+    - `baseline`: Muse Wonder with a generic "a school-age child" profile;
     - `questionnaire`: Muse Wonder with only the kid's 12 answers;
     - `persona`: Muse Wonder with the kid's persona;
     - `model`: the kid's reaction model run over the reference playthrough's feature rows.

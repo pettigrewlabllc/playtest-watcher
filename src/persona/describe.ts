@@ -84,7 +84,7 @@ export function toPersona(name: string, target: string, a: Answer, limitsJson: a
 export async function describePersona(root: string, name: string, description: string, target: string, client: MetaClient): Promise<PersonaFile> {
   const limitsJson = JSON.parse(await readFile(join(root, 'group', 'limits.json'), 'utf8'));
   const prompt = [
-    'A game developer describes a child they want to playtest a game as. Rate the child against a typical school-age who playtested kids\' games, using only what the description says.',
+    'A game developer describes a child they want to playtest a game as. Rate the child against a typical school-age child who playtested kids\' games, using only what the description says.',
     'Every rating is -2 (much less), -1 (less), 0 (typical, or not mentioned), +1 (more), +2 (much more). Only rate what the description supports; leave the rest out or at 0. "because" quotes or paraphrases the description.',
     `TRAITS (dims): ${DESCRIBE_DIMS.join(', ')}.`,
     `LIMITS: ${Object.entries(DESCRIBE_LIMITS).map(([k, v]) => `${k} = ${v}`).join('; ')}.`,

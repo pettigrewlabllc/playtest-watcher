@@ -99,7 +99,7 @@ async function childLine(root: string, letter: string): Promise<string> {
     const age = (kids[letter.toUpperCase()] ?? kids[letter.toLowerCase()])?.age;
     if (typeof age === 'number' && Number.isFinite(age) && age > 0) return `a child aged ${Math.round(age)}`;
   } catch { /* no kids.json */ }
-  return 'school-age';
+  return 'a school-age child';
 }
 
 function questionnaireText(answers: Record<string, string>): string {
