@@ -12,6 +12,7 @@
     "demo": "node scripts/demo.ts",
     "blur": "node scripts/blur-faces.ts",
     "play": "node src/agent/play.ts",
+    "play:rt": "node src/agent/realtime.ts",
     "export-results": "node scripts/export-results.ts"
   },
   "devDependencies": {
