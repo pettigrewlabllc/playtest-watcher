@@ -36,7 +36,7 @@ ERRORS = {
     "current-cut": {("short_circuit", "fail")},
 }
 
-METRICS = ["first_tap_s", "action_gap_s", "read_ms_per_char", "read_share", "error_rate", "idle_per_min"]
+METRICS = ["first_tap_s", "action_gap_s", "read_ms_per_char", "read_share", "error_rate", "idle_per_min", "reflex_miss"]
 
 
 def _prefix(text_id):
@@ -84,6 +84,14 @@ def session_limits(events, game, duration_ms):
     errs = sum(1 for e in ev if (e["type"], e["kind"]) in ERRORS.get(game, set()))
     if att:
         out["error_rate"] = errs / len(att)
+
+    # Fast games only: things that got away untouched (a number that fell unsliced) over everything the kid should
+    # have acted on in time. The one reflex measure the event logs support; true reaction time needs spawn times.
+    missed = sum(1 for e in ev if e["type"] == "miss")
+    if missed or game == "factor-slicer":
+        ok = sum(1 for e in ev if e["kind"] == "success" and e["type"] in ("slice_ok",))
+        if ok + missed:
+            out["reflex_miss"] = missed / (ok + missed)
 
     mins = duration_ms / 60000
     if mins > 0:

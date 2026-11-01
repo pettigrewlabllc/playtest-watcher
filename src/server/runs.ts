@@ -40,9 +40,10 @@ export async function runData(root: string, id: string) {
   let steps: unknown[] = [];
   try { steps = (await readFile(join(dir, 'steps.jsonl'), 'utf8')).split('\n').filter(Boolean).map(l => JSON.parse(l)); } catch { /* none yet */ }
   const summary = await readJson(join(dir, 'summary.json'));
-  const { persona, compiled, rules } = p;
-  return { id, letter: persona.letter, age: persona.age, game: persona.target_game, distinguishable: persona.distinguishable, observer: persona.observer.note,
-    card: persona.card, drives: persona.drives.slice(0, 4), rules, harness: compiled.harness, steps, summary };
+  const { persona, compiled, rules, reflex } = p;
+  const session = await readJson<{ game?: string; mode?: string }>(join(dir, 'session.json'));
+  return { id, letter: persona.letter, age: persona.age, game: session?.game ?? persona.target_game, mode: session?.mode ?? 'turns', distinguishable: persona.distinguishable, observer: persona.observer.note,
+    card: persona.card, drives: persona.drives.slice(0, 4), rules, harness: compiled.harness, reflex: reflex ?? null, steps, summary };
 }
 
 export function shotPath(root: string, id: string, file: string): string {
