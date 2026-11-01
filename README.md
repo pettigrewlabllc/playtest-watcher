@@ -1,89 +1,104 @@
-# Playtest Watcher
+# Informed Persona Testers
 
-I make small games and my kids are the playtesters. Building the games stopped being the slow part a while ago. Watching the recordings is the slow part, and I only have four kids.
+I've built twenty-some games with AI in the last six months. Building them isn't the slow part anymore. Finding the fun is, and that takes someone actually playing. My four kids are my playtesters, and a kid can only play a game fresh once.
 
-So this does two things. It watches a playtest for me: screen, face, hands and voice, lined up with the game's own event log, with Meta's models saying what the kid was going through at each moment and a fix list at the end. And it turns what it learns into **personas I can send into a game none of them have played yet**. A persona isn't a paragraph about a kid. It's a set of measured limits (how long they look at a new screen, how fast they tap, how much they read, how often they miss, how many fails before they sour), and a harness holds a live AI player to them.
+So this repo (Playtest Watcher) does two things. It watches a real playtest: screen, face, hands and voice, lined up with the game's own event log, with Meta's models saying what the kid was going through and writing a fix list. Then it turns what it learned into **persona testers I can send into a game nobody has played yet**. A persona isn't a paragraph about a kid. It's measured limits (how long they look before they tap, how fast they go, how much they read, how often they miss, how many fails before they sour), and a harness holds a live AI player to them.
 
-## How a persona gets made
+## See it without a key
 
-You can give it any of three things:
+```bash
+npm install
+npm start          # http://localhost:3058/runs.html
+```
 
-- **Recordings of them playing.** The limits are measured per game from the event log and timing, and the traits come from Muse Spark watching the video.
-- **An interview.** The kid watches a few of their own clips and says what was going on, then rates ten game ideas. That gives what they play for, in their own words, and a check on whether Muse read them right.
-- **A description.** "A 9-year-old who skips every instruction, taps really fast and gets annoyed after two fails." Muse Wonder places that on the same scales, inside the spread the real kids showed.
+The runs page plays persona runs from `results/runs/` side by side, a step at a time: what the persona saw, what it said, what it tapped, what text it skipped, and where a tap missed. Nothing here calls a model or needs an account.
 
-What comes out is a persona file: the limits, the traits that are clearly different from other kids (and how many that is, which is usually not many), what they play for, and a short card.
+## Four ways to build a persona
+
+| Start from | What's measured | What's a guess |
+|---|---|---|
+| **Recordings and an interview** (my kids) | How they play: first tap, pace, reading, misses, fail streaks, from the game's event log and Muse Spark watching the video | What they play for, from the interview, where they watch their own clips and react to ten game ideas |
+| **One person's play plus their profile** (me: my play, and what Meta's ad settings show about me) | How they play | What drives them, from profile facts. Profile facts never set how fast someone plays |
+| **A sentence** ("a 16-year-old who loves science and math but doesn't like reading") | Nothing | Everything, placed inside the range real players showed, never past it |
+| **A group** (all five of us as one "family" persona) | The group's middle and spread, shown on the card | Each run plays as one real member, picked by a seed, so a run is never a mix of people who don't exist |
+
+Where a persona has no measured number, the gap is filled from **published research by age**, never a guess: reaction time and its spread (Rutter et al. 2020, 12,327 people), touch misses by age and button size (Anthony 2019), reading speed (Brysbaert 2019), how much text people actually read (Nielsen 2008). Every number, its source, and how sure we are of it is in [`src/persona/norms.ts`](src/persona/norms.ts), rendered as [docs/persona-norms.md](docs/persona-norms.md). Two defaults have no credible source and say so: how many fails before someone gets frustrated, and how much of a game's instructions people read.
 
 ## How a persona plays
 
-```bash
-PW_LIVE=1 npm run play -- A --game hoard-keeper --steps 40 --live
-PW_LIVE=1 npm run play -- --describe "a 9-year-old who skips every instruction" --name X --live
-```
+Muse Spark plays the real game in Chrome, from a screenshot plus the page's buttons and text. The harness holds it to the persona so it can't play like an AI:
 
-Muse Spark plays the real game in Chrome, from a screenshot plus the page's buttons and text. The harness holds it to the persona's limits so it can't play like an AI:
-
-- **Time.** The game's clock stops while Muse thinks, then moves on by the kid's own time to act. A slow kid's persona burns more of a timed round than a fast one's.
-- **Reading.** Text the kid wouldn't have read is hidden from the screenshot. Muse only gets the first few words.
-- **Accuracy.** Some taps land on the button next door, at the kid's measured rate.
-- **Patience.** After the kid's fail streak, the step is marked frustrated, and the harness decides when to quit, not the model.
-
-The game's own logger stays on, so every run is a normal session with events, a step log and a screenshot per step. `/runs.html` plays two runs side by side.
-
-**See it without a key:** `npm install`, `npm start`, then open http://localhost:3058/runs.html. It plays three committed runs from `results/runs/`: the youngest kid's persona, the oldest's, and the kid described in one sentence.
-
-## Fast games
-
-Some games are about timing, not taps. `src/agent/action.ts` handles those. Every second or so of game time it freezes the game, Muse looks and plans up to three moves for the next moment, and the harness carries them out the way the kid would: never sooner than their reaction time, off by their usual timing, and sometimes not at all. Muse's thinking time never counts, because the game only moves when the harness moves it.
+- **Time.** The game's clock stops while Muse thinks, then moves on by the persona's own time to act. A slow persona burns more of a timed round than a fast one.
+- **Reading.** Text the persona wouldn't have read is hidden from the screenshot; Muse only gets the first few words.
+- **Accuracy.** Some taps land on the button next door, or 30 to 50 px off on a picture, at the persona's miss rate.
+- **Patience.** After the persona's fail streak it's frustrated, and the harness, not the model, decides when it quits.
+- **Fast games.** For timing games the clock freezes every 1.2 s of game time, Muse plans up to three moves, and the harness fires them at the persona's reaction time, a little off, and sometimes not at all.
 
 ```bash
-PW_LIVE=1 node src/agent/action.ts A --url "<your game>" --keys "Space,ArrowDown" \
-  --controls "Space jumps. Hold ArrowDown to duck." --state "<optional JS for the game's own score>" --live
+# copy .env.example to .env.local and add a Meta Model API key first
+PW_LIVE=1 npm run play -- A --game hoard-keeper --url http://localhost:3054/ --live                 # a measured kid
+PW_LIVE=1 npm run play -- --describe "a 16-year-old who doesn't like reading" --name T --url <game> --live
+PW_LIVE=1 npm run play -- F --blend <blend.json> --seed 3 --url <game> --live                         # a group
+PW_LIVE=1 npm run play -- J --persona-file <persona.json> --limits-game bond-swap --url <game> --point --live   # canvas game
+PW_LIVE=1 node src/agent/action.ts A --url <game> --keys "Space,ArrowDown" --controls "Space jumps." --live      # fast game
 ```
 
-The reaction time and timing are defaults for the kid's age, because the published numbers disagree a lot. How often a kid freezes is measured, from the numbers they let fall in Factor Slicer. On Timberline Trek, the youngest kid's persona got about a sixth of the way down the trail in half a minute, stumbled once and stayed ahead of the storm. Nobody has checked that against a kid playing Timberline yet.
+Every run is logged like a real playtest: events, a step log, a screenshot per step. A described persona is read once and saved, so it's the same persona in every game.
 
-## What I learned building it
+## What the personas found
 
-Every number here has a file in `results/`, which you get with the clone.
+On two builds no kid had played yet:
 
-- **Watching isn't the same as knowing.** Muse gives the same label to the same clip 83% of the time (`group/stability.json`). When the kids watched their own clips, they picked the same word as Muse on 5 of 20 and agreed on good vs bad about three times in four (`kid-check.json`). Twice it read a kid sitting still and concentrating as bored.
-- **The predictions tied with knowing only the kid's age** (`group/scoreboard.json`). I froze them before four check sessions. They were scored against Muse's labels, which the kids only matched 5 times in 20, so it's a weak test either way. That's why the persona moved from a description to limits that get enforced.
-- **With four kids, nothing carried from one game to another better than a coin flip.** Built only from each kid's other games and compared with what they did, the best were error rate (right order in 15 of 24 pairs) and time to first tap (14 of 24) (`group/limits.json`). That's a hint, not a finding.
-- **The model has to be held to the limits, not asked.** Told to play like the kid, it quit after 37 seconds, reciting the kid's own interview words. Told not to repeat them, it still did. So the harness decides when a persona quits, and a kid's words never go into the rules it plays from.
-- **The timing holds; the reading of the screen doesn't.** The agent's first taps land about a second after its limit, consistently, because the game shows the screen a moment before the harness starts counting. But in Hoard Keeper the agents filed about a third of the slips wrong, against 18 to 19% for the real kids (`group/agent-vs-kid.json`). In a probe where the harness read each slip's answer from the page and tapped it, all 8 filed right (that probe isn't in the repo), so the gap is the model reading a busy screen. It keeps taking a blue gem icon for a frost dragon, which is also a useful note about the game.
+- **Hoard Keeper, the build with my kids' fixes in it.** The oldest kid's persona got the King's question wrong, read the screen that explains why ("I left 7 slips in the pit"), and set up the next one correctly. The youngest's never read the King's question, tapped "Biggest one" because the trophy was shiny, and happened to be right. The game can't tell a lucky answer from a real one. (`results/runs/20261101-141138-*-hoard-keeper-agent`)
+- **Continental Drift, changed that morning.** The one sentence that explains the game ("find the few that came from somewhere else") sits in a panel at the bottom. Both kid personas skipped it under their reading limits and spent about three minutes going after Egypt's own pyramids. The hint "look for something to eat" sent them to Egypt's own bread. (`results/runs/20261101-141138-*-continental-drift-agent`)
+- **Earlier, on Hoard Keeper:** the personas kept reading a blue gem icon as a frost dragon, which is a note about the art as much as the model.
+
+## How accurate is it
+
+Honest numbers, every one with a file in `results/`:
+
+- **The kids checked Muse.** Watching their own clips, they picked Muse's exact word 5 times in 20 and agreed on good vs bad about three times in four. Twice Muse read a kid concentrating as bored. (`kid-check.json`)
+- **Predictions frozen before four check sessions tied with knowing only the kid's age** (kappa 0.069 vs 0.067). (`group/scoreboard.json`)
+- **Does a run play at the numbers it was given?** First tap held in all 6 Hoard Keeper runs checked. Time between actions held in 1 of 6: the harness adds its own pause each step, a bug to fix. Reading and error rate don't compare cleanly yet. (`group/validation.json`)
+- **Does a kid's play on other games predict them on a new one?** 19 of 76 checks picked the right kid, which is exactly chance with four kids. (`group/validation.json`)
+- **Muse reads a busy screen worse than my kids.** The personas filed about a third of Hoard Keeper slips wrong, against 18 to 19% for the kids. (`group/agent-vs-kid.json`)
+- **On a canvas game, Muse's taps land 60 to 140 px from what it names.** Continental Drift runs measure the harness's aim as much as the game. A labelled grid on the screenshot is the next fix.
+
+My bet is that more measured dimensions make a persona play closer to the person. Four kids isn't enough to prove it.
+
+## Use it from an agent
+
+[SKILL.md](SKILL.md) tells an agent (Claude Code, Codex, Gemini CLI, Cursor) how to build a persona, run it, and read what came back. The design for the full kit (an intake that asks what data you have, a mapping file, an MCP server) is in [docs/superpowers/specs/2026-11-01-persona-kit-design.md](docs/superpowers/specs/2026-11-01-persona-kit-design.md).
 
 ## Watching a playtest
 
 ```bash
-npm install
 npm run demo          # a fake 30-second session through the whole pipeline, no key, no spend
 npm start             # recorder on http://localhost:3058/record.html
 PW_LIVE=1 npm run watch -- <sessionId> --live
 npm run blur          # blurred face video for the viewer
 ```
 
-**What you need:** Node 22.18 or newer (it runs the TypeScript directly), ffmpeg on your PATH (or `FFMPEG_PATH`), and Google Chrome for live play. For anything live, copy `.env.example` to `.env.local` and put your Meta Model API key in it. Live play also needs a web game running with the event logger on it. The one I used, Hoard Keeper, is my own game and isn't public yet, so for your own game pass its address with `--url`. [docs/session-day.md](docs/session-day.md) is the checklist I use with my kids. Games send events with [public/playtest-log.js](public/playtest-log.js) (web) or [godot/playtest_log.gd](godot/playtest_log.gd) (Godot), and a playtest link always starts the game from the beginning.
-
 | Stage | What it does | Model |
 |---|---|---|
 | align | Puts every camera, the mic and the event log on one clock | none (ffmpeg) |
 | transcribe | Who said what, and when | `muse-voice-transcribe-1.0` |
-| candidates | Windows worth a look: fail streaks, long idles, the kid talking, and a sweep every 60 seconds | none (rules) |
-| explain | One call per window with face, hands and screen side by side, with sound. Returns what the kid was going through, with the face, voice, hands and screen evidence | `muse-spark-1.2` |
+| candidates | Windows worth a look: fail streaks, long idles, the kid talking, a sweep every 60 s | none (rules) |
+| explain | One call per window with face, hands and screen side by side, with sound | `muse-spark-1.2` |
 | fixes | A ranked fix list, each fix tied to the moments behind it | `muse-wonder-1.0` |
 
-`/view.html` plays a session back with the face blurred, a timeline of moments and the fix list. `/interview.html` runs the clip-and-ideas interview from the recorder.
+`/view.html` plays a session back with the face blurred, a timeline of moments and the fix list. `/interview.html` runs the clip-and-ideas interview. `/narrate.html` is a teleprompter for recording the demo video's narration, one take per beat.
+
+**What you need:** Node 22.18 or newer (it runs the TypeScript directly), ffmpeg on your PATH (or `FFMPEG_PATH`), Google Chrome for live play, and a Meta Model API key in `.env.local` for anything live. Games send events with [public/playtest-log.js](public/playtest-log.js) (web) or [godot/playtest_log.gd](godot/playtest_log.gd) (Godot). Hoard Keeper is my own game and isn't public, so point `--url` at yours.
 
 ## Privacy
 
-Raw recordings stay in `recordings/`, which git ignores. Only short clips and session audio go to the Meta API, every upload expires after an hour, and the client refuses any `-contributor` model id. The viewer only ever serves the blurred face. The kids are Kid A to D everywhere in this repo, and the rules a persona plays from never carry a kid's own words. Their quotes stay on the card, which is for people, and never leave this laptop.
+Raw recordings stay in `recordings/`, which git ignores. Only short clips and session audio go to the Meta API, uploads expire after an hour, and the client refuses any `-contributor` model id. The viewer only ever serves the blurred face. The kids are A to D everywhere here, with no names, faces, voices or ages. A persona's rules never carry a kid's own words, and the exporter refuses to publish a run built from a family blend or a personal profile.
 
 ## Tests
 
 ```bash
-npm test
+npm test        # 201 tests (12 skip without the Python venv); a fake model client, never calls the API
+python3 -m venv analysis/.venv && analysis/.venv/bin/pip install -r analysis/requirements.txt
 cd analysis && .venv/bin/python -m pytest -q tests
 ```
-
-The Node tests use a fake model client and never call the API. The Python side needs its own virtualenv: `python3 -m venv analysis/.venv && analysis/.venv/bin/pip install -r analysis/requirements.txt`. Live play needs Google Chrome installed.
