@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Narration</title>
+<style>
+  :root { --bg: #111; --panel: #1a1a1a; --line: #2a2a2a; --ink: #eee; --muted: #999; --accent: #fbbf24; --rec: #ef4444; --ok: #4ade80; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", sans-serif; }
+  .wrap { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100vh; }
+  nav { border-right: 1px solid var(--line); padding: 16px 10px; overflow-y: auto; max-height: 100vh; position: sticky; top: 0; }
+  nav h1 { font-size: 20px; margin: 0 6px 4px; }
+  nav p { color: var(--muted); font-size: 13px; margin: 0 6px 14px; }
+  nav .sec { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; margin: 14px 6px 4px; }
+  nav button { display: flex; gap: 8px; width: 100%; text-align: left; background: none; color: var(--ink); border: 0; border-radius: 8px; padding: 7px 8px; font: inherit; font-size: 14px; cursor: pointer; }
+  nav button:hover { background: var(--panel); }
+  nav button.on { background: #262626; outline: 1px solid #3a3a3a; }
+  nav .t { color: var(--muted); font-variant-numeric: tabular-nums; flex: 0 0 38px; }
+  nav .dot { margin-left: auto; color: var(--ok); }
+  main { padding: 28px 40px 40px; max-width: 1000px; }
+  .meta { color: var(--muted); font-size: 15px; }
+  .meta b { color: var(--ink); font-weight: 600; }
+  .prompt { font-size: 34px; line-height: 1.45; margin: 18px 0 26px; font-weight: 500; }
+  .prompt p { margin: 0 0 22px; }
+  .gap { display: inline-block; color: var(--accent); margin: 0 10px; font-weight: 700; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .bar button { font: inherit; font-size: 17px; font-weight: 650; border-radius: 12px; padding: 12px 22px; border: 1px solid #333; background: #222; color: var(--ink); cursor: pointer; }
+  .bar button:disabled { opacity: .4; cursor: default; }
+  #rec { background: var(--rec); border-color: var(--rec); color: #fff; min-width: 140px; }
+  #rec.going { background: #111; color: var(--rec); }
+  .clock { font-size: 28px; font-variant-numeric: tabular-nums; min-width: 110px; }
+  .clock.over { color: var(--accent); }
+  .meter { width: 160px; height: 10px; background: #222; border-radius: 6px; overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--ok); transition: width 60ms linear; }
+  .status { margin-top: 14px; color: var(--muted); min-height: 24px; }
+  .status.err { color: #f87171; }
+  audio[hidden] { display: none; }
+  audio { display: block; margin-top: 12px; width: 100%; max-width: 520px; }
+  @media (max-width: 760px) { .wrap { grid-template-columns: 1fr; } nav { position: static; max-height: none; border-right: 0; border-bottom: 1px solid var(--line); } main { padding: 20px 16px; } .prompt { font-size: 26px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <h1>Narration</h1>
+    <p>One beat at a time. Read it, then hit Record. Space starts and stops. A redo keeps the last take as a backup.</p>
+    <div id="list"></div>
+  </nav>
+  <main>
+    <div class="meta" id="meta"></div>
+    <div class="prompt" id="prompt"></div>
+    <div class="bar">
+      <button id="rec">Record</button>
+      <span class="clock" id="clock">0.0 s</span>
+      <div class="meter" title="Mic level"><i id="lvl"></i></div>
+    </div>
+    <div class="bar" style="margin-top:14px">
+      <button id="prev">Back</button>
+      <button id="next">Next beat</button>
+    </div>
+    <div class="status" id="status"></div>
+    <audio id="play" controls hidden></audio>
+  </main>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+let beats = [], i = 0, stream = null, rec = null, chunks = [], t0 = 0, tick = null, analyser = null;
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const mmss = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+const status = (t, err) => { $('status').textContent = t; $('status').className = 'status' + (err ? ' err' : ''); };
+
+async function load() {
+  beats = (await (await fetch('/api/narration')).json()).beats;
+  const first = beats.findIndex(b => !b.take);
+  if (!rec) i = Math.max(0, Math.min(i || (first < 0 ? 0 : first), beats.length - 1));
+  render();
+}
+
+function render() {
+  let sec = '', html = '';
+  beats.forEach((b, n) => {
+    if (b.section !== sec) { sec = b.section; html += `<div class="sec">${esc(sec)}</div>`; }
+    html += `<button data-n="${n}" class="${n === i ? 'on' : ''}"><span class="t">${mmss(b.at)}</span><span>${esc(b.picture.split(':')[0])}</span>${b.take ? '<span class="dot">✓</span>' : ''}</button>`;
+  });
+  $('list').innerHTML = html;
+  const b = beats[i];
+  if (!b) return;
+  $('meta').innerHTML = `${esc(b.section)} · beat ${i + 1} of ${beats.length} · starts at ${mmss(b.at)} · aim for about <b>${b.target} s</b><br>On screen: ${esc(b.picture)}`;
+  // A "/" in the script is a pause.
+  $('prompt').innerHTML = b.text.split('\n\n').map(p => `<p>${esc(p).replace(/\s\/\s/g, ' <span class="gap">/</span> ')}</p>`).join('');
+  $('clock').textContent = b.take ? `${(b.take.ms / 1000).toFixed(1)} s` : '0.0 s';
+  $('clock').classList.toggle('over', !!b.take && b.take.ms / 1000 > b.target);
+  $('rec').textContent = b.take ? 'Redo' : 'Record';
+  $('prev').disabled = i === 0; $('next').disabled = i === beats.length - 1;
+  const play = $('play');
+  if (b.take) { play.src = `/narration/${b.take.file}?v=${b.take.at}`; play.hidden = false; }
+  else { play.removeAttribute('src'); play.hidden = true; }
+  if (!rec) status(b.take ? overNote(b.take.ms / 1000, b.target) : '');
+}
+
+const overNote = (s, target) => s > target + 0.5
+  ? `Saved, ${s.toFixed(1)} s. That's ${(s - target).toFixed(1)} s over. The picture can stretch, so keep it if it sounds right.`
+  : `Saved, ${s.toFixed(1)} s.`;
+
+async function mic() {
+  if (stream) return stream;
+  // Raw voice: no echo cancelling, noise gate or auto gain, which smear a narration take.
+  stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  const ctx = new AudioContext(), src = ctx.createMediaStreamSource(stream);
+  analyser = ctx.createAnalyser(); analyser.fftSize = 512; src.connect(analyser);
+  const buf = new Uint8Array(analyser.fftSize);
+  (function meter() {
+    analyser.getByteTimeDomainData(buf);
+    let peak = 0; for (const v of buf) peak = Math.max(peak, Math.abs(v - 128));
+    $('lvl').style.width = `${Math.min(100, peak / 128 * 140)}%`;
+    requestAnimationFrame(meter);
+  })();
+  return stream;
+}
+
+async function start() {
+  try { await mic(); } catch { return status("The mic isn't on. Allow it in the browser's address bar, then reload.", true); }
+  const type = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg'].find(t => MediaRecorder.isTypeSupported(t)) ?? '';
+  rec = new MediaRecorder(stream, type ? { mimeType: type } : {});
+  chunks = [];
+  rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+  rec.onstop = save;
+  rec.start();
+  t0 = performance.now();
+  $('rec').textContent = 'Stop'; $('rec').classList.add('going');
+  $('prev').disabled = $('next').disabled = true;
+  status('Recording...');
+  tick = setInterval(() => {
+    const s = (performance.now() - t0) / 1000;
+    $('clock').textContent = `${s.toFixed(1)} s`;
+    $('clock').classList.toggle('over', s > beats[i].target);
+  }, 100);
+}
+
+function stop() { clearInterval(tick); if (rec && rec.state !== 'inactive') rec.stop(); }
+
+async function save() {
+  const ms = performance.now() - t0, type = rec.mimeType || 'audio/webm', b = beats[i];
+  rec = null;
+  $('rec').classList.remove('going');
+  status('Saving...');
+  try {
+    const r = await fetch(`/api/narration/${b.id}?ms=${Math.round(ms)}`, { method: 'POST', headers: { 'content-type': type }, body: new Blob(chunks, { type }) });
+    if (!r.ok) throw new Error((await r.json()).error);
+    await load();
+  } catch (e) { status(`That take didn't save: ${e.message}`, true); render(); }
+}
+
+$('rec').onclick = () => rec ? stop() : start();
+$('prev').onclick = () => { i = Math.max(0, i - 1); render(); };
+$('next').onclick = () => { i = Math.min(beats.length - 1, i + 1); render(); };
+$('list').onclick = e => { const n = e.target.closest('button')?.dataset.n; if (n != null && !rec) { i = Number(n); render(); } };
+addEventListener('keydown', e => {
+  if (e.code === 'Space' && e.target.tagName !== 'AUDIO') { e.preventDefault(); rec ? stop() : start(); }
+  if (!rec && e.code === 'ArrowRight') $('next').click();
+  if (!rec && e.code === 'ArrowLeft') $('prev').click();
+});
+load().catch(e => status(`Couldn't load the script: ${e.message}`, true));
+</script>
+</body>
+</html>
