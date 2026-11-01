@@ -24,6 +24,19 @@ The runs page plays persona runs from `results/runs/` side by side, a step at a 
 
 Where a persona has no measured number, the gap is filled from **published research by age**, never a guess: reaction time and its spread (Rutter et al. 2020, 12,327 people), touch misses by age and button size (Anthony 2019), reading speed (Brysbaert 2019), how much text people actually read (Nielsen 2008). Every number, its source, and how sure we are of it is in [`src/persona/norms.ts`](src/persona/norms.ts), rendered as [docs/persona-norms.md](docs/persona-norms.md). Two defaults have no credible source and say so: how many fails before someone gets frustrated, and how much of a game's instructions people read.
 
+## Build one
+
+```bash
+npm run persona -- new                                            # asks who it is, consent first, then what data you have
+npm run persona -- new --answers examples/answers/analytics-player.yaml   # the same, from an answers file
+npm run persona -- show puzzle-fan                                # the card: every number with where it came from
+npm run persona -- list
+```
+
+The example builds a persona from a made-up analytics export (`examples/data/events.csv`), mapped onto persona numbers by a short file you can read in ten seconds (`examples/data/events.map.yaml`): first tap, time between actions, error rate, longest fail streak. A survey adds what they play for, and profile facts add small guesses. Consent is checked before any file is opened, a child under 13 needs a parent's yes, and a persona file can't hold anyone's quoted words.
+
+Every persona is a `persona/2` file, defined by a published JSON Schema ([schema/persona-2.schema.json](schema/persona-2.schema.json)), validated on every load and save, and versioned on disk. Each number carries its basis: measured, self-report, guess, or norm. When sources disagree, measured wins.
+
 ## How a persona plays
 
 Muse Spark plays the real game in Chrome, from a screenshot plus the page's buttons and text. The harness holds it to the persona so it can't play like an AI:
@@ -68,7 +81,13 @@ My bet is that more measured dimensions make a persona play closer to the person
 
 ## Use it from an agent
 
-[SKILL.md](SKILL.md) tells an agent (Claude Code, Codex, Gemini CLI, Cursor) how to build a persona, run it, and read what came back. The design for the full kit (an intake that asks what data you have, a mapping file, an MCP server) is in [docs/superpowers/specs/2026-11-01-persona-kit-design.md](docs/superpowers/specs/2026-11-01-persona-kit-design.md).
+An MCP server puts the personas in any agent that speaks MCP (Claude Code, Cursor, VS Code, Codex, Gemini CLI):
+
+```bash
+claude mcp add personas -- node /path/to/playtest-watcher/src/kit/mcp.ts
+```
+
+Six tools: `list_personas`, `show_persona`, `new_persona` (the agent asks you the intake questions and passes your answers; consent first), `validate_persona`, `run_persona` (returns a run id straight away, since a run takes minutes) and `get_report`. [SKILL.md](SKILL.md) tells an agent how to use them. The full design is in [docs/superpowers/specs/2026-11-01-persona-kit-design.md](docs/superpowers/specs/2026-11-01-persona-kit-design.md).
 
 ## Watching a playtest
 
