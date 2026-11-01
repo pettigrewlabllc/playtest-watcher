@@ -9,6 +9,7 @@ import { QUESTIONS, scoreAnswers } from './questionnaire.ts';
 import { pendingQueue, setLabel, clipPath } from '../label/queue.ts';
 import { listViewable, mediaPath, viewData } from './view.ts';
 import { listRuns, runData, shotPath } from './runs.ts';
+import { narrationData, saveTake, takePath } from './narrate.ts';
 import { pickClips } from '../interview/pick.ts';
 import { ANSWERS, COPY, FEELINGS, PITCHES } from '../interview/script.ts';
 
@@ -96,6 +97,15 @@ export function createApp(root: string) {
       if (req.method === 'GET' && path === '/api/runs') return send(res, 200, await listRuns(root));
       if (req.method === 'GET' && seg[0] === 'api' && seg[1] === 'runs' && seg.length === 3) return send(res, 200, await runData(root, seg[2]));
       if (req.method === 'GET' && seg[0] === 'shots' && seg.length === 3) return sendFile(req, res, shotPath(root, seg[1], seg[2]), 'image/jpeg');
+      // Narration for the demo video: the script's beats, and one recorded take per beat.
+      if (req.method === 'GET' && path === '/api/narration') return send(res, 200, await narrationData(root));
+      if (req.method === 'POST' && seg[0] === 'api' && seg[1] === 'narration' && seg.length === 3) {
+        return send(res, 200, await saveTake(root, seg[2], req.headers['content-type'] ?? '', Number(url.searchParams.get('ms')), await body(req)));
+      }
+      if (req.method === 'GET' && seg[0] === 'narration' && seg.length === 2) {
+        const file = takePath(root, seg[1]);
+        return sendFile(req, res, file, file.endsWith('.m4a') ? 'audio/mp4' : file.endsWith('.ogg') ? 'audio/ogg' : 'audio/webm');
+      }
       if (req.method === 'GET' && path === '/api/view') return send(res, 200, await listViewable(root));
       if (req.method === 'GET' && seg[0] === 'api' && seg[1] === 'view' && seg.length === 3) return send(res, 200, await viewData(root, seg[2]));
       if (req.method === 'GET' && seg[0] === 'media' && seg.length === 3 && seg[2].endsWith('.mp4')) {
