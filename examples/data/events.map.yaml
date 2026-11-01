@@ -1,0 +1,11 @@
+# How an analytics export becomes persona numbers. One player at a time; times in ms.
+time: ts_ms
+time_unit: ms
+event: event
+session: session_id
+member: { column: player_id, value: p1 }
+measures:
+  first_tap_s:      { median_gap: [screen_view, tap] }   # how long they look at a new screen before acting
+  action_gap_s:     { median_gap: [tap, tap] }           # time between actions once going
+  error_rate:       { ratio: [answer_wrong, answer] }    # wrong answers out of all answers
+  sour_after_fails: { longest_streak_of: answer_wrong, reset_on: answer_right }   # longest run of wrong answers before a right one

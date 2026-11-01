@@ -1,0 +1,5 @@
+# npm run persona -- new --answers examples/answers/teen.yaml --live   (one Muse Wonder call, read once and saved)
+name: Teen
+kind: described
+sources:
+  - { type: description, text: "A 16-year-old who loves science and math but doesn't like reading or English class." }

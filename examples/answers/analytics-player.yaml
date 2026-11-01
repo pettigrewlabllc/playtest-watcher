@@ -1,0 +1,10 @@
+# npm run persona -- new --answers examples/answers/analytics-player.yaml
+name: Puzzle Fan
+kind: person
+who: an adult who plays puzzle games on their phone
+adult: true
+consent: { basis: self, confirmed: true, note: example data, made up }
+sources:
+  - { type: events, path: examples/data/events.csv, map: examples/data/events.map.yaml }
+  - { type: survey, path: examples/data/survey.csv, map: examples/data/survey.map.yaml }
+  - { type: profile, path: examples/data/profile.yaml }

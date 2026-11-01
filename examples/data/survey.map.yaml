@@ -1,0 +1,6 @@
+member: { column: player_id, value: p1 }
+drives:
+  mastery:    { field: likes_puzzles, scale: likert5 }
+  story:      { field: likes_story, scale: likert5 }
+  speed:      { field: likes_racing, scale: likert5 }
+  creativity: { field: likes_building, scale: likert5 }

@@ -1,0 +1,6 @@
+# A group of personas you already built. Each run plays one whole member, picked by --seed.
+name: Puzzle Club
+kind: group
+who: one member of a small puzzle club
+consent: { basis: participant, confirmed: true, note: example }
+members: [puzzle-fan, teen]
