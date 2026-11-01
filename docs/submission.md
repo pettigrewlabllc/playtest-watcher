@@ -40,6 +40,14 @@ The whole build cost $59 in Meta API calls, every call logged.
 
 Along the way the playtests produced a ranked fix list for each of my four games, ready to go into the games.
 
+## Why Meta
+
+Meta already sees how people actually use things: where they scroll past, what they skip, where they give up. Fed into this engine, that's a way to test a new feature against the people it's for before it ships.
+
+I'd do it in a way that holds up. Personas built from groups, like first-time users on older Android phones or teens who skip onboarding text, never a copy of one person. Real people only by opting in, the way my kids did, with the persona staying theirs. Quest and Horizon first, where developers are already Meta's customers and need testers.
+
+And it doesn't need anyone's data to work at all. Describe a kid in one sentence and it builds them inside a range real kids showed. The data makes it sharper. It isn't what makes it possible.
+
 ## What's next
 
 Personas that play any web game or app, the same harness for Claude, Gemini and other agents through one persona file, and more kids than mine.
@@ -53,6 +61,6 @@ Personas that play any web game or app, the same harness for Claude, Gemini and 
 5. 1:25 Two persona cards side by side (the youngest kid and the oldest): the limits, and how few traits are clearly different.
 6. 1:45 The runs page replaying both personas' runs through Hoard Keeper from their step logs: one skipping text and missing taps, one reading everything.
 7. 2:20 A described kid ("skips every instruction, taps really fast") built from one sentence and playing.
-8. 2:40 The honest results slide, then the repo link.
+8. 2:40 The honest results slide, then the repo link and the end card: "Next: test with the people you're building for, with their permission."
 
 Any shot with a kid in it uses the blurred face and needs Joel's OK before it's public.
