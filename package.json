@@ -24,5 +24,6 @@
   },
   "dependencies": {
     "@meta-sam/parser": "^0.1.0"
-  }
+  },
+  "license": "MIT"
 }
