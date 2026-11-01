@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseVideoStream, type ResponsesEvent } from '@meta-sam/parser';
 import type { MetaClient } from '../meta/client.ts';
-import { run, probeDurationMs, probeSize } from './ffmpeg.ts';
+import { FFMPEG, run, probeDurationMs, probeSize } from './ffmpeg.ts';
 
 export type Box = { x1: number; y1: number; x2: number; y2: number };
 
@@ -58,7 +58,6 @@ export function rasterMask(boxes: Box[], width: number, height: number): Uint8Ar
   return m;
 }
 
-const FFMPEG = process.env.FFMPEG_PATH ?? '/opt/homebrew/bin/ffmpeg';
 
 // Feeds a gray8 mask stream (one frame per video frame) into ffmpeg's stdin.
 function blurWithMask(args: string[], masks: Uint8Array[]): Promise<void> {

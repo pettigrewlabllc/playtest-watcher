@@ -26,9 +26,11 @@ KIDS = ["A", "B", "C", "D"]
 CHECKED = ["first_tap_s", "action_gap_s", "read_share", "error_rate", "idle_per_min"]
 
 
-def fidelity(root):
+def fidelity(root, only=None):
     rows = []
     for d in sorted(Path(root).iterdir()):
+        if only and d.name not in only:
+            continue
         p, s = d / "persona.json", d / "session.json"
         if not (p.exists() and s.exists() and (d / "events.jsonl").exists()):
             continue
@@ -76,8 +78,9 @@ def main(argv=None):
     ap.add_argument("--root", default="results/runs")
     ap.add_argument("--limits", default="results/group/limits.json")
     ap.add_argument("--out", default="results/group/validation.json")
+    ap.add_argument("--runs", nargs="*", help="only these run folders (default: every run under --root)")
     a = ap.parse_args(argv)
-    rows, summary = fidelity(a.root)
+    rows, summary = fidelity(a.root, set(a.runs) if a.runs else None)
     ident = identification(json.loads(Path(a.limits).read_text()))
     res = {"harness_fidelity": {"summary": summary, "runs": rows,
                                 "note": "within_x1.5: measured within a factor of 1.5 of what the harness was told to hold"},
