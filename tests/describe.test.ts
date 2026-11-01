@@ -31,3 +31,15 @@ describe('described persona', () => {
     expect(c.harness.sourAfterFails).toBe(2);
   });
 });
+
+import { toPersona as place } from '../src/persona/describe.ts';
+describe('a described limit follows its trait', () => {
+  it('lowers read share when the description lowers reading and leaves the limit unrated', () => {
+    const L = { per_game: { J: { g: { read_share: 0.6 } } }, held_out: { A: { g: { read_share: { ratio: 0.5 } } }, B: { g: { read_share: { ratio: 1 } } }, C: { g: { read_share: { ratio: 1.5 } } } } };
+    const base = { age: 16, limits: [{ name: 'read_share', level: 0, because: 'not mentioned' }], patience: null, drives: [], plays_for: '', keeps_going: '', quits_when: '' };
+    const typical = place('T', 'g', { ...base, dims: [] } as any, L, '').limits.read_share.value!;
+    const low = place('T', 'g', { ...base, dims: [{ name: 'reading', level: -1, because: 'dislikes reading' }] } as any, L, '').limits.read_share.value!;
+    expect(typical).toBeCloseTo(0.6);
+    expect(low).toBeCloseTo(0.3);
+  });
+});

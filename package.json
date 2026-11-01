@@ -1,7 +1,9 @@
 {
   "name": "playtest-watcher",
   "private": true,
-  "engines": { "node": ">=22.18" },
+  "engines": {
+    "node": ">=22.18"
+  },
   "type": "module",
   "scripts": {
     "start": "node src/server/main.ts",
@@ -12,7 +14,8 @@
     "demo": "node scripts/demo.ts",
     "blur": "node scripts/blur-faces.ts",
     "play": "node src/agent/play.ts",
-    "export-results": "node scripts/export-results.ts"
+    "export-results": "node scripts/export-results.ts",
+    "norms-doc": "node scripts/norms-doc.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

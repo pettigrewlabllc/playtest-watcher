@@ -12,7 +12,14 @@ export type PersonaFile = {
   limits: Record<string, Limit> & { sour_after_fails: Limit };
   drives: { drive: string; pull: number; evidence: string }[];
   card: { plays_for: string; keeps_going: string; quits_when: string };
+  blend?: { name: string; member: string; id: string; index: number; of: number };   // a group persona's run: which member it is
+  adult?: boolean;   // an adult with no age on file still gets adult reflex defaults
+  who?: string;   // who the persona is, for anyone who isn't one of the study's kids (an adult, a described teen)
 };
+
+// Drive names as the interview's pitches spell them. One interview came back as "***story***" before the reader's
+// schema pinned the names; this keeps that file usable.
+export const normDrive = (s: string) => String(s).toLowerCase().replace(/[^a-z]/g, '');
 
 const readJson = async <T>(f: string): Promise<T | null> => { try { return JSON.parse(await readFile(f, 'utf8')) as T; } catch { return null; } };
 // Built on Muse's "bored", which kids contradicted on 3 of the 4 clips they checked.
@@ -51,7 +58,7 @@ export async function buildPersonaFile(root: string, letter: string, target: str
       note: 'Moment labels are Muse\'s. Muse agrees with itself often; the kids agreed with it far less, and it read quiet concentration as bored.' },
     dimensions, distinguishable: `${clear.length} of ${Object.values(dimensions).filter(d => d.value != null).length} measured dimensions are clearly different from the other kids${clear.length ? `: ${clear.join(', ')}` : ''}`,
     limits: { ...limits.held_out[L][target], sour_after_fails: sour },
-    drives: [...(iv?.motivation?.drives ?? [])].sort((a: any, b: any) => b.pull - a.pull),
+    drives: [...(iv?.motivation?.drives ?? [])].map((d: any) => ({ ...d, drive: normDrive(d.drive) })).sort((a: any, b: any) => b.pull - a.pull),
     card: { plays_for: iv?.motivation?.chasing ?? '', keeps_going: iv?.motivation?.keeps_going ?? '', quits_when: iv?.motivation?.quits_when ?? '' },
   };
 }
