@@ -102,3 +102,7 @@ npm test        # 201 tests (12 skip without the Python venv); a fake model clie
 python3 -m venv analysis/.venv && analysis/.venv/bin/pip install -r analysis/requirements.txt
 cd analysis && .venv/bin/python -m pytest -q tests
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).

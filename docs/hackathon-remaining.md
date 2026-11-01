@@ -47,7 +47,7 @@ Replaced with two checks on data already on disk, `analysis/validate.py` -> `res
 **Done 2026-11-01 evening:** README rewritten as the walkthrough (name: Informed Persona Testers), SKILL.md added,
 fresh clone checked (npm ci, server serves 9 runs and the narration page with no key, 189 tests pass + 12 skip
 without the Python venv). History rewritten to drop the ages (GitHub Support purge of cached commits optional,
-Joel's call; draft in recordings/github-support-request.md). Still open: LICENSE (Joel).
+Joel's call; draft in recordings/github-support-request.md). LICENSE: MIT (Joel, 2026-11-01).
 
 - LICENSE: **Joel's call** (MIT is the usual hackathon choice; without one the code is all rights reserved).
 - README: lead with Informed Personas (four ways in, the norms, how to run one), keep the watching half
