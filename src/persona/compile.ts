@@ -1,6 +1,7 @@
 // Persona file -> rules any agent can follow, plus the settings the harness enforces (spec §6). Only dimensions
 // that are clearly different from the other kids, and drives the kid felt strongly about, become rules.
 import type { PersonaFile } from './build.ts';
+import { READ_SHARE_DEFAULT, SOUR_AFTER_FAILS_DEFAULT, msPerChar, readingWpm, tapMiss } from './norms.ts';
 
 export type Harness = { firstTapS: number; actionGapS: number; readShare: number; readMsPerChar: number; errorRate: number; sourAfterFails: number };
 export type Compiled = { rules: { text: string; from: string }[]; harness: Harness };
@@ -34,21 +35,25 @@ export function compile(p: PersonaFile): Compiled {
   // The interview's quit reasons stay on the card (for people) and out of the rules: told to treat them as
   // background, the model still recited the kid's own words. The drives and dimensions carry what they mean.
   const L = p.limits;
+  const age = p.adult && p.age == null ? 18 : p.age;
   return {
     rules,
     harness: {
       firstTapS: n(L.first_tap_s?.value, 3), actionGapS: n(L.action_gap_s?.value, 1.5),
-      readShare: Math.max(0, Math.min(1, n(L.read_share?.value, 0.5))), readMsPerChar: n(L.read_ms_per_char?.value, 67),
-      errorRate: Math.max(0, Math.min(0.9, n(L.error_rate?.value, 0.15))), sourAfterFails: Math.max(1, Math.round(n(L.sour_after_fails?.value, 3))),
+      // Gaps are filled from published norms for the person's age (src/persona/norms.ts), never a bare guess.
+      readShare: Math.max(0, Math.min(1, n(L.read_share?.value, READ_SHARE_DEFAULT))), readMsPerChar: n(L.read_ms_per_char?.value, msPerChar(readingWpm(age).wpm)),
+      errorRate: Math.max(0, Math.min(0.9, n(L.error_rate?.value, tapMiss(age).rate))), sourAfterFails: Math.max(1, Math.round(n(L.sour_after_fails?.value, SOUR_AFTER_FAILS_DEFAULT))),
     },
   };
 }
 
-export function rulesText(c: Compiled, letter: string, age: number | null): string {
+export function rulesText(c: Compiled, letter: string, age: number | null, who?: string): string {
+  const adult = age != null && age >= 18;   // a who line covers adults with no age on file
   return [
-    `You are playtesting as Player ${letter}${age ? `, a child aged ${age}` : ''}. Play the way they would, not the way an adult or an AI would.`,
+    who ? `You are playtesting as ${who}${age ? ` (age ${age})` : ''}. Play the way they would, not the way an AI would.`
+      : `You are playtesting as Player ${letter}${age ? `, a child aged ${age}` : ''}. Play the way they would, not the way an adult or an AI would.`,
     ...c.rules.map(r => `- ${r.text}`),
     `- You read about ${Math.round(c.harness.readShare * 100)}% of instructions; when you skip one you only see its first few words.`,
-    `- After ${c.harness.sourAfterFails} fails in a row you are frustrated. Kids like you still keep playing for about ten minutes, even when lost, so keep trying different things; say so if you want to stop.`,
+    `- After ${c.harness.sourAfterFails} fails in a row you are frustrated. ${who || adult ? 'Keep' : 'Kids like you still keep'} playing for about ten minutes, even when lost, so keep trying different things; say so if you want to stop.`,
   ].join('\n');
 }

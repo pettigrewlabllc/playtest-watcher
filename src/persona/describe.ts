@@ -2,8 +2,8 @@
 // one. Muse Wonder rates each trait and limit against "a typical kid in this study" on five steps; the steps are
 // placed on the real kids' spread (median ratio to the reference run is typical, the kids' lowest and highest
 // ratios are "less" and "more"), so a described kid stays inside, or just past, what real kids did.
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { join, dirname } from 'node:path';
 import type { MetaClient } from '../meta/client.ts';
 import type { Dim, Limit, PersonaFile } from './build.ts';
 
@@ -41,6 +41,9 @@ export function placeLevel(lv: number, ratios: number[]): number {
   return lv < 0 ? lo - (mid - lo) * 0.5 : hi + (hi - mid) * 0.5;
 }
 
+// limit -> [trait, sign]: more pace means less time between actions; more skill means fewer errors.
+const LIMIT_FROM_TRAIT: Record<string, [string, number]> = { read_share: ['reading', 1], action_gap_s: ['pace', -1], error_rate: ['skill', -1] };
+
 export function toPersona(name: string, target: string, a: Answer, limitsJson: any, description: string): PersonaFile {
   const ref = limitsJson.per_game?.J?.[target] ?? {};
   const kids = Object.keys(limitsJson.held_out ?? {});
@@ -48,7 +51,12 @@ export function toPersona(name: string, target: string, a: Answer, limitsJson: a
   for (const m of Object.keys(DESCRIBE_LIMITS)) {
     const ratios = kids.map(k => limitsJson.held_out[k][target]?.[m]?.ratio).filter((x: unknown): x is number => typeof x === 'number' && x > 0);
     const base = ref[m];
-    const lv = a.limits.find(l => l.name === m)?.level ?? 0;
+    // A limit the description didn't rate follows its matching trait, so the rules and the harness agree ("doesn't
+    // like reading" set the reading trait low but left the read share typical, and the agent was told to skip
+    // text the harness still showed it half of).
+    const trait = LIMIT_FROM_TRAIT[m];
+    const own = a.limits.find(l => l.name === m)?.level ?? 0;   // Muse sends unmentioned ones as 0
+    const lv = own || (trait ? (a.dims.find(d => d.name === trait[0])?.level ?? 0) * trait[1] : 0);
     if (!ratios.length || base == null) { limits[m] = { value: null, ratio: null, lo: null, hi: null, from: [] }; continue; }
     const r = Math.max(0.05, placeLevel(lv, ratios));
     const v = base * r;
@@ -86,6 +94,16 @@ export async function describePersona(root: string, name: string, description: s
     'Call the child "they"; never guess their gender.',
     '', `DESCRIPTION: ${description}`,
   ].join('\n');
+  // One description is one persona: Muse's reading of it is saved and reused for every game, since asking again
+  // read the same sentence differently (5 traits set on one run, 1 on the next).
+  const saved = join(root, 'players', name.toUpperCase(), 'described.json');
+  try {
+    const prev = JSON.parse(await readFile(saved, 'utf8'));
+    if (prev.description === description) return toPersona(name, target, prev.answer, limitsJson, description);
+  } catch { /* first time */ }
   const r = await client.respond<Answer>({ model: 'muse-wonder-1.0', kind: `describe:${name}`, schema: SCHEMA, maxOutputTokens: 16000, content: [{ type: 'input_text', text: prompt }] });
+  if (!client.live) return toPersona(name, target, r.data, limitsJson, description);   // never save the fake client's canned answer
+  await mkdir(dirname(saved), { recursive: true });
+  await writeFile(saved, JSON.stringify({ description, answer: r.data, at: new Date().toISOString() }, null, 2));
   return toPersona(name, target, r.data, limitsJson, description);
 }

@@ -2,8 +2,8 @@
 // (play.ts) takes one move per look; here the page clock is frozen every `lookMs` of game time, Muse Spark sees
 // the screen and plans up to three timed moves for the next stretch, and the harness carries them out the way
 // the kid would:
-//   - no move lands sooner than the kid's reaction time after the look (default by age, not measured);
-//   - each lands off by the kid's timing error (default by age, not measured);
+//   - no move lands sooner than the kid's reaction time after the look (a published norm for their age, not measured);
+//   - each lands off by the kid's timing error (a published norm for their age, not measured);
 //   - a share of moves never happen, at the kid's reflex miss rate (measured: numbers they let fall in Factor Slicer).
 // Muse's thinking time never counts: game time only moves when the harness moves it.
 // The game's own state can be recorded every look with --state (a JS expression); it's for scoring, never shown
@@ -18,6 +18,9 @@ import { chromium, type Page } from 'playwright';
 import { clientFromEnv, createMetaClient, type MetaClient } from '../meta/client.ts';
 import { buildPersonaFile, writePersonaFile, type PersonaFile } from '../persona/build.ts';
 import { describePersona } from '../persona/describe.ts';
+import { loadPersonaFile } from '../persona/load.ts';
+import { reactionMs, timingSdMs, REFLEX_MISS_DEFAULT } from '../persona/norms.ts';
+import { blendPersona } from '../persona/blend.ts';
 import { compile, rulesText } from '../persona/compile.ts';
 import { LABELS } from '../watch/explain.ts';
 import { newSessionId } from '../server/ids.ts';
@@ -26,25 +29,24 @@ import { rng } from './play.ts';
 const REPO = resolve(import.meta.dirname, '..', '..');
 const ROOT = join(REPO, 'recordings');
 
-// Published simple visual reaction times disagree widely (roughly 250-400 ms in one table, 590-730 ms in one
-// study), so these are defaults inside that spread, labelled as such in every run.
+// Reaction time and its spread by age come from published norms (src/persona/norms.ts: Rutter et al. 2020, a
+// web-based sample of 12,327 people aged 10 to 70), labelled as norms in every run, never as measured.
 export function reflexDefaults(age: number | null): { reactionMs: number; timingSdMs: number; note: string } {
-  return age != null && age <= 10
-    ? { reactionMs: 450, timingSdMs: 120, note: 'default for ages 10 and under (published range about 280-730 ms), not measured' }
-    : { reactionMs: 350, timingSdMs: 90, note: 'default for ages 11 to 14 (published range about 250-590 ms), not measured' };
+  const r = reactionMs(age);
+  return { reactionMs: r.ms, timingSdMs: timingSdMs(age), note: r.note };
 }
 
 export type Reflex = { reactionMs: number; timingSdMs: number; missRate: number; sources: string[] };
 
 export async function reflexFor(p: PersonaFile, root = ROOT): Promise<Reflex> {
-  const d = reflexDefaults(p.age);
-  let missRate = 0.06, src = 'reflex miss: default (the four kids measured 5 to 9%)';
+  const d = reflexDefaults(p.adult && p.age == null ? 18 : p.age);
+  let missRate = REFLEX_MISS_DEFAULT, src = 'reflex miss: default (the four kids measured 5 to 9%)';
   try {
     const lim = JSON.parse(await readFile(join(root, 'group', 'limits.json'), 'utf8'));
-    const v = lim.per_game?.[p.letter]?.['factor-slicer']?.reflex_miss;
+    const v = lim.per_game?.[p.blend?.id ?? p.letter]?.['factor-slicer']?.reflex_miss;
     if (typeof v === 'number') { missRate = v; src = 'reflex miss: measured, numbers they let fall in Factor Slicer'; }
   } catch { /* no limits yet */ }
-  return { reactionMs: d.reactionMs, timingSdMs: d.timingSdMs, missRate, sources: [`reaction and timing: ${d.note}`, src] };
+  return { reactionMs: d.reactionMs, timingSdMs: d.timingSdMs, missRate, sources: [d.note, src] };
 }
 
 export type Move = { kind: 'press' | 'hold' | 'tap'; key: string; button: number; at_ms: number; for_ms: number };
@@ -102,7 +104,7 @@ export async function playAction(letter: string, o: {
   const persona = o.persona ?? await buildPersonaFile(ROOT, letter, o.limitsGame ?? 'factor-slicer');
   await writePersonaFile(ROOT, persona);
   const compiled = compile(persona);
-  const rules = rulesText(compiled, persona.letter, persona.age);
+  const rules = rulesText(compiled, persona.letter, persona.age, persona.who);
   const rx = await reflexFor(persona);
   const r = rng(o.seed ?? 7);
 
@@ -234,7 +236,12 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   const client = live ? clientFromEnv(REPO) : createMetaClient({ live: false, budgetUsd: 0, spendLog: join(ROOT, 'spend.jsonl') });
   const game = opt('game', 'action-game');
   const limitsGame = opt('limits-game', 'factor-slicer');
-  const persona = description ? await describePersona(ROOT, letter, description, limitsGame, client) : undefined;
+  const personaFile = opt('persona-file', '');
+  const blendFile = opt('blend', '');
+  const persona = description ? await describePersona(ROOT, letter, description, limitsGame, client)
+    : blendFile ? await blendPersona(ROOT, JSON.parse(await readFile(blendFile, 'utf8')), Number(opt('seed', '7')), letter, game, limitsGame)
+    : personaFile ? await loadPersonaFile(personaFile, letter, game, limitsGame) : undefined;
+  if (persona?.blend) console.log(`blend ${persona.blend.name}: this run plays as member ${persona.blend.index} of ${persona.blend.of} (${persona.blend.member})`);
   const out = await playAction(letter, { url, game, persona, client, keys: opt('keys', 'Space').split(',').map(s => s.trim()), controls: opt('controls', ''),
     looks: Number(opt('looks', '40')), lookMs: Number(opt('look-ms', '1200')), state: opt('state', '') || undefined, seed: Number(opt('seed', '7')), limitsGame,
     film: args.includes('--film'), hide: opt('hide', '') || undefined, keyNames: Object.fromEntries(opt('key-names', '').split(',').filter(Boolean).map(kv => kv.split('=') as [string, string])) });

@@ -20,6 +20,8 @@ import { chromium, type Page } from 'playwright';
 import { clientFromEnv, createMetaClient, type MetaClient } from '../meta/client.ts';
 import { buildPersonaFile, writePersonaFile, type PersonaFile } from '../persona/build.ts';
 import { describePersona } from '../persona/describe.ts';
+import { loadPersonaFile } from '../persona/load.ts';
+import { blendPersona } from '../persona/blend.ts';
 import { compile, rulesText, type Harness } from '../persona/compile.ts';
 import { LABELS } from '../watch/explain.ts';
 
@@ -125,7 +127,7 @@ export async function play(letter: string, o: { game: string; steps: number; url
   await writePersonaFile(ROOT, persona);
   const compiled = compile(persona);
   const h: Harness = compiled.harness;
-  const rules = rulesText(compiled, persona.letter, persona.age);
+  const rules = rulesText(compiled, persona.letter, persona.age, persona.who);
   const r = rng(o.seed ?? 7);
 
   const sres = await fetch(`${o.watcher}/api/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kid: persona.letter, game: o.game, round: 'agent', device: 'agent' }) });
@@ -273,6 +275,12 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   const client = live ? clientFromEnv(REPO) : createMetaClient({ live: false, budgetUsd: 0, spendLog: join(ROOT, 'spend.jsonl') });
   if (live && !client.live) console.warn('--live given but PW_LIVE=1 and MODEL_API_KEY are not both set; fake mode');
   let persona: PersonaFile | undefined;
+  if (opt('blend', '')) {
+    const b = JSON.parse(await readFile(opt('blend', ''), 'utf8'));
+    persona = await blendPersona(ROOT, b, Number(opt('seed', '7')), letter, opt('game', 'hoard-keeper'), opt('limits-game', '') || opt('game', 'hoard-keeper'));
+    console.log(`blend ${b.name}: this run plays as member ${persona.blend!.index} of ${persona.blend!.of} (${persona.blend!.member})`);
+  }
+  if (opt('persona-file', '')) persona = await loadPersonaFile(opt('persona-file', ''), letter, opt('game', 'hoard-keeper'), opt('limits-game', '') || opt('game', 'hoard-keeper'));
   if (description) {
     persona = await describePersona(ROOT, letter, description, opt('limits-game', '') || opt('game', 'hoard-keeper'), client);
     console.log(`described persona ${letter}: ${persona.distinguishable}`);

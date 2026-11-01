@@ -226,7 +226,9 @@ survives conversion.
   `new_persona` returns a draft id and the first question; each `answer_intake(draft, answer)` returns the
   next question or the card), `update_persona`, `run_persona(name, url, steps, mode: turn|action, point,
   progress)`, which returns a run id at once because a 40-step run takes minutes, and `get_report(run)`.
-- **Agent skill** (`SKILL.md`, one page): when to use personas, how to read a card, to relay intake
+- **Agent skill** (`SKILL.md`, one page): when to use personas, how to read a card, where every default comes
+  from (`src/persona/norms.ts`, rendered as `docs/persona-norms.md`: reaction time, timing spread, tap misses,
+  reading speed and share, each with its published source and how sure we are of it), to relay intake
   questions to the user word for word and never answer them itself, and that a run's quotes are the model's
   words, not a real person's.
 - **CLI**: `npx persona new | update | show | run | forget | share | export`.
@@ -238,6 +240,16 @@ survives conversion.
 - **Reports**: one JSON plus markdown per run (steps, what it read and skipped, misses, where it got stuck),
   the same shape the runs page reads. A GitHub Action can run a persona on a preview URL and fail on a
   rule ("Maya can't reach the first Audit").
+
+## 8b. Defaults come from published norms
+
+When a persona has no measured number (a description, or a person with no recording of that kind of game), the
+gap is filled from `src/persona/norms.ts` by age, never a bare guess: simple reaction time and its spread
+(Rutter et al. 2020, 12,327 people, web-based), touch misses by age and target size (Anthony 2019), reading speed
+by grade and for adults (Brysbaert 2019, with Taylor 1965's grade table), how much text people read (Nielsen
+2008; NN/g children's studies), and the drive taxonomy (Quantic Foundry, Bartle 1996, Ryan, Rigby & Przybylski
+2006). Two defaults have no credible source and say so: fails before frustration (3) and the share of game
+instructions read (0.5). A measured number always replaces a norm; a run log names every norm it leaned on.
 
 ## 9. Validation: how far to trust a persona
 

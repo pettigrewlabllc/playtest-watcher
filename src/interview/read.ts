@@ -65,7 +65,7 @@ const MOTIVATION_SCHEMA = {
     type: 'object', additionalProperties: false, required: ['chasing', 'keeps_going', 'quits_when', 'drives'],
     properties: {
       chasing: { type: 'string' }, keeps_going: { type: 'string' }, quits_when: { type: 'string' },
-      drives: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['drive', 'pull', 'evidence'], properties: { drive: { type: 'string' }, pull: { type: 'number' }, evidence: { type: 'string' } } } },
+      drives: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['drive', 'pull', 'evidence'], properties: { drive: { type: 'string', enum: PITCHES.map(p => p.drive) }, pull: { type: 'number' }, evidence: { type: 'string' } } } },
     },
   },
 };
