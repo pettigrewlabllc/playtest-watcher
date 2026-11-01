@@ -39,7 +39,7 @@ Here's what didn't work. / Predictions I froze before my kids played tied with k
 
 **[2:50, end card]**
 
-Next is more kids than mine. / Playtest Watcher. Built on Muse.
+Next is testing with the people you're actually building for, with their permission. / Playtest Watcher. Built on Muse.
 
 ---
 
