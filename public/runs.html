@@ -53,6 +53,8 @@
 const COLORS = { confused: '#fbbf24', stuck: '#fb923c', frustrated: '#f87171', bored: '#9ca3af', focused: '#60a5fa', engaged: '#4ade80', delighted: '#f472b6', none: '#555' };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const runs = { A: null, B: null };
+// ?public hides ages: next to the letters they tell anyone who knows the family which kid is which.
+const PUBLIC = new URLSearchParams(location.search).has('public');
 let step = 0, timer = null;
 
 const LIMITS = [
@@ -82,7 +84,7 @@ function card(r) {
   const last = steps.at(-1)?.state, stumbles = steps.filter(s => s.state?.stumble).length;
   const mins = steps.length ? (steps.at(-1).t / 60).toFixed(1) : '0';
   const described = /^Described/.test(r.observer ?? '');
-  return `<div class="card"><h2>Player ${esc(r.letter)}${r.age ? `, age ${r.age}` : ''}</h2>
+  return `<div class="card"><h2>Player ${esc(r.letter)}${r.age && !PUBLIC ? `, age ${r.age}` : ''}</h2>
     <div class="muted">${described ? 'Described in one sentence, not measured.' : 'Built from their recorded play.'} Playing ${esc(r.game)}.</div>
     <div class="label">Their limits (hover for what each one means)</div>
     <div class="lims">${action && r.reflex
@@ -143,7 +145,7 @@ document.getElementById('legend').innerHTML = Object.entries(COLORS).filter(([l]
 
 (async () => {
   const list = await (await fetch('/api/runs')).json();
-  const opt = r => `<option value="${r.id}">Player ${esc(r.persona)}${r.age ? ` (${r.age})` : ''}${r.described ? ', described' : ''}, ${esc(r.game)}, ${r.steps ?? '?'} steps</option>`;
+  const opt = r => `<option value="${r.id}">Player ${esc(r.persona)}${r.age && !PUBLIC ? ` (${r.age})` : ''}${r.described ? ', described' : ''}, ${esc(r.game)}, ${r.steps ?? '?'} steps</option>`;
   for (const side of ['A', 'B']) {
     const sel = document.getElementById('pick' + side);
     sel.innerHTML = list.map(opt).join('');
