@@ -14,8 +14,10 @@ async function record(name: string, fn: (p: Page) => Promise<void>) {
   const tmp = join(out, `.tmp-${name}`);
   await rm(tmp, { recursive: true, force: true });
   const b = await chromium.launch({ channel: 'chrome', headless: true });
-  // Laid out at 1280x720 and recorded at 1080p, so the interface reads at video size (at 1920 wide it sat small in a corner).
-  const ctx = await b.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1.5, recordVideo: { dir: tmp, size: { width: 1920, height: 1080 } } });
+  // Recorded at 1080p with the page zoomed 1.5x, so the interface reads at video size and stays sharp. (At 1920
+  // wide it sat small in a corner; a 1280x720 viewport recorded into 1080p came back padded with grey.)
+  const ctx = await b.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1, recordVideo: { dir: tmp, size: { width: 1920, height: 1080 } } });
+  await ctx.addInitScript(() => { addEventListener('DOMContentLoaded', () => { document.documentElement.style.zoom = '1.5'; }); });
   const p = await ctx.newPage();
   await fn(p);
   await ctx.close(); await b.close();
@@ -28,7 +30,7 @@ async function record(name: string, fn: (p: Page) => Promise<void>) {
 await mkdir(out, { recursive: true });
 
 if (which.includes('runs')) await record('runs-hoard-keeper', async p => {
-  await p.goto(`${BASE}/runs.html?a=20261031-214957-a-hoard-keeper-agent&b=20261031-214957-b-hoard-keeper-agent`);
+  await p.goto(`${BASE}/runs.html?public&a=20261031-214957-a-hoard-keeper-agent&b=20261031-214957-b-hoard-keeper-agent`);
   await wait(p, 2500);
   for (let i = 0; i < 4; i++) { await p.click('#next'); await wait(p, 900); }
   await p.mouse.wheel(0, 520); await wait(p, 1500);
@@ -36,7 +38,7 @@ if (which.includes('runs')) await record('runs-hoard-keeper', async p => {
 });
 
 if (which.includes('described')) await record('runs-described', async p => {
-  await p.goto(`${BASE}/runs.html?a=20261031-215034-x-hoard-keeper-agent&b=20261031-214957-a-hoard-keeper-agent`);
+  await p.goto(`${BASE}/runs.html?public&a=20261031-215034-x-hoard-keeper-agent&b=20261031-214957-a-hoard-keeper-agent`);
   await wait(p, 3000);
   await p.mouse.wheel(0, 640); await wait(p, 1200);
   for (let i = 0; i < 6; i++) { await p.click('#next'); await wait(p, 1400); }
