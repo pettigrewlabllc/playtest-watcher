@@ -12,7 +12,10 @@
 //   - progress (--progress "<js>"): for a game without the watcher's logger, an expression returning
 //     { fails, wins } counts toward the fail streak instead of the logged events.
 //
-//   PW_LIVE=1 npm run play -- <letter> [--game hoard-keeper] [--steps 40] [--url http://localhost:3054/] [--point] [--progress "<js>"] --live
+//   - standalone (--no-watcher, or the watcher isn't up): the session is made here and the game's own logger is
+//     caught in the page and written to <out>/<session>/events.jsonl, so a run needs nothing else running.
+//
+//   PW_LIVE=1 npm run play -- <letter> [--game hoard-keeper] [--steps 40] [--url http://localhost:3054/] [--point] [--progress "<js>"] [--no-watcher] [--out <dir>] --live
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -24,6 +27,9 @@ import { loadPersonaFile } from '../persona/load.ts';
 import { blendPersona } from '../persona/blend.ts';
 import { compile, rulesText, type Harness } from '../persona/compile.ts';
 import { LABELS } from '../watch/explain.ts';
+import { createStore } from '../server/store.ts';
+import { isValidSessionId } from '../server/ids.ts';
+import { clickables, gridShot, GRID_PROMPT, MAX_CLICKABLES } from './screen.ts';
 
 const REPO = resolve(import.meta.dirname, '..', '..');
 const ROOT = join(REPO, 'recordings');
@@ -32,6 +38,9 @@ const NEGATIVE = new Set(['confused', 'stuck', 'bored', 'frustrated']);
 export type Step = {
   n: number; t: number; screen: string; action: string; target: string; intended: string | null; missed: boolean;
   read: string[]; skipped: string[]; label: string; forced: boolean; why: string; say: string; would_quit: boolean; fails_in_row: number;
+  // ms: the persona's jittered time to act this step, how long the game clock really ran since the last action
+  // (a 'wait' included), and the wait itself; absent in runs made before they existed
+  gap_ms?: number; since_last_ms?: number; waited_ms?: number;
 };
 
 const STEP_SCHEMA = {
@@ -69,15 +78,78 @@ export function missPoint(x: number, y: number, w: number, h: number, r: () => n
   return [Math.max(1, Math.min(w - 1, Math.round(x + Math.cos(a) * d))), Math.max(1, Math.min(h - 1, Math.round(y + Math.sin(a) * d)))];
 }
 
+// Pace. The persona's time to act is the whole game-clock time from one action to the next, so the harness's own
+// clock moves inside that stretch count against it: the settle after an action (so its effect shows before the
+// next look) and the fresh-frame step before the screenshot. Before this they were added on top, and time between
+// actions measured 1.5 to 3.8 times the persona's setting (results/group/validation.json). A 'wait' stays an
+// explicit extra pause of its own, logged as waited_ms.
+export const SETTLE_MS = 400;
+export const WAIT_MS = 3000;
+export const FRESH_FRAME_MS = 100;   // first estimate; the real cost is measured every step and used for the next
+export type PaceClock = { runFor(ms: number): Promise<void>; freshFrame(): Promise<number> };
+
+// How long to run the clock before the fresh frame so that the action lands `gapMs` after the last one.
+export function paceRunMs(gapMs: number, sinceActionMs: number, freshEstimateMs: number): number {
+  return Math.max(0, Math.round(gapMs - sinceActionMs - freshEstimateMs));
+}
+
+// Right after an action: an explicit wait first (not part of the persona's gap), then the settle. Returns the ms
+// that count toward the next gap (the settle) and the waited ms.
+export async function settleAfterAction(clock: PaceClock, waited: boolean): Promise<{ sinceActionMs: number; waitedMs: number }> {
+  if (waited) await clock.runFor(WAIT_MS);
+  await clock.runFor(SETTLE_MS);
+  return { sinceActionMs: SETTLE_MS, waitedMs: waited ? WAIT_MS : 0 };
+}
+
+// From the end of the settle to the moment of the next action. `between` runs after the clock has moved and before
+// the fresh frame (play() reads the screen and hides skipped text there). Returns the ms the clock moved and the
+// measured fresh-frame cost, the estimate for next time.
+export async function paceToAction(clock: PaceClock, gapMs: number, sinceActionMs: number, freshEstimateMs: number, between?: () => Promise<void>): Promise<{ runMs: number; freshMs: number }> {
+  const runMs = paceRunMs(gapMs, sinceActionMs, freshEstimateMs);
+  if (runMs > 0) await clock.runFor(runMs);
+  if (between) await between();
+  const freshMs = await clock.freshFrame();
+  return { runMs, freshMs };
+}
+
+function pageClock(page: Page): PaceClock {
+  return {
+    runFor: async ms => { await page.clock.runFor(ms); },
+    // With the page clock frozen Chrome may not paint, and screenshots came back a frame behind the page (the
+    // agent filed slips that were already gone). Let ~80 ms of real time run so a fresh frame exists, then freeze.
+    async freshFrame() {
+      const before = await page.evaluate(() => Date.now());
+      await page.clock.resume();
+      await page.waitForTimeout(80);
+      const nowMs = await page.evaluate(() => Date.now());
+      await page.clock.pauseAt(nowMs + 20);
+      const after = await page.evaluate(() => Date.now());
+      return Math.max(0, after - before);
+    },
+  };
+}
+
+// Is the watcher up? A null, empty or unreachable watcher (no answer within ~1 s) means a standalone session.
+export async function watcherSession(watcher: string | null | undefined, meta: Record<string, string>, timeoutMs = 1000): Promise<string | null> {
+  if (!watcher) return null;
+  try {
+    const res = await fetch(`${watcher}/api/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(meta), signal: AbortSignal.timeout(timeoutMs) });
+    if (!res.ok) return null;
+    const id = ((await res.json()) as { id?: string }).id;
+    return id && isValidSessionId(id) ? id : null;
+  } catch { return null; }
+}
+
+// Where the game's logger posts in a standalone run: a path on the game's own origin (same origin, so no CORS),
+// caught by page.route and appended to the run's events.jsonl the way the watcher would.
+export const LOCAL_PW_PATH = '/__playtest-watcher';
+
 type Seen = { buttons: { i: number; text: string; x: number; y: number }[]; texts: { key: string; text: string }[]; labels: string[]; screen: string };
 
 async function observe(page: Page): Promise<Seen> {
-  return page.evaluate(() => {
+  const buttons = await clickables(page, MAX_CLICKABLES);
+  return page.evaluate(buttons => {
     const vis = (e: Element) => { const r = (e as HTMLElement).getBoundingClientRect(); return r.width > 4 && r.height > 4 && r.bottom > 0 && r.top < innerHeight && getComputedStyle(e).visibility !== 'hidden'; };
-    const buttons = [...document.querySelectorAll('button, [role=button], a[href]')].filter(vis).map((e, i) => {
-      const r = (e as HTMLElement).getBoundingClientRect();
-      return { i, text: ((e as HTMLElement).innerText || e.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').slice(0, 60), x: r.x + r.width / 2, y: r.y + r.height / 2 };
-    });
     // text blocks: leaf-ish elements with real sentences that are not buttons
     // Long text is reading (the reading limit applies); short labels are glanced at and always seen.
     const texts: { key: string; text: string }[] = [];
@@ -105,7 +177,7 @@ async function observe(page: Page): Promise<Seen> {
     for (const t of pics) if (!labels.includes(t) && labels.length < 60) labels.unshift(t);
     const screen = (document.querySelector('h1, h2, .title')?.textContent ?? '').trim().slice(0, 50) || buttons.slice(0, 3).map(b => b.text).join(' | ');
     return { buttons, texts, labels, screen };
-  });
+  }, buttons);
 }
 
 async function hideSkipped(page: Page, keys: string[]) {
@@ -115,24 +187,46 @@ async function hideSkipped(page: Page, keys: string[]) {
   }, keys);
 }
 
-async function readEvents(session: string): Promise<{ t: number; type: string; data?: Record<string, unknown> }[]> {
-  try { return (await readFile(join(ROOT, session, 'events.jsonl'), 'utf8')).split('\n').filter(Boolean).map(l => JSON.parse(l)); } catch { return []; }
+async function readEvents(root: string, session: string): Promise<{ t: number; type: string; data?: Record<string, unknown> }[]> {
+  try { return (await readFile(join(root, session, 'events.jsonl'), 'utf8')).split('\n').filter(Boolean).map(l => JSON.parse(l)); } catch { return []; }
 }
 
-export async function play(letter: string, o: { game: string; steps: number; url: string; watcher: string; client: MetaClient; seed?: number; log?: (l: string) => void; persona?: PersonaFile; point?: boolean; progress?: string; limitsGame?: string }) {
+export async function play(letter: string, o: {
+  game: string; steps: number; url: string; client: MetaClient; seed?: number; log?: (l: string) => void; persona?: PersonaFile; point?: boolean; progress?: string; limitsGame?: string;
+  // The watcher server that makes the session and stores the game's events. null/undefined, or not answering
+  // within ~1 s, runs standalone: the session is made here and the events are caught in the page.
+  watcher?: string | null;
+  // Where the run is written (default <repo>/recordings). Persona inputs are still read from <repo>/recordings.
+  outDir?: string;
+  // Use this session id (a-z, 0-9 and -). Always a standalone session: the watcher only knows ids it made.
+  sessionId?: string;
+}) {
   const log = o.log ?? console.log;
   // A game no kid has played takes the kid's limits from the games they did play, held out from a similar one.
   const persona = o.persona ?? await buildPersonaFile(ROOT, letter, o.limitsGame ?? o.game);
   if (o.limitsGame && o.limitsGame !== o.game) Object.assign(persona, { target_game: o.game, limits_from: o.limitsGame });
-  await writePersonaFile(ROOT, persona);
+  const outDir = o.outDir ? resolve(o.outDir) : ROOT;
+  await writePersonaFile(outDir, persona);   // the copy this run played; with --out it stays with the run
   const compiled = compile(persona);
   const h: Harness = compiled.harness;
   const rules = rulesText(compiled, persona.letter, persona.age, persona.who);
   const r = rng(o.seed ?? 7);
 
-  const sres = await fetch(`${o.watcher}/api/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kid: persona.letter, game: o.game, round: 'agent', device: 'agent' }) });
-  const session = ((await sres.json()) as { id: string }).id;
-  const dir = join(ROOT, session);
+  const meta = { kid: persona.letter, game: o.game, round: 'agent', device: 'agent' };
+  if (o.sessionId && !isValidSessionId(o.sessionId)) throw new Error(`bad session id: ${o.sessionId} (a-z, 0-9 and -, up to 80)`);
+  const remote = o.sessionId ? null : await watcherSession(o.watcher, meta);
+  const store = createStore(outDir);
+  let session: string;
+  if (remote) session = remote;
+  else if (o.sessionId) {
+    session = o.sessionId;
+    await mkdir(join(outDir, session), { recursive: true });
+    await writeFile(join(outDir, session, 'session.json'), JSON.stringify({ id: session, ...meta, createdAt: Date.now() }, null, 2));
+  } else session = await store.createSession(meta);
+  if (!remote) log(o.watcher && !o.sessionId ? `watcher ${o.watcher} not answering: standalone session` : 'standalone session');
+  const dir = join(outDir, session);
+  // A watcher stores the events in its own recordings dir (this repo's, when it runs from here), whatever --out says.
+  const eventsRoot = remote ? ROOT : outDir;
   await mkdir(join(dir, 'shots'), { recursive: true });
   await writeFile(join(dir, 'persona.json'), JSON.stringify({ persona, compiled, rules }, null, 2));
   log(`session ${session}: Player ${persona.letter} on ${o.game}; first tap ${h.firstTapS.toFixed(1)} s, gap ${h.actionGapS.toFixed(1)} s, reads ${Math.round(h.readShare * 100)}%, misses ${Math.round(h.errorRate * 100)}%, sours after ${h.sourAfterFails}`);
@@ -141,9 +235,19 @@ export async function play(letter: string, o: { game: string; steps: number; url
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
   const t0 = Date.now();
   await page.clock.install({ time: t0 });
-  await page.goto(`${o.url}${o.url.includes("?") ? "&" : "?"}playtest=${session}&pw=${encodeURIComponent(o.watcher)}`);
+  let pw = o.watcher ?? '';
+  if (!remote) {
+    pw = new URL(o.url).origin + LOCAL_PW_PATH;
+    await page.route(`${pw}/events/**`, async route => {
+      try { await store.appendEvents(session, JSON.parse(route.request().postData() ?? '[]'), Date.now()); } catch { /* malformed batch: dropped */ }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '{"stored":0}' });
+    });
+  }
+  await page.goto(`${o.url}${o.url.includes("?") ? "&" : "?"}playtest=${session}&pw=${encodeURIComponent(pw)}`);
   await page.clock.pauseAt(t0 + 1500);
   let gameMs = 1500;
+  const clock = pageClock(page);
+  let sinceActionMs = 0, waitedMs = 0, freshEstMs = FRESH_FRAME_MS;
 
   const steps: Step[] = [];
   const decided = new Map<string, boolean>();   // text block -> read?
@@ -155,27 +259,28 @@ export async function play(letter: string, o: { game: string; steps: number; url
       // answer a slip the Rush had already moved past.
       const glance = await observe(page);
       const screenKey = glance.buttons.map(b => b.text).join('|');
-      const delayS = jitter(screenKey !== lastScreen ? h.firstTapS : h.actionGapS, r);
+      const gapMs = jitter(screenKey !== lastScreen ? h.firstTapS : h.actionGapS, r) * 1000;
       lastScreen = screenKey;
-      await page.clock.runFor(Math.round(delayS * 1000));
-      gameMs += delayS * 1000;
-      const seen = await observe(page);
-      const fresh = seen.texts.filter(t => !decided.has(t.key));
-      for (const t of fresh) decided.set(t.key, r() < h.readShare);
-      const skipped = seen.texts.filter(t => decided.get(t.key) === false);
-      await hideSkipped(page, skipped.map(t => t.key));
-      // With the page clock frozen Chrome may not paint, and screenshots came back a frame behind the page (the
-      // agent filed slips that were already gone). Let ~80 ms of real time run so a fresh frame exists, then freeze.
-      await page.clock.resume();
-      await page.waitForTimeout(80);
-      const nowMs = await page.evaluate(() => Date.now());
-      await page.clock.pauseAt(nowMs + 20);
-      gameMs += 100;
+      let seen!: Seen, skipped: Seen['texts'] = [];
+      const paced = await paceToAction(clock, gapMs, sinceActionMs, freshEstMs, async () => {
+        seen = await observe(page);
+        const fresh = seen.texts.filter(t => !decided.has(t.key));
+        for (const t of fresh) decided.set(t.key, r() < h.readShare);
+        skipped = seen.texts.filter(t => decided.get(t.key) === false);
+        await hideSkipped(page, skipped.map(t => t.key));
+      });
+      freshEstMs = paced.freshMs;
+      const sinceLastMs = Math.round(sinceActionMs + waitedMs + paced.runMs + paced.freshMs);
+      gameMs += paced.runMs + paced.freshMs;
       const shotBuf = await page.screenshot({ type: 'jpeg', quality: 60 });
-      await writeFile(join(dir, 'shots', `${String(n).padStart(3, '0')}.jpg`), shotBuf);
-      const shot = shotBuf.toString('base64');
+      const base = join(dir, 'shots', String(n).padStart(3, '0'));
+      await writeFile(`${base}.jpg`, shotBuf);
+      // Pointing, the model sees the same frozen frame with the aim grid on (NNN-grid.jpg); NNN.jpg stays plain.
+      let modelShot = shotBuf;
+      if (o.point) { modelShot = await gridShot(page); await writeFile(`${base}-grid.jpg`, modelShot); }
+      const shot = modelShot.toString('base64');
 
-      const evs = await readEvents(session);
+      const evs = await readEvents(eventsRoot, session);
       for (const e of evs.slice(seenEvents)) {
         const kind = String(e.data?.kind ?? '');
         if (kind === 'fail') failsInRow++; else if (kind === 'success') failsInRow = 0;
@@ -199,7 +304,7 @@ export async function play(letter: string, o: { game: string; steps: number; url
         'TEXT YOU DID NOT READ (you only glanced at the first words):', ...skipped.map(t => `- ${t.text.split(' ').slice(0, 4).join(' ')}...`),
         'BUTTONS (tap by number):', ...seen.buttons.map(b => `[${b.i}] ${b.text || '(no label)'}`),
         '',
-        o.point ? 'You can also tap anything in the picture itself: action "point" with x and y in screenshot pixels (390 wide, 844 tall, 0,0 top left). Set button to 0 when you point, and x and y to 0 when you tap a button.' : '',
+        o.point ? `You can also tap anything in the picture itself: action "point" with x and y in screenshot pixels (390 wide, 844 tall, 0,0 top left). ${GRID_PROMPT} Set button to 0 when you point, and x and y to 0 when you tap a button.` : '',
         'Choose your next action as this child: tap a button by its number, wait (do nothing for a few seconds), or quit. label: how you feel right now. say: what you would say out loud, in your words (empty if nothing). why: one short sentence.',
       ].filter(Boolean).join('\n');
       type Answer = { action: string; button: number; x: number; y: number; label: string; why: string; would_quit: boolean; say: string };
@@ -230,10 +335,11 @@ export async function play(letter: string, o: { game: string; steps: number; url
         if (r() < h.errorRate) { [x, y] = missPoint(x, y, 390, 844, r); missed = true; }
         target = `${x},${y}`;
         await page.mouse.click(x, y);
-      } else if (d.action === 'wait') {
-        await page.clock.runFor(3000); gameMs += 3000;
       }
-      await page.clock.runFor(400); gameMs += 400;
+      // A wait is its own pause (logged as waited_ms); the settle after it counts toward the next gap.
+      const st = await settleAfterAction(clock, d.action === 'wait');
+      sinceActionMs = st.sinceActionMs; waitedMs = st.waitedMs;
+      gameMs += st.sinceActionMs + st.waitedMs;
       // Quitting is the harness's call: only after the fail limit has held for two steps in a row. Every real kid
       // played the full ten minutes, so a model's early "quit" is kept as would_quit and play goes on.
       sourSteps = sour ? sourSteps + 1 : 0;
@@ -245,6 +351,7 @@ export async function play(letter: string, o: { game: string; steps: number; url
         n, t: Math.round(gameMs) / 1000, screen: seen.screen, action: d.action === 'quit' && !quit ? 'wait' : d.action, target, intended: missed ? intended : null, missed,
         read: seen.texts.filter(t => decided.get(t.key)).map(t => t.text.slice(0, 60)), skipped: skipped.map(t => t.text.slice(0, 60)),
         label: forced ? 'frustrated' : label, forced, why: d.why, say: d.say, would_quit: d.would_quit || d.action === 'quit', fails_in_row: failsInRow,
+        gap_ms: Math.round(gapMs), since_last_ms: sinceLastMs, ...(st.waitedMs ? { waited_ms: st.waitedMs } : {}),
       };
       steps.push(step);
       log(`${String(n).padStart(2)} ${step.t.toFixed(1).padStart(6)}s ${step.label.padEnd(10)}${forced ? '*' : ' '} ${d.action} ${target.slice(0, 30)}${missed ? ` (meant ${intended})` : ''} | ${d.say || d.why}`.slice(0, 160));
@@ -255,7 +362,7 @@ export async function play(letter: string, o: { game: string; steps: number; url
   } finally {
     await browser.close();
   }
-  return { session, steps, persona, compiled };
+  return { session, steps, persona, compiled, dir, standalone: !remote };
 }
 
 export function summarize(steps: Step[]) {
@@ -270,7 +377,8 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   const opt = (k: string, d: string) => { const i = args.indexOf(`--${k}`); return i >= 0 ? args[i + 1] : d; };
   const description = opt('describe', '');
   const letter = description ? opt('name', 'X').toUpperCase() : args.find(a => /^[A-Za-z]$/.test(a));
-  if (!letter) { console.error('usage: npm run play -- <letter> | --describe "<a kid in words>" [--name X]  [--game hoard-keeper] [--steps 40] [--url http://localhost:3054/] [--watcher http://localhost:3058] [--seed 7] --live'); process.exit(1); }
+  if (!letter) { console.error('usage: npm run play -- <letter> | --describe "<a kid in words>" [--name X]  [--game hoard-keeper] [--steps 40] [--url http://localhost:3054/] [--watcher http://localhost:3058 | --no-watcher] [--out <dir>] [--session <id>] [--seed 7] --live'); process.exit(1); }
+  const outDir = opt('out', '') ? resolve(opt('out', '')) : ROOT;
   const live = args.includes('--live');
   const client = live ? clientFromEnv(REPO) : createMetaClient({ live: false, budgetUsd: 0, spendLog: join(ROOT, 'spend.jsonl') });
   if (live && !client.live) console.warn('--live given but PW_LIVE=1 and MODEL_API_KEY are not both set; fake mode');
@@ -285,9 +393,10 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
     persona = await describePersona(ROOT, letter, description, opt('limits-game', '') || opt('game', 'hoard-keeper'), client);
     console.log(`described persona ${letter}: ${persona.distinguishable}`);
   }
-  const out = await play(letter, { persona, limitsGame: opt('limits-game', '') || undefined, point: args.includes('--point'), progress: opt('progress', '') || undefined, game: opt('game', 'hoard-keeper'), steps: Number(opt('steps', '40')), url: opt('url', 'http://localhost:3054/'), watcher: opt('watcher', 'http://localhost:3058'), seed: Number(opt('seed', '7')), client });
+  const out = await play(letter, { persona, limitsGame: opt('limits-game', '') || undefined, point: args.includes('--point'), progress: opt('progress', '') || undefined, game: opt('game', 'hoard-keeper'), steps: Number(opt('steps', '40')), url: opt('url', 'http://localhost:3054/'),
+    watcher: args.includes('--no-watcher') ? null : opt('watcher', 'http://localhost:3058'), outDir, sessionId: opt('session', '') || undefined, seed: Number(opt('seed', '7')), client });
   const sum = summarize(out.steps);
-  await writeFile(join(ROOT, out.session, 'summary.json'), JSON.stringify(sum, null, 2));
+  await writeFile(join(outDir, out.session, 'summary.json'), JSON.stringify(sum, null, 2));
   console.log(JSON.stringify(sum));
-  if (existsSync(join(ROOT, out.session))) console.log(`steps: ${join(ROOT, out.session, 'steps.jsonl')}`);
+  if (existsSync(join(outDir, out.session))) console.log(`steps: ${join(outDir, out.session, 'steps.jsonl')}`);
 }
