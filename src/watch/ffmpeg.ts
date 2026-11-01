@@ -5,7 +5,7 @@ import { promisify } from 'node:util';
 const exec = promisify(execFile);
 // FFMPEG_PATH, else Homebrew's copy on Apple Silicon, else whatever `ffmpeg` is on PATH.
 const pick = (env: string | undefined, brew: string, name: string) => env ?? (existsSync(brew) ? brew : name);
-const FFMPEG = pick(process.env.FFMPEG_PATH, '/opt/homebrew/bin/ffmpeg', 'ffmpeg');
+export const FFMPEG = pick(process.env.FFMPEG_PATH, '/opt/homebrew/bin/ffmpeg', 'ffmpeg');
 const FFPROBE = pick(process.env.FFPROBE_PATH, '/opt/homebrew/bin/ffprobe', 'ffprobe');
 
 export async function run(args: string[]): Promise<void> {

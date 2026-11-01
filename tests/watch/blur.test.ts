@@ -1,3 +1,4 @@
+import { FFMPEG } from '../../src/watch/ffmpeg.ts';
 import { describe, it, expect } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -40,7 +41,7 @@ describe('box helpers', () => {
 });
 
 async function grayCrop(file: string, x: number, y: number, w: number, h: number): Promise<Buffer> {
-  const { stdout } = await exec('/opt/homebrew/bin/ffmpeg', ['-v', 'error', '-i', file, '-vf', `select=eq(n\\,1),crop=${w}:${h}:${x}:${y},format=gray`, '-frames:v', '1', '-f', 'rawvideo', '-'], { encoding: 'buffer', maxBuffer: 1 << 24 });
+  const { stdout } = await exec(FFMPEG, ['-v', 'error', '-i', file, '-vf', `select=eq(n\\,1),crop=${w}:${h}:${x}:${y},format=gray`, '-frames:v', '1', '-f', 'rawvideo', '-'], { encoding: 'buffer', maxBuffer: 1 << 24 });
   return stdout;
 }
 

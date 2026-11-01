@@ -26,9 +26,11 @@ KIDS = ["A", "B", "C", "D"]
 CHECKED = ["first_tap_s", "action_gap_s", "read_share", "error_rate", "idle_per_min"]
 
 
-def fidelity(root):
+def fidelity(root, only=None):
     rows = []
     for d in sorted(Path(root).iterdir()):
+        if only and d.name not in only:
+            continue
         p, s = d / "persona.json", d / "session.json"
         if not (p.exists() and s.exists() and (d / "events.jsonl").exists()):
             continue
@@ -38,16 +40,19 @@ def fidelity(root):
             continue   # action-mode runs carry reflexes, not these settings
         evs, dur = _events(d)
         got = session_limits(evs, game, dur)
-        row = {"run": d.name, "game": game}
+        first = (d / "steps.jsonl").read_text().split("\n", 1)[0] if (d / "steps.jsonl").exists() else ""
+        # Runs from the fixed harness log each step's gap (gap_ms); earlier runs added the harness's own pauses on top.
+        row = {"run": d.name, "game": game, "harness": "fixed" if '"gap_ms"' in first else "before-fix"}
         for h, m in PAIRS.items():
             g, v = given.get(h), got.get(m)
             row[m] = {"given": g, "measured": v, "ratio": round(v / g, 2) if g and v is not None else None}
         rows.append(row)
     summary = {}
-    for m in PAIRS.values():
-        rs = [r[m]["ratio"] for r in rows if r[m]["ratio"] is not None]
-        within = sum(1 for x in rs if 0.67 <= x <= 1.5)
-        summary[m] = {"runs": len(rs), "within_x1.5": within, "ratios": rs}
+    for group in ("fixed", "before-fix"):
+        summary[group] = {}
+        for m in PAIRS.values():
+            rs = [r[m]["ratio"] for r in rows if r["harness"] == group and r[m]["ratio"] is not None]
+            summary[group][m] = {"runs": len(rs), "within_x1.5": sum(1 for x in rs if 0.67 <= x <= 1.5), "ratios": rs}
     return rows, summary
 
 
@@ -76,14 +81,15 @@ def main(argv=None):
     ap.add_argument("--root", default="results/runs")
     ap.add_argument("--limits", default="results/group/limits.json")
     ap.add_argument("--out", default="results/group/validation.json")
+    ap.add_argument("--runs", nargs="*", help="only these run folders (default: every run under --root)")
     a = ap.parse_args(argv)
-    rows, summary = fidelity(a.root)
+    rows, summary = fidelity(a.root, set(a.runs) if a.runs else None)
     ident = identification(json.loads(Path(a.limits).read_text()))
     res = {"harness_fidelity": {"summary": summary, "runs": rows,
                                 "note": "within_x1.5: measured within a factor of 1.5 of what the harness was told to hold"},
            "input_identification": ident}
     Path(a.out).write_text(json.dumps(res, indent=2))
-    print(json.dumps({"fidelity": {m: f'{v["within_x1.5"]} of {v["runs"]}' for m, v in summary.items()},
+    print(json.dumps({"fidelity": {g: {m: f'{v["within_x1.5"]} of {v["runs"]}' for m, v in ms.items()} for g, ms in summary.items()},
                       "identification": f'{ident["hits"]} of {ident["checks"]} (chance {ident["chance"]})', "per_game": ident["per_game"]}, indent=1))
 
 

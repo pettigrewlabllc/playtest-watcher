@@ -24,6 +24,19 @@ The runs page plays persona runs from `results/runs/` side by side, a step at a 
 
 Where a persona has no measured number, the gap is filled from **published research by age**, never a guess: reaction time and its spread (Rutter et al. 2020, 12,327 people), touch misses by age and button size (Anthony 2019), reading speed (Brysbaert 2019), how much text people actually read (Nielsen 2008). Every number, its source, and how sure we are of it is in [`src/persona/norms.ts`](src/persona/norms.ts), rendered as [docs/persona-norms.md](docs/persona-norms.md). Two defaults have no credible source and say so: how many fails before someone gets frustrated, and how much of a game's instructions people read.
 
+## Build one
+
+```bash
+npm run persona -- new                                            # asks who it is, consent first, then what data you have
+npm run persona -- new --answers examples/answers/analytics-player.yaml   # the same, from an answers file
+npm run persona -- show puzzle-fan                                # the card: every number with where it came from
+npm run persona -- list
+```
+
+The example builds a persona from a made-up analytics export (`examples/data/events.csv`), mapped onto persona numbers by a short file you can read in ten seconds (`examples/data/events.map.yaml`): first tap, time between actions, error rate, longest fail streak. A survey adds what they play for, and profile facts add small guesses. Consent is checked before any file is opened, a child under 13 needs a parent's yes, and a persona file can't hold anyone's quoted words.
+
+Every persona is a `persona/2` file, defined by a published JSON Schema ([schema/persona-2.schema.json](schema/persona-2.schema.json)), validated on every load and save, and versioned on disk. Each number carries its basis: measured, self-report, guess, or norm. When sources disagree, measured wins.
+
 ## How a persona plays
 
 Muse Spark plays the real game in Chrome, from a screenshot plus the page's buttons and text. The harness holds it to the persona so it can't play like an AI:
@@ -59,16 +72,22 @@ Honest numbers, every one with a file in `results/`:
 
 - **The kids checked Muse.** Watching their own clips, they picked Muse's exact word 5 times in 20 and agreed on good vs bad about three times in four. Twice Muse read a kid concentrating as bored. (`kid-check.json`)
 - **Predictions frozen before four check sessions tied with knowing only the kid's age** (kappa 0.069 vs 0.067). (`group/scoreboard.json`)
-- **Does a run play at the numbers it was given?** First tap held in all 6 Hoard Keeper runs checked. Time between actions held in 1 of 6: the harness adds its own pause each step, a bug to fix. Reading and error rate don't compare cleanly yet. (`group/validation.json`)
+- **Does a run play at the numbers it was given?** On the fixed harness, time between actions and reading share both land within 1.5x of the persona's numbers in every committed run (2 of 2), and first tap in 1 of 2 (the other ran 1.6x). Before the fix, the harness added its own pause each step and pace held in only 1 of 6. Error rate doesn't compare yet: the setting is a tap miss, while the game counts Muse's wrong answers. (`group/validation.json`)
 - **Does a kid's play on other games predict them on a new one?** 19 of 76 checks picked the right kid, which is exactly chance with four kids. (`group/validation.json`)
 - **Muse reads a busy screen worse than my kids.** The personas filed about a third of Hoard Keeper slips wrong, against 18 to 19% for the kids. (`group/agent-vs-kid.json`)
-- **On a canvas game, Muse's taps land 60 to 140 px from what it names.** Continental Drift runs measure the harness's aim as much as the game. A labelled grid on the screenshot is the next fix.
+- **Canvas aim is fixed.** On Continental Drift, Muse's taps used to land 60 to 140 px from what it named (1 of 23 on target). With a labelled coordinate grid on the screenshot it sees, 9 of 9 landed on the named object; the targets in that run were big ones, so small targets still need testing.
 
 My bet is that more measured dimensions make a persona play closer to the person. Four kids isn't enough to prove it.
 
 ## Use it from an agent
 
-[SKILL.md](SKILL.md) tells an agent (Claude Code, Codex, Gemini CLI, Cursor) how to build a persona, run it, and read what came back. The design for the full kit (an intake that asks what data you have, a mapping file, an MCP server) is in [docs/superpowers/specs/2026-11-01-persona-kit-design.md](docs/superpowers/specs/2026-11-01-persona-kit-design.md).
+An MCP server puts the personas in any agent that speaks MCP (Claude Code, Cursor, VS Code, Codex, Gemini CLI):
+
+```bash
+claude mcp add personas -- node /path/to/playtest-watcher/src/kit/mcp.ts
+```
+
+Six tools: `list_personas`, `show_persona`, `new_persona` (the agent asks you the intake questions and passes your answers; consent first), `validate_persona`, `run_persona` (returns a run id straight away, since a run takes minutes) and `get_report`. [SKILL.md](SKILL.md) tells an agent how to use them. The full design is in [docs/superpowers/specs/2026-11-01-persona-kit-design.md](docs/superpowers/specs/2026-11-01-persona-kit-design.md).
 
 ## Watching a playtest
 

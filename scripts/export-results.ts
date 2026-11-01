@@ -34,17 +34,20 @@ async function put(rel: string, text: string) {
     const piece = s.slice(i, i + 25);
     if (piece.trim().length >= 20 && lower.includes(piece)) throw new Error(`${rel} would carry a kid's own words ("${piece}"); not written`);
   }
-  await mkdir(join(OUT, rel, '..'), { recursive: true });
-  await writeFile(join(OUT, rel), text);
+  staged.set(rel, text);   // written only after every file has passed these checks
   written.push(rel);
 }
+const staged = new Map<string, string>();
+const copies: [string, string][] = [];
 
 // Check every run before clearing results/: a run that must stay home stops the export with results/ untouched.
 for (const id of runs) {
   const p = await readJson(join(REC, id, 'persona.json'));
-  if (p?.persona?.blend || p?.persona?.who && !String(p.persona.observer?.note ?? '').startsWith('Described')) throw new Error(`${id} is a family-blend or personal-file run: keep it local`);
+  // Kids appear only as Player A to D; a described persona is made up. An adult's own persona (a job, a family) and
+  // a family blend stay local.
+  const pp = p?.persona;
+  if (pp?.blend || pp?.adult || pp?.who && !/^Player [A-D]$/.test(pp.who) && !String(pp.observer?.note ?? '').startsWith('Described') && !/^A \d+-year-old/.test(pp.who)) throw new Error(`${id} is a family-blend or personal-file run: keep it local`);
 }
-await rm(OUT, { recursive: true, force: true });
 for (const f of ['limits.json', 'stability.json', 'agent-vs-kid.json']) if (existsSync(join(REC, 'group', f))) await put(`group/${f}`, await readFile(join(REC, 'group', f), 'utf8'));
 if (existsSync(join(REC, 'scoreboard.json'))) await put('group/scoreboard.json', await readFile(join(REC, 'scoreboard.json'), 'utf8'));
 
@@ -76,7 +79,10 @@ for (const id of runs) {
   await put(`runs/${id}/session.json`, JSON.stringify({ id, kid: s.kid, game: s.game, round: 'agent' }, null, 2));
   await put(`runs/${id}/persona.json`, JSON.stringify({ persona, compiled: p.compiled, rules }, null, 2));
   for (const f of ['steps.jsonl', 'summary.json', 'events.jsonl']) if (existsSync(join(src, f))) await put(`runs/${id}/${f}`, await readFile(join(src, f), 'utf8'));
-  await mkdir(join(OUT, 'runs', id, 'shots'), { recursive: true });
-  for (const f of (await readdir(join(src, 'shots'))).filter(f => /^\d{3}\.jpg$/.test(f))) await cp(join(src, 'shots', f), join(OUT, 'runs', id, 'shots', f));
+  for (const f of (await readdir(join(src, 'shots'))).filter(f => /^\d{3}\.jpg$/.test(f))) copies.push([join(src, 'shots', f), join(OUT, 'runs', id, 'shots', f)]);
 }
+// Everything passed: only now replace results/. A refusal anywhere above leaves results/ exactly as it was.
+await rm(OUT, { recursive: true, force: true });
+for (const [rel, text] of staged) { await mkdir(join(OUT, rel, '..'), { recursive: true }); await writeFile(join(OUT, rel), text); }
+for (const [from, to] of copies) { await mkdir(join(to, '..'), { recursive: true }); await cp(from, to); }
 console.log(`results/: ${written.length} files, ${runs.length} runs (screenshots are of the game only)`);
