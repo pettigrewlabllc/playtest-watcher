@@ -8,7 +8,11 @@
 //   - patience: after the kid's fail streak the step is marked frustrated whatever the model said (forced: true).
 // The game's own event logger stays on, so the run is an ordinary session (round "agent").
 //
-//   PW_LIVE=1 npm run play -- <letter> [--game hoard-keeper] [--steps 40] [--url http://localhost:3054/] --live
+//   - canvas games (--point): the agent may tap anywhere on the screenshot; a missed tap lands 30 to 50 px off;
+//   - progress (--progress "<js>"): for a game without the watcher's logger, an expression returning
+//     { fails, wins } counts toward the fail streak instead of the logged events.
+//
+//   PW_LIVE=1 npm run play -- <letter> [--game hoard-keeper] [--steps 40] [--url http://localhost:3054/] [--point] [--progress "<js>"] --live
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -31,10 +35,10 @@ export type Step = {
 const STEP_SCHEMA = {
   name: 'agent_step',
   schema: {
-    type: 'object', additionalProperties: false, required: ['action', 'button', 'label', 'why', 'would_quit', 'say'],
+    type: 'object', additionalProperties: false, required: ['action', 'button', 'x', 'y', 'label', 'why', 'would_quit', 'say'],
     properties: {
-      action: { type: 'string', enum: ['tap', 'wait', 'quit'] },
-      button: { type: 'integer' },
+      action: { type: 'string', enum: ['tap', 'point', 'wait', 'quit'] },
+      button: { type: 'integer' }, x: { type: 'integer' }, y: { type: 'integer' },
       label: { type: 'string', enum: [...LABELS] },
       why: { type: 'string' }, would_quit: { type: 'boolean' }, say: { type: 'string' },
     },
@@ -55,6 +59,12 @@ export function missTarget(i: number, count: number, r: () => number): number {
   if (i === 0) return 1;
   if (i === count - 1) return count - 2;
   return r() < 0.5 ? i - 1 : i + 1;
+}
+
+// Where a missed tap on a picture lands: 30 to 50 px off in a random direction, kept on screen.
+export function missPoint(x: number, y: number, w: number, h: number, r: () => number): [number, number] {
+  const a = r() * 2 * Math.PI, d = 30 + r() * 20;
+  return [Math.max(1, Math.min(w - 1, Math.round(x + Math.cos(a) * d))), Math.max(1, Math.min(h - 1, Math.round(y + Math.sin(a) * d)))];
 }
 
 type Seen = { buttons: { i: number; text: string; x: number; y: number }[]; texts: { key: string; text: string }[]; labels: string[]; screen: string };
@@ -107,9 +117,11 @@ async function readEvents(session: string): Promise<{ t: number; type: string; d
   try { return (await readFile(join(ROOT, session, 'events.jsonl'), 'utf8')).split('\n').filter(Boolean).map(l => JSON.parse(l)); } catch { return []; }
 }
 
-export async function play(letter: string, o: { game: string; steps: number; url: string; watcher: string; client: MetaClient; seed?: number; log?: (l: string) => void; persona?: PersonaFile }) {
+export async function play(letter: string, o: { game: string; steps: number; url: string; watcher: string; client: MetaClient; seed?: number; log?: (l: string) => void; persona?: PersonaFile; point?: boolean; progress?: string; limitsGame?: string }) {
   const log = o.log ?? console.log;
-  const persona = o.persona ?? await buildPersonaFile(ROOT, letter, o.game);
+  // A game no kid has played takes the kid's limits from the games they did play, held out from a similar one.
+  const persona = o.persona ?? await buildPersonaFile(ROOT, letter, o.limitsGame ?? o.game);
+  if (o.limitsGame && o.limitsGame !== o.game) Object.assign(persona, { target_game: o.game, limits_from: o.limitsGame });
   await writePersonaFile(ROOT, persona);
   const compiled = compile(persona);
   const h: Harness = compiled.harness;
@@ -127,13 +139,13 @@ export async function play(letter: string, o: { game: string; steps: number; url
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
   const t0 = Date.now();
   await page.clock.install({ time: t0 });
-  await page.goto(`${o.url}?playtest=${session}&pw=${encodeURIComponent(o.watcher)}`);
+  await page.goto(`${o.url}${o.url.includes("?") ? "&" : "?"}playtest=${session}&pw=${encodeURIComponent(o.watcher)}`);
   await page.clock.pauseAt(t0 + 1500);
   let gameMs = 1500;
 
   const steps: Step[] = [];
   const decided = new Map<string, boolean>();   // text block -> read?
-  let lastScreen = '', failsInRow = 0, seenEvents = 0, badAnswers = 0, sourSteps = 0;
+  let lastScreen = '', failsInRow = 0, seenEvents = 0, badAnswers = 0, sourSteps = 0, lastFails = 0, lastWins = 0;
   try {
     for (let n = 1; n <= o.steps; n++) {
       // The kid's time passes first (first-tap delay on a new screen, else the gap between actions); then the
@@ -167,6 +179,13 @@ export async function play(letter: string, o: { game: string; steps: number; url
         if (kind === 'fail') failsInRow++; else if (kind === 'success') failsInRow = 0;
       }
       seenEvents = evs.length;
+      if (o.progress) {
+        const pr = await page.evaluate(js => { try { return (0, eval)(js) ?? null; } catch { return null; } }, o.progress) as { fails?: number; wins?: number } | null;
+        const f = pr?.fails ?? lastFails, w = pr?.wins ?? lastWins;
+        if (w > lastWins) failsInRow = 0; else if (f > lastFails) failsInRow += f - lastFails;
+        // a new round resets the game's own counters
+        lastFails = f < lastFails ? 0 : f; lastWins = w < lastWins ? 0 : w;
+      }
       const sour = failsInRow >= h.sourAfterFails;
 
       const prompt = [
@@ -178,9 +197,10 @@ export async function play(letter: string, o: { game: string; steps: number; url
         'TEXT YOU DID NOT READ (you only glanced at the first words):', ...skipped.map(t => `- ${t.text.split(' ').slice(0, 4).join(' ')}...`),
         'BUTTONS (tap by number):', ...seen.buttons.map(b => `[${b.i}] ${b.text || '(no label)'}`),
         '',
+        o.point ? 'You can also tap anything in the picture itself: action "point" with x and y in screenshot pixels (390 wide, 844 tall, 0,0 top left). Set button to 0 when you point, and x and y to 0 when you tap a button.' : '',
         'Choose your next action as this child: tap a button by its number, wait (do nothing for a few seconds), or quit. label: how you feel right now. say: what you would say out loud, in your words (empty if nothing). why: one short sentence.',
       ].filter(Boolean).join('\n');
-      type Answer = { action: string; button: number; label: string; why: string; would_quit: boolean; say: string };
+      type Answer = { action: string; button: number; x: number; y: number; label: string; why: string; would_quit: boolean; say: string };
       let d: Answer;
       try {
         d = (await o.client.respond<Answer>({
@@ -191,7 +211,7 @@ export async function play(letter: string, o: { game: string; steps: number; url
       } catch (e) {
         // Muse sometimes pads a finished answer with blank space until the cap; log a pause and go on.
         if (++badAnswers >= 3) { log(`stopping: three bad answers in a row (${(e as Error).message.slice(0, 80)})`); break; }
-        d = { action: 'wait', button: 0, label: 'none', why: `no usable answer: ${(e as Error).message.slice(0, 80)}`, would_quit: false, say: '' };
+        d = { action: 'wait', button: 0, x: 0, y: 0, label: 'none', why: `no usable answer: ${(e as Error).message.slice(0, 80)}`, would_quit: false, say: '' };
       }
 
       let target = '', intended: string | null = null, missed = false;
@@ -202,6 +222,12 @@ export async function play(letter: string, o: { game: string; steps: number; url
         const b = seen.buttons[i];
         target = b.text;
         await page.mouse.click(b.x, b.y);
+      } else if (d.action === 'point' && o.point) {
+        let x = Math.max(1, Math.min(389, d.x | 0)), y = Math.max(1, Math.min(843, d.y | 0));
+        intended = `${x},${y}`;
+        if (r() < h.errorRate) { [x, y] = missPoint(x, y, 390, 844, r); missed = true; }
+        target = `${x},${y}`;
+        await page.mouse.click(x, y);
       } else if (d.action === 'wait') {
         await page.clock.runFor(3000); gameMs += 3000;
       }
@@ -248,10 +274,10 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   if (live && !client.live) console.warn('--live given but PW_LIVE=1 and MODEL_API_KEY are not both set; fake mode');
   let persona: PersonaFile | undefined;
   if (description) {
-    persona = await describePersona(ROOT, letter, description, opt('game', 'hoard-keeper'), client);
+    persona = await describePersona(ROOT, letter, description, opt('limits-game', '') || opt('game', 'hoard-keeper'), client);
     console.log(`described persona ${letter}: ${persona.distinguishable}`);
   }
-  const out = await play(letter, { persona, game: opt('game', 'hoard-keeper'), steps: Number(opt('steps', '40')), url: opt('url', 'http://localhost:3054/'), watcher: opt('watcher', 'http://localhost:3058'), seed: Number(opt('seed', '7')), client });
+  const out = await play(letter, { persona, limitsGame: opt('limits-game', '') || undefined, point: args.includes('--point'), progress: opt('progress', '') || undefined, game: opt('game', 'hoard-keeper'), steps: Number(opt('steps', '40')), url: opt('url', 'http://localhost:3054/'), watcher: opt('watcher', 'http://localhost:3058'), seed: Number(opt('seed', '7')), client });
   const sum = summarize(out.steps);
   await writeFile(join(ROOT, out.session, 'summary.json'), JSON.stringify(sum, null, 2));
   console.log(JSON.stringify(sum));

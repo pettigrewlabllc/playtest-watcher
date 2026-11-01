@@ -24,6 +24,9 @@
   .lim b { color: #fff; }
   .shot { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 12px; margin-top: 10px; align-items: start; }
   .shot img { width: 200px; border-radius: 8px; background: #000; display: block; }
+  .pic { position: relative; align-self: start; }
+  .pic i { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; border: 3px solid #f472b6; box-shadow: 0 0 0 2px #0008; }
+  .pic i.meant { border: 2px dashed #fff; box-shadow: none; }
   .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 13px; color: #111; font-weight: 600; }
   .say { font-size: 17px; margin: 8px 0; }
   .meta { font-size: 13px; color: #aaa; margin: 4px 0; }
@@ -103,14 +106,15 @@ function show(side) {
   if (!r) return;
   const s = r.steps[Math.min(step, r.steps.length - 1)];
   const body = el.querySelector('.body');
+  const dot = (xy, cls) => { const m = /^(\d+),(\d+)$/.exec(xy || ''); return m ? `<i class="${cls}" style="left:${(m[1] / 390 * 100).toFixed(1)}%;top:${(m[2] / 844 * 100).toFixed(1)}%"></i>` : ''; };
   if (!s) { body.innerHTML = '<p class="muted">No steps.</p>'; return; }
   const done = step >= r.steps.length;
-  body.innerHTML = `<div class="shot"><img src="/shots/${encodeURIComponent(r.id)}/${String(s.n).padStart(3, '0')}.jpg" alt="Game screen at step ${s.n}">
+  body.innerHTML = `<div class="shot"><div class="pic"><img src="/shots/${encodeURIComponent(r.id)}/${String(s.n).padStart(3, '0')}.jpg" alt="Game screen at step ${s.n}">${dot(s.target, '')}${s.missed ? dot(s.intended, 'meant') : ''}</div>
     <div><div><span class="pill" style="background:${COLORS[s.label] ?? '#555'}" title="${s.forced ? 'Set by the kid\'s fail limit, not by the AI' : 'How the AI said it felt'}">${esc(s.label)}${s.forced ? ' (by the limit)' : ''}</span> <span class="muted">step ${s.n}, ${s.t.toFixed(1)} s into the game${done ? ' (its last step)' : ''}</span></div>
     <div class="label">What it said</div>
     ${s.say ? `<div class="say">“${esc(s.say)}”</div>` : `<div class="meta">${esc(s.why)}</div>`}
     <div class="label">What it did</div>
-    ${s.timed ? `<div class="meta">${s.timed.length ? s.timed.map(m => `${m.kind === 'hold' ? `held ${esc(m.key)}` : m.kind === 'tap' ? `tapped ${esc(m.target || 'a button')}` : `pressed ${esc(m.key)}`}: meant ${m.at_ms} ms, ${m.skipped ? '<span class="miss">froze, never did it</span>' : `did it at ${m.fire_ms} ms`}`).join('<br>') : 'Nothing'}</div>` : `<div class="meta">${s.action === 'tap' ? `Tapped <b>${esc(s.target)}</b>` : s.action === 'wait' ? 'Waited' : esc(s.action)}${s.missed ? ` <span class="miss">(meant ${esc(s.intended)}, missed)</span>` : ''}${s.would_quit ? '. Wanted to stop.' : ''}</div>`}
+    ${s.timed ? `<div class="meta">${s.timed.length ? s.timed.map(m => `${m.kind === 'hold' ? `held ${esc(m.key)}` : m.kind === 'tap' ? `tapped ${esc(m.target || 'a button')}` : `pressed ${esc(m.key)}`}: meant ${m.at_ms} ms, ${m.skipped ? '<span class="miss">froze, never did it</span>' : `did it at ${m.fire_ms} ms`}`).join('<br>') : 'Nothing'}</div>` : `<div class="meta">${s.action === 'tap' ? `Tapped <b>${esc(s.target)}</b>` : s.action === 'point' ? 'Tapped the picture (pink ring)' : s.action === 'wait' ? 'Waited' : esc(s.action)}${s.missed ? ` <span class="miss">(${s.action === 'point' ? 'aimed at the dashed ring and' : `meant ${esc(s.intended)},`} missed)</span>` : ''}${s.would_quit ? '. Wanted to stop.' : ''}</div>`}
     ${s.skipped?.length ? `<div class="label">What it didn't read</div><div class="meta">${s.skipped.map(t => `“${esc(t.slice(0, 40))}…”`).join(', ')}</div>` : ''}
     </div></div>`;
   el.querySelectorAll('.strip span').forEach((x, i) => x.classList.toggle('on', i === Math.min(step, r.steps.length - 1)));
