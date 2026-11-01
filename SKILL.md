@@ -51,8 +51,9 @@ model's, not a real person's. Say which limits were measured, borrowed from a si
 
 ## Limits to state before claiming anything
 
-- First tap holds; time between actions and reading are still being validated (`results/group/validation.json`).
+- On the fixed harness, pace and reading land within 1.5x of the persona's numbers; first tap usually does. Error
+  rate doesn't compare yet (`results/group/validation.json`).
 - With four kids, a person's play on other games picked them out at chance: limits carry over as a hint.
-- Muse misreads busy screens; on canvas games check where its taps landed before blaming the game.
+- Muse misreads busy screens. Canvas taps go through a labelled grid and land on target, but check small targets.
 - Never publish a persona or run built from a real person or a family; `npm run export-results` refuses them.
 - Spend is about $0.02 to $0.03 per step. Check `recordings/spend.jsonl` before a large batch.
