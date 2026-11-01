@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, writeFile, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseScript, saveTake, narrationData, takePath } from '../src/server/narrate.ts';
+import { parseScript, replaceBeatText, saveTake, narrationData, takePath } from '../src/server/narrate.ts';
 
 const MD = `# Script
 
@@ -43,6 +43,19 @@ describe('narration', () => {
     expect(b[0].text).toBe('First line. / After a pause.');
     expect(b[1].text).toBe('Second beat.\n\nSecond paragraph.');
     expect(b[2].text).toBe('Last one.');
+  });
+
+  it('writes an edited beat back in place and leaves the rest of the file alone', () => {
+    const out = replaceBeatText(MD, 'b02', 'New words. / With a pause.\n\nAnd a third\nline joined.\n\nAnother paragraph.');
+    const b = parseScript(out, 180);
+    expect(b[1].text).toBe('New words. / With a pause.\n\nAnd a third line joined.\n\nAnother paragraph.');
+    expect(b[0].text).toBe('First line. / After a pause.');
+    expect(b[2].text).toBe('Last one.');
+    expect(out).toContain('## Result\n\n**[2:48, end card]**');
+    expect(out.endsWith('| a | b |\n')).toBe(true);
+    expect(replaceBeatText(out, 'b02', b[1].text)).toBe(out);
+    expect(() => replaceBeatText(MD, 'b09', 'x')).toThrow(/no such beat/);
+    expect(() => replaceBeatText(MD, 'b01', '  \n ')).toThrow(/empty/);
   });
 
   it('parses the real script', async () => {
