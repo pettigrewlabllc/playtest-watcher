@@ -32,6 +32,17 @@ The game's own logger stays on, so every run is a normal session with events, a 
 
 **See it without a key:** `npm install`, `npm start`, then open http://localhost:3058/runs.html. It plays three committed runs from `results/runs/`: the youngest kid's persona, the oldest's, and the kid described in one sentence.
 
+## Fast games
+
+Some games are about timing, not taps. `src/agent/action.ts` handles those. Every second or so of game time it freezes the game, Muse looks and plans up to three moves for the next moment, and the harness carries them out the way the kid would: never sooner than their reaction time, off by their usual timing, and sometimes not at all. Muse's thinking time never counts, because the game only moves when the harness moves it.
+
+```bash
+PW_LIVE=1 node src/agent/action.ts A --url "<your game>" --keys "Space,ArrowDown" \
+  --controls "Space jumps. Hold ArrowDown to duck." --state "<optional JS for the game's own score>" --live
+```
+
+The reaction time and timing are defaults for the kid's age, because the published numbers disagree a lot. How often a kid freezes is measured, from the numbers they let fall in Factor Slicer. On Timberline Trek, the youngest kid's persona got about a sixth of the way down the trail in half a minute, stumbled once and stayed ahead of the storm. Nobody has checked that against a kid playing Timberline yet.
+
 ## What I learned building it
 
 Every number here has a file in `results/`, which you get with the clone.

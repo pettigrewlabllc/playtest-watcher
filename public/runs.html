@@ -63,23 +63,36 @@ const LIMITS = [
   ['sourAfterFails', 'sours after', x => `${x} fails`, 'How many fails in a row before they get frustrated'],
 ];
 
+const REFLEX = [
+  ['reactionMs', 'reacts in', x => `${x} ms`, 'Nothing it plans can happen sooner than this after it looks. A default for the age, not measured'],
+  ['timingSdMs', 'timing off by', x => `±${x} ms`, 'How far its moves land from when it meant them. A default for the age, not measured'],
+  ['missRate', 'freezes on', x => `${Math.round(x * 100)}%`, 'Share of planned moves that never happen. Measured: numbers the kid let fall in Factor Slicer'],
+];
+
 function card(r) {
   const h = r.harness;
+  const action = r.mode === 'action';
   const rules = r.rules.split('\n').filter(l => l.startsWith('- ')).map(l => `<li>${esc(l.slice(2))}</li>`).join('');
   const steps = r.steps, n = steps.length || 1;
   const mix = {};
   for (const s of steps) mix[s.label] = (mix[s.label] ?? 0) + 1;
   const top = Object.entries(mix).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([l, c]) => `${l} ${Math.round((100 * c) / n)}%`).join(', ');
-  const missed = steps.filter(s => s.missed).length, skipped = new Set(steps.flatMap(s => s.skipped)).size, stop = steps.filter(s => s.would_quit).length;
+  const missed = steps.filter(s => s.missed).length, skipped = new Set(steps.flatMap(s => s.skipped ?? [])).size, stop = steps.filter(s => s.would_quit).length;
+  const froze = steps.flatMap(s => s.timed ?? []).filter(m => m.skipped).length, moves = steps.flatMap(s => s.timed ?? []).length;
+  const last = steps.at(-1)?.state, stumbles = steps.filter(s => s.state?.stumble).length;
   const mins = steps.length ? (steps.at(-1).t / 60).toFixed(1) : '0';
   const described = /^Described/.test(r.observer ?? '');
   return `<div class="card"><h2>Player ${esc(r.letter)}${r.age ? `, age ${r.age}` : ''}</h2>
     <div class="muted">${described ? 'Described in one sentence, not measured.' : 'Built from their recorded play.'} Playing ${esc(r.game)}.</div>
     <div class="label">Their limits (hover for what each one means)</div>
-    <div class="lims">${LIMITS.map(([k, name, f, tip]) => `<span class="lim" title="${esc(tip)}">${name} <b>${f(h[k])}</b></span>`).join('')}</div>
+    <div class="lims">${action && r.reflex
+      ? REFLEX.map(([k, name, f, tip]) => `<span class="lim" title="${esc(tip)}">${name} <b>${f(r.reflex[k])}</b></span>`).join('')
+      : LIMITS.map(([k, name, f, tip]) => `<span class="lim" title="${esc(tip)}">${name} <b>${f(h[k])}</b></span>`).join('')}</div>
     <div class="label">Rules it plays by</div><ul>${rules}</ul>
     <div class="label">How the run went</div>
-    <div class="sum">${steps.length} steps, ${mins} minutes of game time. Mostly ${esc(top)}. Missed ${missed} tap${missed === 1 ? '' : 's'}, ${skipped ? `skipped ${skipped} thing${skipped === 1 ? '' : 's'} it didn't read` : 'read everything'}${stop ? `, and wanted to stop ${stop} time${stop === 1 ? '' : 's'}` : ''}.</div>
+    <div class="sum">${action
+      ? `${steps.length} looks, ${mins} minutes of game time. Mostly ${esc(top)}. Planned ${moves} moves and froze on ${froze}.${stumbles ? ` Stumbling at ${stumbles} look${stumbles === 1 ? '' : 's'}.` : ''}${last?.over ? ` The run ended: ${esc(last.over)}.` : ''}`
+      : `${steps.length} steps, ${mins} minutes of game time. Mostly ${esc(top)}. Missed ${missed} tap${missed === 1 ? '' : 's'}, ${skipped ? `skipped ${skipped} thing${skipped === 1 ? '' : 's'} it didn't read` : 'read everything'}${stop ? `, and wanted to stop ${stop} time${stop === 1 ? '' : 's'}` : ''}.`}</div>
     </div><div class="label">Every step, colored by how it felt (click one to jump there)</div><div class="strip"></div><div class="body"></div>`;
 }
 
@@ -95,8 +108,8 @@ function show(side) {
     <div class="label">What it said</div>
     ${s.say ? `<div class="say">“${esc(s.say)}”</div>` : `<div class="meta">${esc(s.why)}</div>`}
     <div class="label">What it did</div>
-    <div class="meta">${s.action === 'tap' ? `Tapped <b>${esc(s.target)}</b>` : s.action === 'wait' ? 'Waited' : esc(s.action)}${s.missed ? ` <span class="miss">(meant ${esc(s.intended)}, missed)</span>` : ''}${s.would_quit ? '. Wanted to stop.' : ''}</div>
-    ${s.skipped.length ? `<div class="label">What it didn't read</div><div class="meta">${s.skipped.map(t => `“${esc(t.slice(0, 40))}…”`).join(', ')}</div>` : ''}
+    ${s.timed ? `<div class="meta">${s.timed.length ? s.timed.map(m => `${m.kind === 'hold' ? `held ${esc(m.key)}` : m.kind === 'tap' ? `tapped ${esc(m.target || 'a button')}` : `pressed ${esc(m.key)}`}: meant ${m.at_ms} ms, ${m.skipped ? '<span class="miss">froze, never did it</span>' : `did it at ${m.fire_ms} ms`}`).join('<br>') : 'Nothing'}</div>` : `<div class="meta">${s.action === 'tap' ? `Tapped <b>${esc(s.target)}</b>` : s.action === 'wait' ? 'Waited' : esc(s.action)}${s.missed ? ` <span class="miss">(meant ${esc(s.intended)}, missed)</span>` : ''}${s.would_quit ? '. Wanted to stop.' : ''}</div>`}
+    ${s.skipped?.length ? `<div class="label">What it didn't read</div><div class="meta">${s.skipped.map(t => `“${esc(t.slice(0, 40))}…”`).join(', ')}</div>` : ''}
     </div></div>`;
   el.querySelectorAll('.strip span').forEach((x, i) => x.classList.toggle('on', i === Math.min(step, r.steps.length - 1)));
 }
