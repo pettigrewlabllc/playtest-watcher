@@ -1,0 +1,224 @@
+{
+  "harness_fidelity": {
+    "summary": {
+      "first_tap_s": {
+        "runs": 6,
+        "within_x1.5": 6,
+        "ratios": [
+          1.18,
+          1.21,
+          1.36,
+          0.84,
+          1.09,
+          1.37
+        ]
+      },
+      "action_gap_s": {
+        "runs": 6,
+        "within_x1.5": 1,
+        "ratios": [
+          1.6,
+          1.46,
+          1.52,
+          3.81,
+          3.02,
+          2.23
+        ]
+      },
+      "read_share": {
+        "runs": 6,
+        "within_x1.5": 2,
+        "ratios": [
+          0.87,
+          0.5,
+          1.34,
+          1.74,
+          0.5,
+          2.07
+        ]
+      },
+      "error_rate": {
+        "runs": 6,
+        "within_x1.5": 0,
+        "ratios": [
+          2.44,
+          6.87,
+          6.38,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "runs": [
+      {
+        "run": "20261031-214957-a-hoard-keeper-agent",
+        "game": "hoard-keeper",
+        "first_tap_s": {
+          "given": 7.013372569089048,
+          "measured": 8.293,
+          "ratio": 1.18
+        },
+        "action_gap_s": {
+          "given": 1.2820435356200528,
+          "measured": 2.0519999999999996,
+          "ratio": 1.6
+        },
+        "read_share": {
+          "given": 0.5747126436781609,
+          "measured": 0.5,
+          "ratio": 0.87
+        },
+        "error_rate": {
+          "given": 0.13686911890504705,
+          "measured": 0.3333333333333333,
+          "ratio": 2.44
+        }
+      },
+      {
+        "run": "20261031-214957-b-hoard-keeper-agent",
+        "game": "hoard-keeper",
+        "first_tap_s": {
+          "given": 4.977443531827515,
+          "measured": 6.031,
+          "ratio": 1.21
+        },
+        "action_gap_s": {
+          "given": 1.1282651715039578,
+          "measured": 1.6425,
+          "ratio": 1.46
+        },
+        "read_share": {
+          "given": 1,
+          "measured": 0.5,
+          "ratio": 0.5
+        },
+        "error_rate": {
+          "given": 0.049894957983193274,
+          "measured": 0.34285714285714286,
+          "ratio": 6.87
+        }
+      },
+      {
+        "run": "20261031-215034-x-hoard-keeper-agent",
+        "game": "hoard-keeper",
+        "first_tap_s": {
+          "given": 3.6896440592561146,
+          "measured": 5.005,
+          "ratio": 1.36
+        },
+        "action_gap_s": {
+          "given": 0.9744868073878628,
+          "measured": 1.479,
+          "ratio": 1.52
+        },
+        "read_share": {
+          "given": 0.37262618690654675,
+          "measured": 0.5,
+          "ratio": 1.34
+        },
+        "error_rate": {
+          "given": 0.09975375387768859,
+          "measured": 0.6363636363636364,
+          "ratio": 6.38
+        }
+      },
+      {
+        "run": "20261101-141138-a-hoard-keeper-agent",
+        "game": "hoard-keeper",
+        "first_tap_s": {
+          "given": 7.013372569089048,
+          "measured": 5.8565,
+          "ratio": 0.84
+        },
+        "action_gap_s": {
+          "given": 1.2820435356200528,
+          "measured": 4.885,
+          "ratio": 3.81
+        },
+        "read_share": {
+          "given": 0.5747126436781609,
+          "measured": 1.0,
+          "ratio": 1.74
+        },
+        "error_rate": {
+          "given": 0.13686911890504705,
+          "measured": 0.0,
+          "ratio": 0.0
+        }
+      },
+      {
+        "run": "20261101-141138-b-hoard-keeper-agent",
+        "game": "hoard-keeper",
+        "first_tap_s": {
+          "given": 4.977443531827515,
+          "measured": 5.4115,
+          "ratio": 1.09
+        },
+        "action_gap_s": {
+          "given": 1.1282651715039578,
+          "measured": 3.404,
+          "ratio": 3.02
+        },
+        "read_share": {
+          "given": 1,
+          "measured": 0.5,
+          "ratio": 0.5
+        },
+        "error_rate": {
+          "given": 0.049894957983193274,
+          "measured": 0.0,
+          "ratio": 0.0
+        }
+      },
+      {
+        "run": "20261101-171254-t-hoard-keeper-agent",
+        "game": "hoard-keeper",
+        "first_tap_s": {
+          "given": 7.553042476970318,
+          "measured": 10.384,
+          "ratio": 1.37
+        },
+        "action_gap_s": {
+          "given": 1.2051543535620053,
+          "measured": 2.686,
+          "ratio": 2.23
+        },
+        "read_share": {
+          "given": 0.4830917874396135,
+          "measured": 1.0,
+          "ratio": 2.07
+        },
+        "error_rate": {
+          "given": 0.09975375387768859,
+          "measured": 0.0,
+          "ratio": 0.0
+        }
+      }
+    ],
+    "note": "within_x1.5: measured within a factor of 1.5 of what the harness was told to hold"
+  },
+  "input_identification": {
+    "per_game": {
+      "bond-swap": {
+        "hits": 4,
+        "checks": 16
+      },
+      "current-cut": {
+        "hits": 4,
+        "checks": 20
+      },
+      "factor-slicer": {
+        "hits": 7,
+        "checks": 20
+      },
+      "hoard-keeper": {
+        "hits": 4,
+        "checks": 20
+      }
+    },
+    "hits": 19,
+    "checks": 76,
+    "chance": 19.0
+  }
+}

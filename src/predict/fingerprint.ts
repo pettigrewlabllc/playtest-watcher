@@ -135,7 +135,7 @@ export function averageFingerprints(fps: Fingerprint[]): Fingerprint {
   return out as Fingerprint;
 }
 
-// Typical values for school-age, used for z-scores until there are three or more players to compare against.
+// Typical values for school-age children, used for z-scores until there are three or more players to compare against.
 const PRIORS: Record<NumericField, { mean: number; sd: number }> = {
   fail_streak_before_negative: { mean: 4, sd: 2 }, recovery_s: { mean: 3, sd: 2 }, explore_share: { mean: 0.1, sd: 0.08 },
   read_share: { mean: 0.5, sd: 0.25 }, read_dwell_per_100: { mean: 6, sd: 3 }, attempts_per_min: { mean: 20, sd: 10 },

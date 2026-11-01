@@ -25,8 +25,8 @@ describe('compiler', () => {
     const c = compile(persona());
     expect(c.rules.map(r => r.from)).toEqual(['skill', 'drive:creativity', 'drive:mastery']);
     expect(c.harness).toMatchObject({ firstTapS: 7, actionGapS: 1.3, readShare: 1, errorRate: 0.14, sourAfterFails: 3 });
-    expect(Math.round(c.harness.readMsPerChar)).toBe(87);   // unmeasured: the age-8 reading norm (norms.ts)
-    const text = rulesText(c, 'A', 8);
+    expect(Math.round(c.harness.readMsPerChar)).toBe(72);   // unmeasured: the age-9 reading norm (norms.ts)
+    const text = rulesText(c, 'A', 9);
     expect(text).toMatch(/Player A, a child aged 9/);
     expect(text).toMatch(/You read about 100% of instructions/);
     expect(text).not.toMatch(/pace|Move fast|Take your time/);
