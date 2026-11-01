@@ -97,19 +97,20 @@ async function buttons(page: Page) {
 export async function playAction(letter: string, o: {
   url: string; keys: string[]; controls: string; looks: number; lookMs: number; state?: string; client: MetaClient; seed?: number; persona?: PersonaFile; game: string; limitsGame?: string; log?: (l: string) => void;
   film?: boolean; keyNames?: Record<string, string>; hide?: string;
+  outDir?: string;   // where the run is written (default <repo>/recordings); persona inputs still come from there
 }) {
   const log = o.log ?? console.log;
   // A game nobody played has no limits of its own: the persona borrows them from the kid's fastest game (built
   // from their other games, as always), and the reflexes come from reflexFor().
   const persona = o.persona ?? await buildPersonaFile(ROOT, letter, o.limitsGame ?? 'factor-slicer');
-  await writePersonaFile(ROOT, persona);
+  await writePersonaFile(o.outDir ? resolve(o.outDir) : ROOT, persona);
   const compiled = compile(persona);
   const rules = rulesText(compiled, persona.letter, persona.age, persona.who);
   const rx = await reflexFor(persona);
   const r = rng(o.seed ?? 7);
 
   const id = newSessionId([persona.letter, o.game, 'action']);
-  const dir = join(ROOT, id);
+  const dir = join(o.outDir ? resolve(o.outDir) : ROOT, id);
   await mkdir(join(dir, 'shots'), { recursive: true });
   await writeFile(join(dir, 'session.json'), JSON.stringify({ id, kid: persona.letter, game: o.game, round: 'agent', mode: 'action' }, null, 2));
   await writeFile(join(dir, 'persona.json'), JSON.stringify({ persona, compiled, rules, reflex: rx }, null, 2));
@@ -222,7 +223,7 @@ export async function playAction(letter: string, o: {
   for (const st of all) labels[st.label] = (labels[st.label] ?? 0) + 1;
   await writeFile(join(dir, 'summary.json'), JSON.stringify({ steps: all.length, game_s: Math.round(gameMs) / 1000, moves: all.flatMap(x => x.timed).length,
     froze: all.flatMap(x => x.timed).filter(m => m.skipped).length, labels, last_state: all.at(-1)?.state ?? null }, null, 2));
-  return { id, steps };
+  return { id, steps, dir };
 }
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
@@ -231,7 +232,7 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   const description = opt('describe', '');
   const letter = description ? opt('name', 'X').toUpperCase() : args.find(a => /^[A-Za-z]$/.test(a));
   const url = opt('url', '');
-  if (!letter || !url) { console.error('usage: node src/agent/action.ts <letter> | --describe "<a kid>" --url <game> --keys "Space,ArrowDown" --controls "<how to play>" [--game name] [--state "<js>"] [--looks 40] [--look-ms 1200] [--film] [--hide "#dbg"] [--key-names "Space=JUMP,ArrowDown=GRAZE"] --live'); process.exit(1); }
+  if (!letter || !url) { console.error('usage: node src/agent/action.ts <letter> | --describe "<a kid>" --url <game> --keys "Space,ArrowDown" --controls "<how to play>" [--game name] [--state "<js>"] [--looks 40] [--look-ms 1200] [--film] [--hide "#dbg"] [--key-names "Space=JUMP,ArrowDown=GRAZE"] [--out <dir>] --live'); process.exit(1); }
   const live = args.includes('--live');
   const client = live ? clientFromEnv(REPO) : createMetaClient({ live: false, budgetUsd: 0, spendLog: join(ROOT, 'spend.jsonl') });
   const game = opt('game', 'action-game');
@@ -244,6 +245,6 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   if (persona?.blend) console.log(`blend ${persona.blend.name}: this run plays as member ${persona.blend.index} of ${persona.blend.of} (${persona.blend.member})`);
   const out = await playAction(letter, { url, game, persona, client, keys: opt('keys', 'Space').split(',').map(s => s.trim()), controls: opt('controls', ''),
     looks: Number(opt('looks', '40')), lookMs: Number(opt('look-ms', '1200')), state: opt('state', '') || undefined, seed: Number(opt('seed', '7')), limitsGame,
-    film: args.includes('--film'), hide: opt('hide', '') || undefined, keyNames: Object.fromEntries(opt('key-names', '').split(',').filter(Boolean).map(kv => kv.split('=') as [string, string])) });
-  console.log(`steps: ${join(ROOT, out.id, 'steps.jsonl')}`);
+    outDir: opt('out', '') || undefined, film: args.includes('--film'), hide: opt('hide', '') || undefined, keyNames: Object.fromEntries(opt('key-names', '').split(',').filter(Boolean).map(kv => kv.split('=') as [string, string])) });
+  console.log(`steps: ${join(out.dir, 'steps.jsonl')}`);
 }
