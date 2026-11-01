@@ -20,7 +20,7 @@ const DIR = resolve(process.env.PERSONAS_DIR ?? 'personas');
 const client = () => process.env.PW_LIVE === '1' ? clientFromEnv(REPO) : createMetaClient({ live: false, budgetUsd: 0, spendLog: join(RECORDINGS, 'spend.jsonl') });
 const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
 
-type Run = { status: 'running' | 'done' | 'failed'; persona: string; member?: string; used: Record<string, string>; session?: string; summary?: unknown; error?: string; started: string };
+type Run = { status: 'running' | 'done' | 'failed'; persona: string; member?: string; used: Record<string, string>; session?: string; dir?: string; summary?: unknown; error?: string; started: string };
 const runs = new Map<string, Run>();
 
 const source = z.discriminatedUnion('type', [
@@ -70,8 +70,8 @@ server.registerTool('run_persona', {
   const run: Run = { status: 'running', persona: p.slug, member, used, started: new Date().toISOString() };
   runs.set(id, run);
   const { play, summarize } = await import('../agent/play.ts');
-  play(letter, { persona, game: o.game, url: o.url, steps: o.steps, seed: o.seed, client: client(), watcher: null as unknown as string, point: o.point, progress: o.progress, log: (l: string) => { const m = /^session (\S+):/.exec(l); if (m) run.session = m[1]; } } as Parameters<typeof play>[1])
-    .then(r => { run.status = 'done'; run.session = r.session; run.summary = summarize(r.steps); })
+  play(letter, { persona, game: o.game, url: o.url, steps: o.steps, seed: o.seed, client: client(), point: o.point, progress: o.progress, log: (l: string) => { const m = /^session (\S+):/.exec(l); if (m) run.session = m[1]; } } as Parameters<typeof play>[1])
+    .then(r => { run.status = 'done'; run.session = r.session; run.dir = (r as { dir?: string }).dir; run.summary = summarize(r.steps); })
     .catch(e => { run.status = 'failed'; run.error = (e as Error).message; });
   return text(`${id}: ${p.name}${member ? ` (this run plays ${member})` : ''} started on ${o.url}\nlimits: ${Object.entries(used).map(([k, v]) => `${k} ${v}`).join('; ')}`);
 });
@@ -80,8 +80,9 @@ server.registerTool('get_report', { description: 'Status of a run, and when done
   async ({ run_id }) => {
     const r = runs.get(run_id);
     if (!r) return text('no such run in this server session');
-    const steps = r.session && existsSync(join(RECORDINGS, r.session, 'steps.jsonl')) ? (await readFile(join(RECORDINGS, r.session, 'steps.jsonl'), 'utf8')).trim().split('\n').length : 0;
-    return text(JSON.stringify({ ...r, steps, step_log: r.session ? join(RECORDINGS, r.session, 'steps.jsonl') : null }, null, 2));
+    const dir = r.dir ?? (r.session ? join(RECORDINGS, r.session) : null);
+    const steps = dir && existsSync(join(dir, 'steps.jsonl')) ? (await readFile(join(dir, 'steps.jsonl'), 'utf8')).trim().split('\n').length : 0;
+    return text(JSON.stringify({ ...r, steps, step_log: dir ? join(dir, 'steps.jsonl') : null }, null, 2));
   });
 
 await server.connect(new StdioServerTransport());

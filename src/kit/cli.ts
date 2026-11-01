@@ -83,12 +83,14 @@ try {
     console.log(`${p.name}${member ? `: this run plays ${member}` : ''}\n${Object.entries(used).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`);
     const { play, summarize } = await import('../agent/play.ts');
     const out = await play(letter, { persona, game, url, steps: Number(opt('steps', '30')), seed: Number(opt('seed', '7')), client: client(),
-      watcher: has('no-watcher') ? (null as unknown as string) : opt('watcher', 'http://localhost:3058'), point: has('point'), progress: opt('progress') || undefined,
+      watcher: has('no-watcher') ? undefined : opt('watcher', 'http://localhost:3058'), point: has('point'), progress: opt('progress') || undefined,
       ...(opt('out') ? { outDir: resolve(opt('out')) } : {}) } as Parameters<typeof play>[1]);
     const sum = summarize(out.steps);
-    await mkdir(join(RECORDINGS, out.session), { recursive: true });
-    await writeFile(join(RECORDINGS, out.session, 'summary.json'), JSON.stringify(sum, null, 2));
+    const runDir = (out as { dir?: string }).dir ?? join(RECORDINGS, out.session);
+    await mkdir(runDir, { recursive: true });
+    await writeFile(join(runDir, 'summary.json'), JSON.stringify(sum, null, 2));
     console.log(JSON.stringify(sum));
+    console.log(`steps: ${join(runDir, 'steps.jsonl')}`);
   } else {
     console.log(await readFile(new URL(import.meta.url), 'utf8').then(t => t.split('\n').filter(l => l.startsWith('//')).map(l => l.slice(3)).join('\n')));
   }
