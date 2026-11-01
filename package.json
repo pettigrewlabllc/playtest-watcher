@@ -15,7 +15,8 @@
     "blur": "node scripts/blur-faces.ts",
     "play": "node src/agent/play.ts",
     "export-results": "node scripts/export-results.ts",
-    "norms-doc": "node scripts/norms-doc.ts"
+    "norms-doc": "node scripts/norms-doc.ts",
+    "persona": "node src/kit/cli.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
@@ -23,7 +24,9 @@
     "vitest": "^3.2.0"
   },
   "dependencies": {
-    "@meta-sam/parser": "^0.1.0"
+    "@meta-sam/parser": "^0.1.0",
+    "ajv": "^8.20.0",
+    "yaml": "^2.9.1"
   },
   "license": "MIT"
 }

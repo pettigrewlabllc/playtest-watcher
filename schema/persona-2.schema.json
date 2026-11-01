@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pettigrewlabllc/playtest-watcher/schema/persona-2.schema.json",
+  "title": "Informed Persona Testers: persona/2",
+  "description": "A persona tester: measured limits a harness enforces, what drives them, where every number came from, and consent. Limits a persona has no measurement for are filled at run time from published norms by age (src/persona/norms.ts).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "name", "slug", "version", "kind", "built", "age", "adult", "who", "limits", "drives", "card", "provenance", "caveats"],
+  "$defs": {
+    "basis": { "enum": ["measured", "self-report", "guess", "norm", "default"], "description": "measured: from the person's own play; self-report: from what they said; guess: from a description or profile facts; norm: published research by age; default: a labelled assumption" },
+    "limit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "basis", "sources"],
+      "properties": {
+        "value": { "type": ["number", "null"], "description": "The number used when no per-game value fits the target" },
+        "lo": { "type": ["number", "null"] },
+        "hi": { "type": ["number", "null"] },
+        "n": { "type": "integer", "minimum": 0, "description": "Sessions, events or members behind the value" },
+        "basis": { "$ref": "#/$defs/basis" },
+        "sources": { "type": "array", "items": { "type": "string" } },
+        "per_game": { "type": "object", "additionalProperties": { "type": "number" }, "description": "Measured value per game; the harness uses the target game's, or a named similar one's" }
+      }
+    },
+    "drive": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pull", "basis", "why"],
+      "properties": {
+        "pull": { "type": "number", "minimum": -1, "maximum": 1, "description": "-1 puts them off, +1 pulls them in" },
+        "basis": { "$ref": "#/$defs/basis" },
+        "why": { "type": "string", "description": "A paraphrase of the evidence. Never a real person's quoted words." }
+      }
+    },
+    "trait": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "basis", "why"],
+      "properties": { "value": { "type": "number", "minimum": -1, "maximum": 1 }, "basis": { "$ref": "#/$defs/basis" }, "why": { "type": "string" } }
+    }
+  },
+  "properties": {
+    "schema": { "const": "persona/2" },
+    "name": { "type": "string", "minLength": 1 },
+    "slug": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,40}$" },
+    "version": { "type": "integer", "minimum": 1 },
+    "kind": { "enum": ["person", "group", "described"] },
+    "built": { "type": "string" },
+    "age": { "type": ["integer", "null"], "minimum": 3, "maximum": 110 },
+    "adult": { "type": "boolean" },
+    "who": { "type": "string", "description": "One line on who this is, as the persona's prompt should see it. No names of real children." },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "first_tap_s": { "$ref": "#/$defs/limit" },
+        "action_gap_s": { "$ref": "#/$defs/limit" },
+        "read_share": { "$ref": "#/$defs/limit" },
+        "read_ms_per_char": { "$ref": "#/$defs/limit" },
+        "error_rate": { "$ref": "#/$defs/limit" },
+        "idle_per_min": { "$ref": "#/$defs/limit" },
+        "sour_after_fails": { "$ref": "#/$defs/limit" },
+        "reflex_miss": { "$ref": "#/$defs/limit" }
+      }
+    },
+    "drives": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "speed": { "$ref": "#/$defs/drive" }, "mastery": { "$ref": "#/$defs/drive" }, "creativity": { "$ref": "#/$defs/drive" },
+        "competition": { "$ref": "#/$defs/drive" }, "collection": { "$ref": "#/$defs/drive" }, "story": { "$ref": "#/$defs/drive" },
+        "exploration": { "$ref": "#/$defs/drive" }, "showing": { "$ref": "#/$defs/drive" }, "nurturing": { "$ref": "#/$defs/drive" },
+        "grind": { "$ref": "#/$defs/drive" }
+      }
+    },
+    "traits": { "type": "object", "additionalProperties": { "$ref": "#/$defs/trait" }, "description": "How they figure things out, relative to a group; only for groups and described personas" },
+    "members": {
+      "type": "array",
+      "description": "For kind=group: the members, each a full persona/2 person. A run plays one whole member.",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["label", "persona"],
+        "properties": { "label": { "type": "string" }, "persona": { "$ref": "#" } }
+      }
+    },
+    "card": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["who", "plays_like", "plays_for"],
+      "properties": { "who": { "type": "string" }, "plays_like": { "type": "string" }, "plays_for": { "type": "string" } }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sources", "consent"],
+      "properties": {
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["type", "read_at", "summary"],
+            "properties": {
+              "type": { "enum": ["recorder", "events", "survey", "profile", "description", "group", "converted"] },
+              "path": { "type": "string" }, "read_at": { "type": "string" }, "summary": { "type": "string" }
+            }
+          }
+        },
+        "consent": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["required", "basis", "confirmed_at"],
+          "properties": {
+            "required": { "type": "boolean", "description": "true for anyone real" },
+            "basis": { "enum": ["self", "parent", "participant", "none"], "description": "Who agreed: the person themself, a parent (required under 13), a participant in a study, or none (described personas only)" },
+            "confirmed_at": { "type": ["string", "null"] },
+            "note": { "type": "string" }
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": ["object", "null"],
+      "description": "How far to trust it, from analysis/validate.py style checks, or null when not validated"
+    },
+    "caveats": { "type": "array", "items": { "type": "string" } }
+  }
+}
