@@ -12,5 +12,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # The watching stages call ffmpeg (align, composite clips, blur).
+      - run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
       # The Node tests use a fake model client: no key, no spend. The Python-backed tests skip without analysis/.venv.
       - run: npm test
