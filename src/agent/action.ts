@@ -41,6 +41,9 @@ export type Reflex = { reactionMs: number; timingSdMs: number; missRate: number;
 export async function reflexFor(p: PersonaFile, root = ROOT): Promise<Reflex> {
   const d = reflexDefaults(p.adult && p.age == null ? 18 : p.age);
   let missRate = REFLEX_MISS_DEFAULT, src = 'reflex miss: default (the four kids measured 5 to 9%)';
+  // A persona file (persona/2) carries its own reflex miss; use it before looking anything up.
+  const own = p.limits.reflex_miss?.value;
+  if (typeof own === 'number') return { reactionMs: d.reactionMs, timingSdMs: d.timingSdMs, missRate: own, sources: [d.note, `reflex miss: ${p.limits.reflex_miss.from.join(', ') || 'from the persona'}`] };
   try {
     const lim = JSON.parse(await readFile(join(root, 'group', 'limits.json'), 'utf8'));
     const v = lim.per_game?.[p.blend?.id ?? p.letter]?.['factor-slicer']?.reflex_miss;
