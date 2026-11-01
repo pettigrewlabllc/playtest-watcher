@@ -1,6 +1,6 @@
 import { mkdir, appendFile, writeFile, readFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { isValidSessionId, newSessionId } from './ids.ts';
+import { claimSessionDir, isValidSessionId, newSessionId } from './ids.ts';
 
 export type SessionMeta = { kid: string; game: string; round: string; device?: string };
 export type GameEvent = { t: number; type: string; data?: unknown };
@@ -22,8 +22,7 @@ export function createStore(root: string) {
     dir,
 
     async createSession(meta: SessionMeta): Promise<string> {
-      const id = newSessionId([meta.kid, meta.game, meta.round]);
-      await mkdir(dir(id), { recursive: true });
+      const id = await claimSessionDir(root, newSessionId([meta.kid, meta.game, meta.round]));
       await writeFile(join(dir(id), 'session.json'), JSON.stringify({ id, ...meta, createdAt: Date.now() }, null, 2));
       return id;
     },
