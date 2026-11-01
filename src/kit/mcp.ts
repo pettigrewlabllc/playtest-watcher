@@ -64,7 +64,7 @@ server.registerTool('run_persona', {
   },
 }, async (o) => {
   const p = await loadPersona(o.slug, DIR);
-  const letter = p.slug[0].toUpperCase();
+  const letter = p.slug;
   const { persona, used, member } = toEngine(p, { letter, target: o.game, limitsGame: o.limits_game, seed: o.seed });
   const id = `run-${Date.now().toString(36)}`;
   const run: Run = { status: 'running', persona: p.slug, member, used, started: new Date().toISOString() };

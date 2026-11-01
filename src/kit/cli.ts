@@ -78,7 +78,7 @@ try {
     const p = await loadPersona(args[1], dir);
     const game = opt('game', 'game'), url = opt('url');
     if (!url) throw new Error('--url <game> is required');
-    const letter = (opt('letter') || p.slug[0] || 'x').toUpperCase();
+    const letter = opt('letter') || p.slug;   // the slug, so two personas never share a session or saved copy
     const { persona, used, member } = toEngine(p, { letter, target: game, limitsGame: opt('limits-game') || undefined, seed: Number(opt('seed', '7')) });
     console.log(`${p.name}${member ? `: this run plays ${member}` : ''}\n${Object.entries(used).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`);
     const { play, summarize } = await import('../agent/play.ts');

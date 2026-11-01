@@ -23,7 +23,7 @@ import { reactionMs, timingSdMs, REFLEX_MISS_DEFAULT } from '../persona/norms.ts
 import { blendPersona } from '../persona/blend.ts';
 import { compile, rulesText } from '../persona/compile.ts';
 import { LABELS } from '../watch/explain.ts';
-import { newSessionId } from '../server/ids.ts';
+import { claimSessionDir, newSessionId } from '../server/ids.ts';
 import { rng } from './play.ts';
 
 const REPO = resolve(import.meta.dirname, '..', '..');
@@ -112,8 +112,9 @@ export async function playAction(letter: string, o: {
   const rx = await reflexFor(persona);
   const r = rng(o.seed ?? 7);
 
-  const id = newSessionId([persona.letter, o.game, 'action']);
-  const dir = join(o.outDir ? resolve(o.outDir) : ROOT, id);
+  const base = o.outDir ? resolve(o.outDir) : ROOT;
+  const id = await claimSessionDir(base, newSessionId([persona.letter, o.game, 'action']));
+  const dir = join(base, id);
   await mkdir(join(dir, 'shots'), { recursive: true });
   await writeFile(join(dir, 'session.json'), JSON.stringify({ id, kid: persona.letter, game: o.game, round: 'agent', mode: 'action' }, null, 2));
   await writeFile(join(dir, 'persona.json'), JSON.stringify({ persona, compiled, rules, reflex: rx }, null, 2));
