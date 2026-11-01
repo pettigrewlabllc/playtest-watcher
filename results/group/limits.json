@@ -7,7 +7,8 @@
         "read_ms_per_char": 20.57177033492823,
         "read_share": 0.25,
         "error_rate": 0.4127906976744186,
-        "idle_per_min": 1.3901691868999724
+        "idle_per_min": 1.3901691868999724,
+        "reflex_miss": null
       },
       "hoard-keeper": {
         "first_tap_s": 6.386,
@@ -15,7 +16,8 @@
         "read_ms_per_char": 66.95666666666666,
         "read_share": 0.5555555555555556,
         "error_rate": 0.24324324324324326,
-        "idle_per_min": 1.9730449180117626
+        "idle_per_min": 1.9730449180117626,
+        "reflex_miss": null
       },
       "current-cut": {
         "first_tap_s": 1.802,
@@ -23,7 +25,8 @@
         "read_ms_per_char": 20.9176640070922,
         "read_share": 0.043478260869565216,
         "error_rate": 0.08602150537634409,
-        "idle_per_min": 0.7742006838772707
+        "idle_per_min": 0.7742006838772707,
+        "reflex_miss": null
       },
       "factor-slicer": {
         "first_tap_s": 3.5505,
@@ -31,7 +34,8 @@
         "read_ms_per_char": 159.04,
         "read_share": 0.8571428571428571,
         "error_rate": 0.15527950310559005,
-        "idle_per_min": 0.5594953352076427
+        "idle_per_min": 0.5594953352076427,
+        "reflex_miss": 0.05555555555555555
       }
     },
     "A": {
@@ -41,7 +45,8 @@
         "read_ms_per_char": 188.84,
         "read_share": 0.9,
         "error_rate": 0.19161676646706588,
-        "idle_per_min": 1.4679838371215472
+        "idle_per_min": 1.4679838371215472,
+        "reflex_miss": 0.08783783783783784
       },
       "bond-swap": {
         "first_tap_s": 3.146,
@@ -49,7 +54,8 @@
         "read_ms_per_char": 6.1103896103896105,
         "read_share": 0.0,
         "error_rate": 0.6518987341772152,
-        "idle_per_min": 2.0030989118459734
+        "idle_per_min": 2.0030989118459734,
+        "reflex_miss": null
       },
       "hoard-keeper": {
         "first_tap_s": 6.619,
@@ -57,7 +63,8 @@
         "read_ms_per_char": 32.74,
         "read_share": 0.4444444444444444,
         "error_rate": 0.18681318681318682,
-        "idle_per_min": 2.1888862946532806
+        "idle_per_min": 2.1888862946532806,
+        "reflex_miss": null
       },
       "current-cut": {
         "first_tap_s": 1.501,
@@ -65,7 +72,8 @@
         "read_ms_per_char": 18.563968015992003,
         "read_share": 0.05172413793103448,
         "error_rate": 0.06722689075630252,
-        "idle_per_min": 0.9659774685755456
+        "idle_per_min": 0.9659774685755456,
+        "reflex_miss": null
       }
     },
     "B": {
@@ -75,7 +83,8 @@
         "read_ms_per_char": 86.0,
         "read_share": 1.0,
         "error_rate": 0.06985294117647059,
-        "idle_per_min": 0.7454487690333481
+        "idle_per_min": 0.7454487690333481,
+        "reflex_miss": 0.045283018867924525
       },
       "bond-swap": {
         "first_tap_s": 2.189,
@@ -83,7 +92,8 @@
         "read_ms_per_char": null,
         "read_share": null,
         "error_rate": 0.1527777777777778,
-        "idle_per_min": 0.7279370091841386
+        "idle_per_min": 0.7279370091841386,
+        "reflex_miss": null
       },
       "current-cut": {
         "first_tap_s": 1.9155,
@@ -91,7 +101,8 @@
         "read_ms_per_char": 28.61491935483871,
         "read_share": 0.15454545454545454,
         "error_rate": 0.05194805194805195,
-        "idle_per_min": 0.9972228853586527
+        "idle_per_min": 0.9972228853586527,
+        "reflex_miss": null
       },
       "hoard-keeper": {
         "first_tap_s": 3.131,
@@ -99,7 +110,8 @@
         "read_ms_per_char": 60.12,
         "read_share": 0.36363636363636365,
         "error_rate": 0.18315018315018314,
-        "idle_per_min": 1.056229553889712
+        "idle_per_min": 1.056229553889712,
+        "reflex_miss": null
       }
     },
     "C": {
@@ -109,7 +121,8 @@
         "read_ms_per_char": 238.96612244897958,
         "read_share": 1.0,
         "error_rate": 0.12403100775193798,
-        "idle_per_min": 1.1943804400296605
+        "idle_per_min": 1.1943804400296605,
+        "reflex_miss": 0.06611570247933884
       },
       "hoard-keeper": {
         "first_tap_s": 5.259,
@@ -117,7 +130,8 @@
         "read_ms_per_char": 157.72916666666666,
         "read_share": 0.7142857142857143,
         "error_rate": 0.6436781609195402,
-        "idle_per_min": 1.4310876265962131
+        "idle_per_min": 1.4310876265962131,
+        "reflex_miss": null
       },
       "current-cut": {
         "first_tap_s": 1.732,
@@ -125,7 +139,8 @@
         "read_ms_per_char": 16.825185185185184,
         "read_share": 0.1,
         "error_rate": 0.05714285714285714,
-        "idle_per_min": 0.9365049634763064
+        "idle_per_min": 0.9365049634763064,
+        "reflex_miss": null
       },
       "bond-swap": {
         "first_tap_s": 4.611,
@@ -133,7 +148,8 @@
         "read_ms_per_char": 131.11688311688312,
         "read_share": 0.6666666666666666,
         "error_rate": 0.46923076923076923,
-        "idle_per_min": 1.1614013539124268
+        "idle_per_min": 1.1614013539124268,
+        "reflex_miss": null
       }
     },
     "J": {
@@ -143,7 +159,8 @@
         "read_ms_per_char": 90.86792452830188,
         "read_share": 0.6666666666666666,
         "error_rate": 0.07692307692307693,
-        "idle_per_min": 0.5622096714118725
+        "idle_per_min": 0.5622096714118725,
+        "reflex_miss": 0.045454545454545456
       },
       "bond-swap": {
         "first_tap_s": 3.001,
@@ -151,7 +168,8 @@
         "read_ms_per_char": 82.5451388888889,
         "read_share": 0.5,
         "error_rate": 0.13541666666666666,
-        "idle_per_min": 2.3598665364369946
+        "idle_per_min": 2.3598665364369946,
+        "reflex_miss": null
       },
       "current-cut": {
         "first_tap_s": 0.977,
@@ -159,7 +177,8 @@
         "read_ms_per_char": 17.17439668174962,
         "read_share": 0.05,
         "error_rate": 0.2054794520547945,
-        "idle_per_min": 0.7549797204058436
+        "idle_per_min": 0.7549797204058436,
+        "reflex_miss": null
       },
       "hoard-keeper": {
         "first_tap_s": 4.565,
@@ -167,7 +186,8 @@
         "read_ms_per_char": 67.60816326530612,
         "read_share": 0.5555555555555556,
         "error_rate": 0.054945054945054944,
-        "idle_per_min": 1.4977014443111614
+        "idle_per_min": 1.4977014443111614,
+        "reflex_miss": null
       }
     }
   },
@@ -239,6 +259,13 @@
             "factor-slicer",
             "hoard-keeper"
           ]
+        },
+        "reflex_miss": {
+          "value": null,
+          "ratio": null,
+          "lo": null,
+          "hi": null,
+          "from": []
         }
       },
       "current-cut": {
@@ -307,6 +334,13 @@
             "factor-slicer",
             "hoard-keeper"
           ]
+        },
+        "reflex_miss": {
+          "value": null,
+          "ratio": null,
+          "lo": null,
+          "hi": null,
+          "from": []
         }
       },
       "factor-slicer": {
@@ -375,6 +409,13 @@
             "current-cut",
             "hoard-keeper"
           ]
+        },
+        "reflex_miss": {
+          "value": null,
+          "ratio": null,
+          "lo": null,
+          "hi": null,
+          "from": []
         }
       },
       "hoard-keeper": {
@@ -443,6 +484,13 @@
             "current-cut",
             "factor-slicer"
           ]
+        },
+        "reflex_miss": {
+          "value": null,
+          "ratio": null,
+          "lo": null,
+          "hi": null,
+          "from": []
         }
       }
     },
@@ -513,6 +561,13 @@
             "factor-slicer",
             "hoard-keeper"
           ]
+        },
+        "reflex_miss": {
+          "value": null,
+          "ratio": null,
+          "lo": null,
+          "hi": null,
+          "from": []
         }
       },
       "current-cut": {
@@ -581,6 +636,13 @@
             "factor-slicer",
             "hoard-keeper"
           ]
+        },
+        "reflex_miss": {
+          "value": null,
+          "ratio": null,
+          "lo": null,
+          "hi": null,
+          "from": []
         }
       },
       "factor-slicer": {
@@ -649,6 +711,13 @@
             "current-cut",
             "hoard-keeper"
           ]
+        },
+        "reflex_miss": {
+          "value": null,
+          "ratio": null,
+          "lo": null,
+          "hi": null,
+          "from": []
         }
       },
       "hoard-keeper": {
@@ -717,6 +786,13 @@
             "current-cut",
             "factor-slicer"
           ]
+        },
+        "reflex_miss": {
+          "value": null,
+          "ratio": null,
+          "lo": null,
+          "hi": null,
+          "from": []
         }
       }
     },
@@ -787,6 +863,13 @@
             "factor-slicer",
             "hoard-keeper"
           ]
+        },
+        "reflex_miss": {
+          "value": null,
+          "ratio": null,
+          "lo": null,
+          "hi": null,
+          "from": []
         }
       },
       "current-cut": {
@@ -853,6 +936,13 @@
             "factor-slicer",
             "hoard-keeper"
           ]
+        },
+        "reflex_miss": {
+          "value": null,
+          "ratio": null,
+          "lo": null,
+          "hi": null,
+          "from": []
         }
       },
       "factor-slicer": {
@@ -919,6 +1009,13 @@
             "current-cut",
             "hoard-keeper"
           ]
+        },
+        "reflex_miss": {
+          "value": null,
+          "ratio": null,
+          "lo": null,
+          "hi": null,
+          "from": []
         }
       },
       "hoard-keeper": {
@@ -985,6 +1082,13 @@
             "current-cut",
             "factor-slicer"
           ]
+        },
+        "reflex_miss": {
+          "value": null,
+          "ratio": null,
+          "lo": null,
+          "hi": null,
+          "from": []
         }
       }
     },
@@ -1055,6 +1159,13 @@
             "factor-slicer",
             "hoard-keeper"
           ]
+        },
+        "reflex_miss": {
+          "value": null,
+          "ratio": null,
+          "lo": null,
+          "hi": null,
+          "from": []
         }
       },
       "current-cut": {
@@ -1123,6 +1234,13 @@
             "factor-slicer",
             "hoard-keeper"
           ]
+        },
+        "reflex_miss": {
+          "value": null,
+          "ratio": null,
+          "lo": null,
+          "hi": null,
+          "from": []
         }
       },
       "factor-slicer": {
@@ -1191,6 +1309,13 @@
             "current-cut",
             "hoard-keeper"
           ]
+        },
+        "reflex_miss": {
+          "value": null,
+          "ratio": null,
+          "lo": null,
+          "hi": null,
+          "from": []
         }
       },
       "hoard-keeper": {
@@ -1259,6 +1384,13 @@
             "current-cut",
             "factor-slicer"
           ]
+        },
+        "reflex_miss": {
+          "value": null,
+          "ratio": null,
+          "lo": null,
+          "hi": null,
+          "from": []
         }
       }
     }
@@ -1269,6 +1401,7 @@
     "read_ms_per_char",
     "read_share",
     "error_rate",
-    "idle_per_min"
+    "idle_per_min",
+    "reflex_miss"
   ]
 }
