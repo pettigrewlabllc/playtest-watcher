@@ -11,7 +11,8 @@
 //
 //   PW_LIVE=1 node src/agent/action.ts <letter> --url <game> --keys "Space,ArrowDown" \
 //     --controls "Space jumps. Hold ArrowDown to duck." [--state "<js>"] [--looks 40] [--look-ms 1200] --live
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, rm } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { chromium, type Page } from 'playwright';
 import { clientFromEnv, createMetaClient, type MetaClient } from '../meta/client.ts';
@@ -93,6 +94,7 @@ async function buttons(page: Page) {
 
 export async function playAction(letter: string, o: {
   url: string; keys: string[]; controls: string; looks: number; lookMs: number; state?: string; client: MetaClient; seed?: number; persona?: PersonaFile; game: string; limitsGame?: string; log?: (l: string) => void;
+  film?: boolean; keyNames?: Record<string, string>; hide?: string;
 }) {
   const log = o.log ?? console.log;
   // A game nobody played has no limits of its own: the persona borrows them from the kid's fastest game (built
@@ -119,6 +121,36 @@ export async function playAction(letter: string, o: {
   await page.clock.pauseAt(t0 + 1500);
   let gameMs = 1500;
   const held = new Map<string, number>();   // key -> game ms at which to let go
+  // Film mode: every 1/30 s of game time becomes a frame (canvas frames are fresh under the frozen clock, checked
+  // 20 of 20), and a badge shows the key the persona pressed so a viewer can see its moves.
+  const FRAME_MS = 1000 / 30;
+  let frame = 0, frameDebt = 0;
+  const framesDir = join(dir, 'frames');
+  if (o.film) {
+    await mkdir(framesDir, { recursive: true });
+    // Debug readouts the harness needs for --state but the footage shouldn't show (Timberline: #dbg).
+    if (o.hide) await page.addStyleTag({ content: `${o.hide} { visibility: hidden !important; }` });
+    await page.evaluate(names => {
+      const b = document.createElement('div');
+      b.style.cssText = 'position:fixed;right:18px;top:18px;z-index:99999;padding:8px 14px;border-radius:10px;font:700 22px system-ui;color:#111;background:#fde68a;opacity:0;transition:none;pointer-events:none';
+      document.body.appendChild(b);
+      let until = 0;
+      const show = (txt: string) => { b.textContent = txt; b.style.opacity = '1'; until = performance.now() + 350; };
+      addEventListener('keydown', e => show(names[e.code] ?? e.key), true);
+      addEventListener('pointerdown', () => show('TAP'), true);
+      const tick = () => { if (performance.now() > until) b.style.opacity = '0'; requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+    }, o.keyNames ?? {});
+  }
+  async function advance(ms: number) {
+    if (!o.film) { await page.clock.runFor(Math.round(ms)); return; }
+    frameDebt += ms;
+    while (frameDebt >= FRAME_MS) {
+      await page.clock.runFor(Math.round(FRAME_MS));
+      frameDebt -= FRAME_MS;
+      await page.screenshot({ path: join(framesDir, `${String(frame++).padStart(6, '0')}.jpg`), type: 'jpeg', quality: 88 });
+    }
+  }
   const steps: unknown[] = [];
 
   // Move the clock to `untilMs`, letting go of held keys on time along the way.
@@ -126,16 +158,17 @@ export async function playAction(letter: string, o: {
     for (;;) {
       const next = [...held.entries()].filter(([, t]) => t <= untilMs).sort((a, b) => a[1] - b[1])[0];
       if (!next) break;
-      if (next[1] > gameMs) { await page.clock.runFor(Math.round(next[1] - gameMs)); gameMs = next[1]; }
+      if (next[1] > gameMs) { await advance(next[1] - gameMs); gameMs = next[1]; }
       await page.keyboard.up(next[0]); held.delete(next[0]);
     }
-    if (untilMs > gameMs) { await page.clock.runFor(Math.round(untilMs - gameMs)); gameMs = untilMs; }
+    if (untilMs > gameMs) { await advance(untilMs - gameMs); gameMs = untilMs; }
   }
 
   try {
     for (let n = 1; n <= o.looks; n++) {
-      const shot = await freshShot(page);
-      gameMs += 80;
+      // Filming, the latest frame is current and real time must not leak into the game; otherwise refresh first.
+      const shot = o.film ? await page.screenshot({ type: 'jpeg', quality: 60 }) : await freshShot(page);
+      if (!o.film) gameMs += 80;
       await writeFile(join(dir, 'shots', `${String(n).padStart(3, '0')}.jpg`), shot);
       const btns = await buttons(page);
       const state = o.state ? await page.evaluate(o.state).catch(() => null) : null;
@@ -177,6 +210,11 @@ export async function playAction(letter: string, o: {
   } finally {
     await browser.close();
   }
+  if (o.film && frame) {
+    execFileSync(process.env.FFMPEG_PATH ?? 'ffmpeg', ['-y', '-loglevel', 'error', '-framerate', '30', '-i', join(framesDir, '%06d.jpg'), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', join(dir, 'film.mp4')]);
+    await rm(framesDir, { recursive: true, force: true });
+    log(`film: ${join(dir, 'film.mp4')} (${(frame / 30).toFixed(1)} s)`);
+  }
   const all = steps as { label: string; timed: { skipped: boolean }[]; state: unknown }[];
   const labels: Record<string, number> = {};
   for (const st of all) labels[st.label] = (labels[st.label] ?? 0) + 1;
@@ -191,13 +229,14 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   const description = opt('describe', '');
   const letter = description ? opt('name', 'X').toUpperCase() : args.find(a => /^[A-Za-z]$/.test(a));
   const url = opt('url', '');
-  if (!letter || !url) { console.error('usage: node src/agent/action.ts <letter> | --describe "<a kid>" --url <game> --keys "Space,ArrowDown" --controls "<how to play>" [--game name] [--state "<js>"] [--looks 40] [--look-ms 1200] --live'); process.exit(1); }
+  if (!letter || !url) { console.error('usage: node src/agent/action.ts <letter> | --describe "<a kid>" --url <game> --keys "Space,ArrowDown" --controls "<how to play>" [--game name] [--state "<js>"] [--looks 40] [--look-ms 1200] [--film] [--hide "#dbg"] [--key-names "Space=JUMP,ArrowDown=GRAZE"] --live'); process.exit(1); }
   const live = args.includes('--live');
   const client = live ? clientFromEnv(REPO) : createMetaClient({ live: false, budgetUsd: 0, spendLog: join(ROOT, 'spend.jsonl') });
   const game = opt('game', 'action-game');
   const limitsGame = opt('limits-game', 'factor-slicer');
   const persona = description ? await describePersona(ROOT, letter, description, limitsGame, client) : undefined;
   const out = await playAction(letter, { url, game, persona, client, keys: opt('keys', 'Space').split(',').map(s => s.trim()), controls: opt('controls', ''),
-    looks: Number(opt('looks', '40')), lookMs: Number(opt('look-ms', '1200')), state: opt('state', '') || undefined, seed: Number(opt('seed', '7')), limitsGame });
+    looks: Number(opt('looks', '40')), lookMs: Number(opt('look-ms', '1200')), state: opt('state', '') || undefined, seed: Number(opt('seed', '7')), limitsGame,
+    film: args.includes('--film'), hide: opt('hide', '') || undefined, keyNames: Object.fromEntries(opt('key-names', '').split(',').filter(Boolean).map(kv => kv.split('=') as [string, string])) });
   console.log(`steps: ${join(ROOT, out.id, 'steps.jsonl')}`);
 }
