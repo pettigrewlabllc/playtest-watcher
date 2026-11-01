@@ -1,0 +1,310 @@
+{
+  "persona": {
+    "schema": "persona/1",
+    "letter": "A",
+    "target_game": "hoard-keeper",
+    "built": "2026-11-01T14:11:38.952Z",
+    "dimensions": {
+      "frustration_tolerance": {
+        "value": 0.0068127791021912465,
+        "lo": -3.035339712530679,
+        "hi": 8.509350000898145,
+        "n": 112,
+        "sources": [
+          "play",
+          "muse"
+        ],
+        "distinguishable": false
+      },
+      "recovery": {
+        "value": 0.4125423728675925,
+        "lo": -0.4087563219904304,
+        "hi": 2.7568712806703877,
+        "n": 179,
+        "sources": [
+          "play",
+          "muse"
+        ],
+        "distinguishable": false
+      },
+      "persistence": {
+        "value": -0.04011844636844644,
+        "lo": -0.2340882853819547,
+        "hi": 0.08679285542027061,
+        "n": 22,
+        "sources": [
+          "play",
+          "muse"
+        ],
+        "distinguishable": false
+      },
+      "exploration_drive": {
+        "value": 0.2567758805303313,
+        "lo": -0.35046102197653284,
+        "hi": 1.038843897880286,
+        "n": 27,
+        "sources": [
+          "play",
+          "muse"
+        ],
+        "distinguishable": false
+      },
+      "reading": {
+        "value": -0.010479425567615877,
+        "lo": -0.05060769120872158,
+        "hi": 0.013107105433651118,
+        "n": 163,
+        "sources": [
+          "play",
+          "muse"
+        ],
+        "distinguishable": false
+      },
+      "pace": {
+        "value": -0.5253511183396119,
+        "lo": -3.183674963073967,
+        "hi": 1.7809124417085993,
+        "n": 27,
+        "sources": [
+          "play",
+          "muse"
+        ],
+        "distinguishable": false
+      },
+      "challenge_appetite": {
+        "value": 0.08015722482174686,
+        "lo": -0.09109022580673476,
+        "hi": 0.3735894420261351,
+        "n": 80,
+        "sources": [
+          "play",
+          "muse"
+        ],
+        "distinguishable": false,
+        "note": "low confidence: built on Muse \"bored\", which the kids contradicted on 3 of 4 checked clips"
+      },
+      "stamina": {
+        "value": -0.05064065956213434,
+        "lo": -0.175839205948571,
+        "hi": 0.09394275181538381,
+        "n": 27,
+        "sources": [
+          "play",
+          "muse"
+        ],
+        "distinguishable": false,
+        "note": "low confidence: built on Muse \"bored\", which the kids contradicted on 3 of 4 checked clips"
+      },
+      "confusion_resolves": {
+        "value": 0.0068799449604403816,
+        "lo": -0.19155742947867302,
+        "hi": 0.015250544662309372,
+        "n": 17,
+        "sources": [
+          "play",
+          "muse"
+        ],
+        "distinguishable": false
+      },
+      "skill": {
+        "value": -0.7016677333652226,
+        "lo": -1.1413317009910202,
+        "hi": -0.07662462460900904,
+        "n": 320,
+        "sources": [
+          "play",
+          "muse"
+        ],
+        "distinguishable": true
+      },
+      "learning_rate": {
+        "value": -0.03567423860074803,
+        "lo": -0.10931732852679815,
+        "hi": 0.04559843609942077,
+        "n": 320,
+        "sources": [
+          "play",
+          "muse"
+        ],
+        "distinguishable": false
+      },
+      "time_pressure": {
+        "value": null,
+        "lo": null,
+        "hi": null,
+        "n": 0,
+        "sources": [],
+        "distinguishable": false,
+        "note": "not measurable with these games: timers come with the game (Factor Slicer and Hoard Keeper are timed, the others are not)"
+      },
+      "novelty_need": {
+        "value": null,
+        "lo": null,
+        "hi": null,
+        "n": 0,
+        "sources": [],
+        "distinguishable": false,
+        "note": "not measurable with these games: only Factor Slicer repeats levels"
+      }
+    },
+    "distinguishable": "1 of 11 measured dimensions are clearly different from the other kids: skill",
+    "limits": {
+      "first_tap_s": {
+        "value": 7.013372569089048,
+        "ratio": 1.5363357215967246,
+        "lo": 1.048317227590803,
+        "hi": 1.7792607802874745,
+        "from": [
+          "bond-swap",
+          "current-cut",
+          "factor-slicer"
+        ]
+      },
+      "action_gap_s": {
+        "value": 1.2820435356200528,
+        "ratio": 1.011873350923483,
+        "lo": 0.36937541974479515,
+        "hi": 1.744281045751634,
+        "from": [
+          "bond-swap",
+          "current-cut",
+          "factor-slicer"
+        ]
+      },
+      "read_ms_per_char": {
+        "value": 73.07830392731145,
+        "ratio": 1.0809094700670918,
+        "lo": 0.07402482681160172,
+        "hi": 2.0781810631229236,
+        "from": [
+          "bond-swap",
+          "current-cut",
+          "factor-slicer"
+        ]
+      },
+      "read_share": {
+        "value": 0.5747126436781609,
+        "ratio": 1.0344827586206895,
+        "lo": 0,
+        "hi": 1.35,
+        "from": [
+          "bond-swap",
+          "current-cut",
+          "factor-slicer"
+        ]
+      },
+      "error_rate": {
+        "value": 0.13686911890504705,
+        "ratio": 2.4910179640718564,
+        "lo": 0.32717086834733894,
+        "hi": 4.814021421616359,
+        "from": [
+          "bond-swap",
+          "current-cut",
+          "factor-slicer"
+        ]
+      },
+      "idle_per_min": {
+        "value": 1.9162711404750419,
+        "ratio": 1.2794747229187546,
+        "lo": 0.8488187280583753,
+        "hi": 2.6110967344887746,
+        "from": [
+          "bond-swap",
+          "current-cut",
+          "factor-slicer"
+        ]
+      },
+      "reflex_miss": {
+        "value": null,
+        "ratio": null,
+        "lo": null,
+        "hi": null,
+        "from": []
+      },
+      "sour_after_fails": {
+        "value": 3,
+        "ratio": null,
+        "lo": 3.062686104791626,
+        "hi": 3.062686104791626,
+        "from": [
+          "frustration_tolerance"
+        ]
+      }
+    },
+    "age": null,
+    "drives": [
+      {
+        "drive": "creativity",
+        "pull": 1
+      },
+      {
+        "drive": "story",
+        "pull": 0.3
+      },
+      {
+        "drive": "exploration",
+        "pull": 0.3
+      },
+      {
+        "drive": "nurturing",
+        "pull": 0.3
+      },
+      {
+        "drive": "grind",
+        "pull": 0.3
+      },
+      {
+        "drive": "competition",
+        "pull": 0
+      },
+      {
+        "drive": "collection",
+        "pull": 0
+      },
+      {
+        "drive": "showing",
+        "pull": 0
+      },
+      {
+        "drive": "speed",
+        "pull": -0.5
+      },
+      {
+        "drive": "mastery",
+        "pull": -0.8
+      }
+    ],
+    "observer": {
+      "kid_checked_clips": 5,
+      "kid_vs_muse_kappa": 0.047619047619047596,
+      "muse_self_agreement": 0.8333333333333334,
+      "note": "Measured from this kid's recorded play; moment labels are Muse's."
+    }
+  },
+  "compiled": {
+    "rules": [
+      {
+        "text": "You often get things wrong the first time; expect to fail and retry.",
+        "from": "skill"
+      },
+      {
+        "text": "You love games about creativity; notice and enjoy it when this game has some.",
+        "from": "drive:creativity"
+      },
+      {
+        "text": "Games about mastery put you off; say so if this game is like that.",
+        "from": "drive:mastery"
+      }
+    ],
+    "harness": {
+      "firstTapS": 7.013372569089048,
+      "actionGapS": 1.2820435356200528,
+      "readShare": 0.5747126436781609,
+      "readMsPerChar": 73.07830392731145,
+      "errorRate": 0.13686911890504705,
+      "sourAfterFails": 3
+    }
+  },
+  "rules": "You are playtesting as Player A. Play the way they would, not the way an adult or an AI would.\n- You often get things wrong the first time; expect to fail and retry.\n- You love games about creativity; notice and enjoy it when this game has some.\n- Games about mastery put you off; say so if this game is like that.\n- You read about 57% of instructions; when you skip one you only see its first few words.\n- After 3 fails in a row you are frustrated. Kids like you still keep playing for about ten minutes, even when lost, so keep trying different things; say so if you want to stop."
+}

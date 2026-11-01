@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { rng, jitter, missTarget, summarize } from '../src/agent/play.ts';
+import { rng, jitter, missTarget, missPoint, summarize } from '../src/agent/play.ts';
 import { compile, rulesText } from '../src/persona/compile.ts';
 
 const persona = (over: Record<string, unknown> = {}) => ({
@@ -48,6 +48,15 @@ describe('harness', () => {
     expect(missTarget(4, 5, r)).toBe(3);
     expect([1, 3]).toContain(missTarget(2, 5, r));
     expect(missTarget(0, 1, r)).toBe(0);
+  });
+  it('a missed picture tap lands 30 to 50 px off and stays on screen', () => {
+    const r = rng(3);
+    for (let i = 0; i < 200; i++) {
+      const [x, y] = missPoint(200, 400, 390, 844, r), d = Math.hypot(x - 200, y - 400);
+      expect(d).toBeGreaterThanOrEqual(29); expect(d).toBeLessThanOrEqual(51);
+    }
+    const [x, y] = missPoint(2, 2, 390, 844, rng(1));
+    expect(x).toBeGreaterThanOrEqual(1); expect(y).toBeGreaterThanOrEqual(1);
   });
 
   it('summarizes a run', () => {

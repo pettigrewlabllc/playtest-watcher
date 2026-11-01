@@ -1,0 +1,76 @@
+{"t":1793542299732,"type":"logger_start","data":{"kind":"progress","url":"/","w":390,"h":844},"serverT":1793542299864}
+{"t":1793542299789,"type":"screen","data":{"kind":"progress","name":"who"},"serverT":1793542299864}
+{"t":1793542306959,"type":"first_touch","data":{"kind":"first_touch","screen":"who","target":"who:Kid 2"},"serverT":1793542307065}
+{"t":1793542311390,"type":"text_shown","data":{"kind":"text_shown","id":"intro-1","chars":140},"serverT":1793542314760}
+{"t":1793542311390,"type":"screen","data":{"kind":"progress","name":"intro"},"serverT":1793542314760}
+{"t":1793542318336,"type":"first_touch","data":{"kind":"first_touch","screen":"intro","target":"introok"},"serverT":1793542320719}
+{"t":1793542318336,"type":"text_closed","data":{"kind":"text_closed","id":"intro-1"},"serverT":1793542320719}
+{"t":1793542318336,"type":"screen","data":{"kind":"progress","name":"rush"},"serverT":1793542320719}
+{"t":1793542318336,"type":"text_shown","data":{"kind":"text_shown","id":"coach-rush","chars":80},"serverT":1793542320719}
+{"t":1793542318336,"type":"practice_start","data":{"kind":"progress"},"serverT":1793542320719}
+{"t":1793542322386,"type":"first_touch","data":{"kind":"first_touch","screen":"rush","target":"seal:fire"},"serverT":1793542328104}
+{"t":1793542322386,"type":"practice","data":{"kind":"success","dragon":"fire"},"serverT":1793542328104}
+{"t":1793542324056,"type":"practice","data":{"kind":"success","dragon":"frost"},"serverT":1793542353305}
+{"t":1793542325690,"type":"practice","data":{"kind":"success","dragon":"storm"},"serverT":1793542360807}
+{"t":1793542326890,"type":"rush_start","data":{"kind":"progress","season":1,"afterPractice":true},"serverT":1793542360811}
+{"t":1793542329057,"type":"file_item","data":{"kind":"attempt","bin":"fire"},"serverT":1793542399502}
+{"t":1793542329057,"type":"file_item","data":{"kind":"success","bin":"fire","correct":true,"mimic":false,"smudged":false},"serverT":1793542399502}
+{"t":1793542330959,"type":"misfile_bounce","data":{"kind":"fail","dragon":"frost","tried":"fire"},"serverT":1793542427029}
+{"t":1793542332782,"type":"file_item","data":{"kind":"attempt","bin":"frost"},"serverT":1793542433845}
+{"t":1793542332782,"type":"file_item","data":{"kind":"success","bin":"frost","correct":true,"mimic":false,"smudged":false},"serverT":1793542433845}
+{"t":1793542334020,"type":"misfile_bounce","data":{"kind":"fail","dragon":"fire","tried":"storm"},"serverT":1793542442548}
+{"t":1793542335614,"type":"file_item","data":{"kind":"attempt","bin":"fire"},"serverT":1793542449644}
+{"t":1793542335614,"type":"file_item","data":{"kind":"success","bin":"fire","correct":true,"mimic":false,"smudged":false},"serverT":1793542449644}
+{"t":1793542337189,"type":"file_item","data":{"kind":"attempt","bin":"fire"},"serverT":1793542460339}
+{"t":1793542337189,"type":"file_item","data":{"kind":"success","bin":"fire","correct":true,"mimic":false,"smudged":false},"serverT":1793542460339}
+{"t":1793542339018,"type":"text_closed","data":{"kind":"text_closed","id":"coach-rush"},"serverT":1793542469352}
+{"t":1793542339018,"type":"misfile_bounce","data":{"kind":"fail","dragon":"storm","tried":"fire"},"serverT":1793542469352}
+{"t":1793542340593,"type":"file_item","data":{"kind":"attempt","bin":"storm"},"serverT":1793542477400}
+{"t":1793542340593,"type":"file_item","data":{"kind":"success","bin":"storm","correct":true,"mimic":false,"smudged":false},"serverT":1793542477400}
+{"t":1793542341918,"type":"misfile_bounce","data":{"kind":"fail","dragon":"fire","tried":"storm"},"serverT":1793542486844}
+{"t":1793542343769,"type":"file_item","data":{"kind":"attempt","bin":"fire"},"serverT":1793542498859}
+{"t":1793542343769,"type":"file_item","data":{"kind":"success","bin":"fire","correct":true,"mimic":false,"smudged":false},"serverT":1793542498859}
+{"t":1793542345158,"type":"misfile_bounce","data":{"kind":"fail","dragon":"storm","tried":"fire"},"serverT":1793542508507}
+{"t":1793542346974,"type":"misfile_bounce","data":{"kind":"fail","dragon":"storm","tried":"frost"},"serverT":1793542524938}
+{"t":1793542348437,"type":"file_item","data":{"kind":"attempt","bin":"storm"},"serverT":1793542530842}
+{"t":1793542348437,"type":"file_item","data":{"kind":"success","bin":"storm","correct":true,"mimic":false,"smudged":false},"serverT":1793542530842}
+{"t":1793542349751,"type":"file_item","data":{"kind":"attempt","bin":"storm"},"serverT":1793542538289}
+{"t":1793542349751,"type":"file_item","data":{"kind":"success","bin":"storm","correct":true,"mimic":false,"smudged":false},"serverT":1793542538289}
+{"t":1793542351659,"type":"misfile_bounce","data":{"kind":"fail","dragon":"fire","tried":"storm"},"serverT":1793542547388}
+{"t":1793542353226,"type":"misfile_bounce","data":{"kind":"fail","dragon":"fire","tried":"frost"},"serverT":1793542564601}
+{"t":1793542360032,"type":"misfile_bounce","data":{"kind":"fail","dragon":"fire","tried":"frost"},"serverT":1793542628733}
+{"t":1793542361549,"type":"file_item","data":{"kind":"attempt","bin":"fire"},"serverT":1793542644622}
+{"t":1793542361549,"type":"file_item","data":{"kind":"success","bin":"fire","correct":true,"mimic":false,"smudged":false},"serverT":1793542644622}
+{"t":1793542363544,"type":"file_item","data":{"kind":"attempt","bin":"fire"},"serverT":1793542653806}
+{"t":1793542363544,"type":"file_item","data":{"kind":"success","bin":"fire","correct":true,"mimic":false,"smudged":false},"serverT":1793542653806}
+{"t":1793542370592,"type":"file_item","data":{"kind":"attempt","bin":"storm"},"serverT":1793542715699}
+{"t":1793542370592,"type":"file_item","data":{"kind":"success","bin":"storm","correct":true,"mimic":false,"smudged":false},"serverT":1793542715699}
+{"t":1793542371746,"type":"misfile_bounce","data":{"kind":"fail","dragon":"fire","tried":"frost"},"serverT":1793542723604}
+{"t":1793542371893,"type":"rush_end","data":{"kind":"progress","score":11,"misfiled":0,"pit":21,"actions":21},"serverT":1793542723604}
+{"t":1793542373393,"type":"screen","data":{"kind":"progress","name":"audit-1"},"serverT":1793542736578}
+{"t":1793542373393,"type":"audit_start","data":{"kind":"progress","question":"Bring me the TOTAL value from ❄️ Frost dragons!","index":1,"of":3,"qkind":"build"},"serverT":1793542736578}
+{"t":1793542373393,"type":"text_shown","data":{"kind":"text_shown","id":"audit-q1","chars":47},"serverT":1793542736578}
+{"t":1793542373393,"type":"tutor_step","data":{"kind":"progress","step":"data-act  test"},"serverT":1793542736578}
+{"t":1793542377985,"type":"first_touch","data":{"kind":"first_touch","screen":"audit-1","target":"test"},"serverT":1793542750902}
+{"t":1793542377985,"type":"query_step","data":{"kind":"attempt","step":"test"},"serverT":1793542750902}
+{"t":1793542379280,"type":"tutor_step","data":{"kind":"progress","step":"data-act  pull"},"serverT":1793542760733}
+{"t":1793542379486,"type":"query_step","data":{"kind":"attempt","step":"pull"},"serverT":1793542760733}
+{"t":1793542379486,"type":"audit_answer","data":{"kind":"fail","correct":false,"outcome":"baddata","handsMs":6093,"changes":0,"qkind":"build"},"serverT":1793542760733}
+{"t":1793542379486,"type":"text_closed","data":{"kind":"text_closed","id":"audit-q1"},"serverT":1793542760733}
+{"t":1793542379486,"type":"screen","data":{"kind":"progress","name":"audit-result-1"},"serverT":1793542760733}
+{"t":1793542385223,"type":"first_touch","data":{"kind":"first_touch","screen":"audit-result-1","target":"nextdemand"},"serverT":1793542769289}
+{"t":1793542385223,"type":"screen","data":{"kind":"progress","name":"audit-2"},"serverT":1793542769289}
+{"t":1793542385223,"type":"audit_start","data":{"kind":"progress","question":"How MANY deliveries came from ⚡ Storm dragons?","index":2,"of":3,"qkind":"build"},"serverT":1793542769289}
+{"t":1793542385223,"type":"text_shown","data":{"kind":"text_shown","id":"audit-q2","chars":46},"serverT":1793542769289}
+{"t":1793542390309,"type":"first_touch","data":{"kind":"first_touch","screen":"audit-2","target":"sline:dragon"},"serverT":1793542780663}
+{"t":1793542391905,"type":"query_step","data":{"kind":"attempt","step":"gv dragon=frost"},"serverT":1793542791954}
+{"t":1793542393223,"type":"tutor_step","data":{"kind":"explore","how":"idle"},"serverT":1793542791960}
+{"t":1793542393223,"type":"tutor_step","data":{"kind":"progress","step":"data-act  gv   data-v  storm"},"serverT":1793542791960}
+{"t":1793542396327,"type":"query_step","data":{"kind":"attempt","step":"gnot dragon"},"serverT":1793542803804}
+{"t":1793542402151,"type":"query_step","data":{"kind":"attempt","step":"gv dragon=storm"},"serverT":1793542819552}
+{"t":1793542402151,"type":"tutor_step","data":{"kind":"progress","step":"data-act  gv   data-v  frost"},"serverT":1793542819552}
+{"t":1793542403273,"type":"query_step","data":{"kind":"attempt","step":"gv dragon=frost"},"serverT":1793542836578}
+{"t":1793542403273,"type":"tutor_step","data":{"kind":"progress","step":"data-act  test"},"serverT":1793542836578}
+{"t":1793542404850,"type":"query_step","data":{"kind":"attempt","step":"test"},"serverT":1793542861542}
+{"t":1793542406145,"type":"tutor_step","data":{"kind":"explore","how":"wrong_try"},"serverT":1793542861557}
+{"t":1793542406145,"type":"tutor_step","data":{"kind":"progress","step":"data-act  pull"},"serverT":1793542861557}

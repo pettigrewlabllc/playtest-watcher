@@ -1,0 +1,18 @@
+{
+  "steps": 40,
+  "game_s": 135.39,
+  "missed": 4,
+  "forced": 0,
+  "skipped_texts": 22,
+  "read_texts": 25,
+  "labels": {
+    "engaged": 8,
+    "focused": 5,
+    "confused": 17,
+    "none": 2,
+    "bored": 4,
+    "stuck": 1,
+    "frustrated": 3
+  },
+  "quit": false
+}

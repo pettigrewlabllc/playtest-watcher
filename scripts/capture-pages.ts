@@ -37,6 +37,25 @@ if (which.includes('runs')) await record('runs-hoard-keeper', async p => {
   for (let i = 0; i < 10; i++) { await p.click('#next'); await wait(p, 1500); }
 });
 
+// The newest Hoard Keeper build (after the kids' four rounds of fixes): to the King's Audit, where the oldest reads why
+// the answer came up short and the youngest picks the shiny one.
+if (which.includes('hk-new')) await record('runs-hk-new', async p => {
+  await p.goto(`${BASE}/runs.html?public&a=20261101-141138-a-hoard-keeper-agent&b=20261101-141138-b-hoard-keeper-agent`);
+  await wait(p, 2000);
+  await p.mouse.wheel(0, 520); await wait(p, 600);
+  for (const n of [31, 32, 33, 34, 35, 38]) { await p.locator('.strip').first().locator(`[data-i="${n}"]`).click(); await wait(p, 1900); }   // one step counter drives both runs
+});
+
+// Continental Drift, played the morning it changed: tap rings on Egypt's own pyramids, then the food hint.
+if (which.includes('cd')) await record('runs-cd', async p => {
+  await p.goto(`${BASE}/runs.html?public&a=20261101-141138-a-continental-drift-agent&b=20261101-141138-b-continental-drift-agent`);
+  await wait(p, 2000);
+  await p.mouse.wheel(0, 520); await wait(p, 600);
+  for (let i = 0; i < 4; i++) { await p.click('#next'); await wait(p, 1700); }
+  for (let i = 0; i < 4; i++) { await p.click('#next'); await wait(p, 900); }
+  for (let i = 0; i < 3; i++) { await p.click('#next'); await wait(p, 1700); }
+});
+
 if (which.includes('described')) await record('runs-described', async p => {
   await p.goto(`${BASE}/runs.html?public&a=20261031-215034-x-hoard-keeper-agent&b=20261031-214957-a-hoard-keeper-agent`);
   await wait(p, 3000);
