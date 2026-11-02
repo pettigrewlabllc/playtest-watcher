@@ -79,7 +79,7 @@ for (const id of runs) {
   await put(`runs/${id}/session.json`, JSON.stringify({ id, kid: s.kid, game: s.game, round: 'agent' }, null, 2));
   await put(`runs/${id}/persona.json`, JSON.stringify({ persona, compiled: p.compiled, rules }, null, 2));
   for (const f of ['steps.jsonl', 'summary.json', 'events.jsonl']) if (existsSync(join(src, f))) await put(`runs/${id}/${f}`, await readFile(join(src, f), 'utf8'));
-  for (const f of (await readdir(join(src, 'shots'))).filter(f => /^\d{3}\.jpg$/.test(f))) copies.push([join(src, 'shots', f), join(OUT, 'runs', id, 'shots', f)]);
+  for (const f of (await readdir(join(src, 'shots'))).filter(f => /^\d{3}(-grid)?\.jpg$/.test(f))) copies.push([join(src, 'shots', f), join(OUT, 'runs', id, 'shots', f)]);
 }
 // Everything passed: only now replace results/. A refusal anywhere above leaves results/ exactly as it was.
 await rm(OUT, { recursive: true, force: true });

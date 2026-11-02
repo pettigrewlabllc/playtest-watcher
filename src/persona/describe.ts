@@ -4,6 +4,7 @@
 // ratios are "less" and "more"), so a described kid stays inside, or just past, what real kids did.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
+import { existsSync } from 'node:fs';
 import type { MetaClient } from '../meta/client.ts';
 import type { Dim, Limit, PersonaFile } from './build.ts';
 
@@ -81,8 +82,18 @@ export function toPersona(name: string, target: string, a: Answer, limitsJson: a
   };
 }
 
+// The group's measured limits: the local recordings copy, else the committed one in results/ (a fresh clone).
+export async function groupLimits(root: string) {
+  const local = join(root, 'group', 'limits.json');
+  return JSON.parse(await readFile(existsSync(local) ? local : join(import.meta.dirname, '..', '..', 'results', 'group', 'limits.json'), 'utf8'));
+}
+
 export async function describePersona(root: string, name: string, description: string, target: string, client: MetaClient): Promise<PersonaFile> {
-  const limitsJson = JSON.parse(await readFile(join(root, 'group', 'limits.json'), 'utf8'));
+  return toPersona(name, target, await readDescription(root, name, description, client), await groupLimits(root), description);
+}
+
+// Muse Wonder's reading of a description, saved and reused (fake-client answers are never saved).
+export async function readDescription(root: string, name: string, description: string, client: MetaClient): Promise<Answer> {
   const prompt = [
     'A game developer describes a child they want to playtest a game as. Rate the child against a typical school-age child who playtested kids\' games, using only what the description says.',
     'Every rating is -2 (much less), -1 (less), 0 (typical, or not mentioned), +1 (more), +2 (much more). Only rate what the description supports; leave the rest out or at 0. "because" quotes or paraphrases the description.',
@@ -99,11 +110,11 @@ export async function describePersona(root: string, name: string, description: s
   const saved = join(root, 'players', name.toUpperCase(), 'described.json');
   try {
     const prev = JSON.parse(await readFile(saved, 'utf8'));
-    if (prev.description === description) return toPersona(name, target, prev.answer, limitsJson, description);
+    if (prev.description === description) return prev.answer;
   } catch { /* first time */ }
   const r = await client.respond<Answer>({ model: 'muse-wonder-1.0', kind: `describe:${name}`, schema: SCHEMA, maxOutputTokens: 16000, content: [{ type: 'input_text', text: prompt }] });
-  if (!client.live) return toPersona(name, target, r.data, limitsJson, description);   // never save the fake client's canned answer
+  if (!client.live) return r.data;   // never save the fake client's canned answer
   await mkdir(dirname(saved), { recursive: true });
   await writeFile(saved, JSON.stringify({ description, answer: r.data, at: new Date().toISOString() }, null, 2));
-  return toPersona(name, target, r.data, limitsJson, description);
+  return r.data;
 }

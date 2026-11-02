@@ -37,7 +37,7 @@ A persona plays live. Muse Spark plays the real game in a browser and a harness 
 
 On two builds no kid had played yet:
 
-- In Hoard Keeper, the youngest kid's persona never read the King's question, picked the biggest trophy because it was shiny, and happened to be right. The game can't tell a lucky answer from a real one.
+- In Hoard Keeper, one kid's persona never read the King's question, picked the biggest trophy because it was shiny, and happened to be right. The game can't tell a lucky answer from a real one.
 - In Continental Drift, the one sentence that explains the game sits in a panel at the bottom. Both kid personas skipped it and spent three minutes going after Egypt's own pyramids. The hint then sent them to Egypt's own bread.
 
 Two fixes before a kid ever saw either build. The playtests with my kids also produced a ranked fix list for each of four games.
@@ -48,9 +48,10 @@ Every number has a file in the repo's `results/` folder.
 
 - My kids checked Muse's work: they picked its exact word 5 times in 20, and agreed on good vs bad about three times in four.
 - Predictions frozen before four check sessions tied with knowing only the kid's age.
-- First tap holds in every persona run checked. Time between actions doesn't yet: the harness adds its own pause each step.
+- Once I fixed the harness, pace and reading held within 1.5x of the persona's numbers in every committed run (2 of 2), and first tap in 1 of 2. Error rate doesn't compare yet: the setting is a missed tap, and the game counts wrong answers.
 - With four kids, a kid's play on other games picked them out at chance. Limits carry over as a hint only.
-- Muse reads a busy screen worse than my kids do, and on a canvas game its taps land well off what it aims at.
+- Muse reads a busy screen worse than my kids do.
+- On a canvas game its taps used to land well off what it aimed at. A labelled grid on the screenshot fixed that in the one run I've tried: 9 of 9 on target, all of them big targets.
 
 My bet is that more measured dimensions make a persona play closer to the person. Four kids isn't enough to prove it, and I'd rather say that than oversell it.
 
@@ -64,11 +65,11 @@ And it doesn't need anyone's data to work at all. Describe a kid in one sentence
 
 ## What's next
 
-An intake that asks what data you have and maps it for you, a fix for where taps land on canvas games, the same persona file running in any agent through one MCP server, and more people than my family.
+The intake, the persona schema and the MCP server shipped this week. Next is more people than my family, presets for the common analytics tools so nobody has to write a mapping file, and phones.
 
 ## Cost
 
-About $82 in Meta API calls for the whole build, every call logged in `results/spend.jsonl`. (Update from that file at submit time.)
+About $85 in Meta API calls for the whole build, every call logged in `results/spend.jsonl`.
 
 ## Video
 

@@ -1,9 +1,7 @@
 // The intake: who is this, consent first, what data do you have, then build, show the card, save. Interactive in a
 // terminal (cli.ts) or from an answers file, so an agent can drive it by writing the answers the user gave.
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import type { MetaClient } from '../meta/client.ts';
-import { describePersona, toPersona } from '../persona/describe.ts';
+import { groupLimits, readDescription, toPersona } from '../persona/describe.ts';
 import { fromEvents, fromProfile, fromRecorder, fromSurvey, mergeParts, type Partial2 } from './adapters.ts';
 import { DRIVES, LIMIT_KEYS, loadPersona, slugify, type Drive, type LimitKey, type LimitV2, type Persona2, type TraitV2 } from './persona.ts';
 import { readingWpm, reactionMs, tapMiss } from '../persona/norms.ts';
@@ -34,9 +32,8 @@ async function fromDescription(text: string, name: string, root: string, client:
   // Muse Wonder reads the sentence once (saved and reused); each game's limits are placed inside the range the
   // measured players showed on that game, so the same reading gives a per-game value everywhere.
   const letter = slugify(name).slice(0, 1).toUpperCase() || 'X';
-  await describePersona(root, letter, text, 'hoard-keeper', client);
-  const saved = JSON.parse(await readFile(join(root, 'players', letter, 'described.json'), 'utf8'));
-  const L = JSON.parse(await readFile(join(root, 'group', 'limits.json'), 'utf8'));
+  const saved = { answer: await readDescription(root, letter, text, client) };
+  const L = await groupLimits(root);
   const games = Object.keys(L.per_game?.J ?? {});
   const limits: Partial2['limits'] = {};
   let first: ReturnType<typeof toPersona> | null = null;
@@ -56,6 +53,7 @@ async function fromDescription(text: string, name: string, root: string, client:
   const drives: Partial2['drives'] = {};
   for (const d of first?.drives ?? []) if ((DRIVES as readonly string[]).includes(d.drive) && d.pull !== 0) drives[d.drive as Drive] = { pull: d.pull, basis: 'guess', why: d.evidence.replace(/["“”]/g, '') };
   return { limits, drives, traits, age: first?.age ?? null, adult: (first?.age ?? 0) >= 18,
+    notes: client.live ? [] : ['Built without a model key: this is the fake client\'s placeholder reading, not your description. Add --live for the real one.'],
     source: { type: 'description', read_at: new Date().toISOString(), summary: `one sentence, read once by Muse Wonder: ${text.slice(0, 120)}` } };
 }
 

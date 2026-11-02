@@ -42,9 +42,9 @@ I built them four ways: my kids' play and interviews, my own play plus what Meta
 
 ## Result
 
-**[1:52, Hoard Keeper, the new build: the oldest's "machine was right" screen, the youngest's blank question]**
+**[1:52, Hoard Keeper, the new build: Player B's "machine was right" screen, Player A's blank question]**
 
-Hoard Keeper got four rounds of fixes from my kids' playtests. Then the personas played the new build. / The oldest got the King's question wrong, read the screen that says why, and said, "I left seven slips in the pit." / The youngest never read the King's question. It tapped Biggest because the trophy was shiny... and that happened to be right. The game can't tell a lucky answer from a real one yet.
+Hoard Keeper got four rounds of fixes from my kids' playtests. Then the personas played the new build. / One kid's persona got the King's question wrong, read the screen that says why, and said, "I left seven slips in the pit." / Another one never read the King's question. It tapped Biggest because the trophy was shiny... and that happened to be right. The game can't tell a lucky answer from a real one yet.
 
 **[2:14, Continental Drift: the game's own screen, then the persona's, with tap rings]**
 
@@ -52,7 +52,7 @@ Continental Drift had just changed, and no kid had played that build. / The one 
 
 **[2:34, plain text on dark: what didn't work]**
 
-Here's what didn't work. / Predictions I froze before my kids played tied with knowing nothing but their age. The first tap holds, but the pace doesn't yet, because my harness adds its own pause. And with four kids, nothing carried from one game to the next better than a coin flip.
+Here's what didn't work. / Predictions I froze before my kids played tied with knowing nothing but their age. Once I fixed the harness, pace and reading held. First tap held in one run out of two. And with four kids, nothing carried from one game to the next better than a coin flip.
 
 **[2:48, end card]**
 
@@ -75,14 +75,14 @@ Every game I build goes through this loop, so making it shorter is a big deal. M
 | Describe a kid in one sentence | `src/persona/describe.ts` (`placeLevel`) |
 | Fast games at an age reaction time | `src/agent/action.ts` (`reflexDefaults`, `schedule`) |
 | Hoard Keeper got four rounds of fixes from the kids' playtests | hoard-keeper commits f86f0d6, c24f871, 3486547, 40ff7eb ("Kid playtest 1-4"); the build played is bae1914 |
-| The oldest: "I left 7 slips in the pit", then set up the Storm-only question | run `20261101-141138-b-hoard-keeper-agent`, steps 34 to 40. The "why" screen dates from build 3 (560422d), not the kids' fixes, so the script doesn't credit them for it. |
-| The youngest skipped the King's question, tapped Biggest "shiny", and Biggest was what the King asked | run `20261101-141138-a-hoard-keeper-agent`, steps 39 and 40 (`skipped` holds "What was the BIGGEST single haul...") |
+| Player B: "I left 7 slips in the pit", then set up the Storm-only question | run `20261101-141138-b-hoard-keeper-agent`, steps 34 to 40. The "why" screen dates from build 3 (560422d), not the kids' fixes, so the script doesn't credit them for it. |
+| Player A skipped the King's question, tapped Biggest "shiny", and Biggest was what the King asked | run `20261101-141138-a-hoard-keeper-agent`, steps 39 and 40 (`skipped` holds "What was the BIGGEST single haul...") |
 | Continental Drift changed this morning; no kid has played this build | pettigrew-lab commit c623cc4d (2026-11-01 07:01); no Continental Drift kid session in `recordings/` |
 | Both personas skipped the one explaining sentence | runs `20261101-141138-a/b-continental-drift-agent`, step 2 onward (`skipped`: "Lit up green on the map. Almost everything here is from Egypt...") |
-| About three minutes going after Egypt's own things; the food hint | same runs: 3.6 and 3.1 minutes of game time; what each said it was aiming at (pyramid, flatbread); "Hint: look for something to eat." from step 6 (B). Muse's tap points land 60 to 140 px off what it names, so the claim is about intent, not where taps landed. |
+| About three minutes going after Egypt's own things; the food hint | same runs: 3.6 and 3.1 minutes of game time; what each said it was aiming at (pyramid, flatbread); "Hint: look for something to eat." from step 6 (B). These runs predate the grid fix: Muse's tap points landed 60 to 140 px off what it named, so the claim is about intent, not where taps landed. With the grid, 9 of 9 landed (run `20261101-230511-t-continental-drift-agent`, big targets only). |
 | Four ways in: kids, Joel's play plus Meta ad-settings facts, one sentence, a five-person family blend | `src/persona/{build,load,describe,blend}.ts`; Joel's and the family's runs stay local (their files carry personal details) |
 | Gaps come from published research by age, sources in the code | `src/persona/norms.ts`, `docs/persona-norms.md` |
-| First tap holds; pace doesn't yet (the harness adds its own pause) | `results/group/validation.json`: first tap 6 of 6 runs within x1.5, action gap 1 of 6 |
+| Pace and reading hold on the fixed harness; first tap in one of two | `results/group/validation.json` "fixed": action gap 2 of 2, read share 2 of 2, first tap 1 of 2 within x1.5 (before the fix: action gap 1 of 6) |
 | Frozen predictions tied with age only | `results/group/scoreboard.json` (persona mean kappa 0.069, age-only 0.067) |
 | Muse reads a busy screen worse than the kids | `results/group/agent-vs-kid.json` (about a third of slips wrong vs 18 to 19%) |
 | Nothing carried game to game better than chance | `results/group/validation.json`: 19 of 76 checks, chance 19 |

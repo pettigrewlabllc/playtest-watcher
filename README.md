@@ -62,7 +62,7 @@ Every run is logged like a real playtest: events, a step log, a screenshot per s
 
 On two builds no kid had played yet:
 
-- **Hoard Keeper, the build with my kids' fixes in it.** The oldest kid's persona got the King's question wrong, read the screen that explains why ("I left 7 slips in the pit"), and set up the next one correctly. The youngest's never read the King's question, tapped "Biggest one" because the trophy was shiny, and happened to be right. The game can't tell a lucky answer from a real one. (`results/runs/20261101-141138-*-hoard-keeper-agent`)
+- **Hoard Keeper, the build with my kids' fixes in it.** Player B's persona got the King's question wrong, read the screen that explains why ("I left 7 slips in the pit"), and set up the next one correctly. Player A's never read the King's question, tapped "Biggest one" because the trophy was shiny, and happened to be right. The game can't tell a lucky answer from a real one. (`results/runs/20261101-141138-*-hoard-keeper-agent`)
 - **Continental Drift, changed that morning.** The one sentence that explains the game ("find the few that came from somewhere else") sits in a panel at the bottom. Both kid personas skipped it under their reading limits and spent about three minutes going after Egypt's own pyramids. The hint "look for something to eat" sent them to Egypt's own bread. (`results/runs/20261101-141138-*-continental-drift-agent`)
 - **Earlier, on Hoard Keeper:** the personas kept reading a blue gem icon as a frost dragon, which is a note about the art as much as the model.
 
@@ -75,7 +75,7 @@ Honest numbers, every one with a file in `results/`:
 - **Does a run play at the numbers it was given?** On the fixed harness, time between actions and reading share both land within 1.5x of the persona's numbers in every committed run (2 of 2), and first tap in 1 of 2 (the other ran 1.6x). Before the fix, the harness added its own pause each step and pace held in only 1 of 6. Error rate doesn't compare yet: the setting is a tap miss, while the game counts Muse's wrong answers. (`group/validation.json`)
 - **Does a kid's play on other games predict them on a new one?** 19 of 76 checks picked the right kid, which is exactly chance with four kids. (`group/validation.json`)
 - **Muse reads a busy screen worse than my kids.** The personas filed about a third of Hoard Keeper slips wrong, against 18 to 19% for the kids. (`group/agent-vs-kid.json`)
-- **Canvas aim is fixed.** On Continental Drift, Muse's taps used to land 60 to 140 px from what it named (1 of 23 on target). With a labelled coordinate grid on the screenshot it sees, 9 of 9 landed on the named object; the targets in that run were big ones, so small targets still need testing.
+- **Canvas aim is fixed.** On Continental Drift, Muse's taps used to land 60 to 140 px from what it named (1 of 23 on target). With a labelled coordinate grid on the screenshot it sees, 9 of 9 landed on the named object (`runs/20261101-230511-t-continental-drift-agent`, the `-grid` shots); the targets in that run were big ones, so small targets still need testing.
 
 My bet is that more measured dimensions make a persona play closer to the person. Four kids isn't enough to prove it.
 
@@ -117,7 +117,7 @@ Raw recordings stay in `recordings/`, which git ignores. Only short clips and se
 ## Tests
 
 ```bash
-npm test        # 201 tests (12 skip without the Python venv); a fake model client, never calls the API
+npm test        # 230 tests (some skip without the Python venv); a fake model client, never calls the API
 python3 -m venv analysis/.venv && analysis/.venv/bin/pip install -r analysis/requirements.txt
 cd analysis && .venv/bin/python -m pytest -q tests
 ```
