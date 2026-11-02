@@ -1,6 +1,6 @@
 # Demo video: narration script (for Joel to read and record)
 
-About 3 minutes at an easy pace, roughly 570 words. The picture stretches to fit your read, so go at your own pace. Read it like you're telling a friend. Pauses are marked `/`.
+About 3 minutes 10 at an easy pace, roughly 640 words. The picture stretches to fit your read, so go at your own pace. Read it like you're telling a friend. Pauses are marked `/`.
 The picture for each part is in brackets. No kid appears on screen or in audio (Joel's call, 2026-11-01).
 It runs in STAR order: the situation, the job, what I built, and what came out of it.
 
@@ -40,21 +40,25 @@ A persona is built from how a kid plays and what drives them. How long they look
 
 I built them four ways: my kids' play and interviews, my own play plus what Meta's ad settings say about me, one sentence about a made-up 16-year-old, and all five of us as one family. / Where nothing's measured, the gaps come from published research by age, and the source is in the code. Fast games work too, at a reaction time for their age.
 
+**[1:52, a terminal: a persona built from an analytics export, its card, then the six MCP tools]**
+
+You don't need my recorder to build one. Hand it an analytics export, a survey or a few profile facts. It asks for consent before it reads anything, and the card says which numbers were measured and which came from research. / Any agent that speaks MCP can build one, run it on your game and read the report.
+
 ## Result
 
-**[1:52, Hoard Keeper, the new build: Player B's "machine was right" screen, Player A's blank question]**
+**[2:04, Hoard Keeper, the new build: Player B's "machine was right" screen, Player A's blank question]**
 
 Hoard Keeper got four rounds of fixes from my kids' playtests. Then the personas played the new build. / One kid's persona got the King's question wrong, read the screen that says why, and said, "I left seven slips in the pit." / Another one never read the King's question. It tapped Biggest because the trophy was shiny... and that happened to be right. The game can't tell a lucky answer from a real one yet.
 
-**[2:14, Continental Drift: the game's own screen, then the persona's, with tap rings]**
+**[2:26, Continental Drift: the game's own screen, then the persona's, with tap rings]**
 
 Continental Drift had just changed, and no kid had played that build. / The one sentence that explains it sits in a panel at the bottom: find the few things that came from somewhere else. Both personas skipped it, and spent three minutes going after Egypt's own pyramids. Then the hint said look for something to eat, and they went after Egypt's own bread. / That's two fixes before a kid ever sees it.
 
-**[2:34, plain text on dark: what didn't work]**
+**[2:46, plain text on dark: what didn't work]**
 
 Here's what didn't work. / Predictions I froze before my kids played tied with knowing nothing but their age. Once I fixed the harness, pace and reading held. First tap held in one run out of two. And with four kids, nothing carried from one game to the next better than a coin flip.
 
-**[2:48, end card]**
+**[3:00, end card]**
 
 Every game I build goes through this loop, so making it shorter is a big deal. My bet is the more dimensions a persona has, the closer it plays to the kid. Four kids isn't enough to prove that yet. / Next is testing with the people you're building for, with their permission. / Informed Persona Testers. Built on Muse.
 
@@ -74,6 +78,10 @@ Every game I build goes through this loop, so making it shorter is a big deal. M
 | Freezes the game while the AI thinks; hides unread text; misses taps | `src/agent/play.ts` (page clock, `hideSkipped`, `missTarget`, `missPoint`) |
 | Describe a kid in one sentence | `src/persona/describe.ts` (`placeLevel`) |
 | Fast games at an age reaction time | `src/agent/action.ts` (`reflexDefaults`, `schedule`) |
+| Build from an analytics export, a survey or profile facts | `src/kit/adapters.ts` (`fromEvents`, `fromSurvey`, `fromProfile`); the numbers on screen are the real output of `npm run persona -- new --answers examples/answers/analytics-player.yaml` (made-up example data), laid out as a table |
+| Consent before anything is read | `src/kit/intake.ts` (`checkConsent` runs first in `buildPersona`) |
+| The card says measured vs research | `renderCard`: each number tagged `measured, n=` or `from norms by age` |
+| Any agent that speaks MCP; six tools | `src/kit/mcp.ts` (list, show, new, validate, run, get_report), a local stdio server |
 | Hoard Keeper got four rounds of fixes from the kids' playtests | hoard-keeper commits f86f0d6, c24f871, 3486547, 40ff7eb ("Kid playtest 1-4"); the build played is bae1914 |
 | Player B: "I left 7 slips in the pit", then set up the Storm-only question | run `20261101-141138-b-hoard-keeper-agent`, steps 34 to 40. The "why" screen dates from build 3 (560422d), not the kids' fixes, so the script doesn't credit them for it. |
 | Player A skipped the King's question, tapped Biggest "shiny", and Biggest was what the King asked | run `20261101-141138-a-hoard-keeper-agent`, steps 39 and 40 (`skipped` holds "What was the BIGGEST single haul...") |

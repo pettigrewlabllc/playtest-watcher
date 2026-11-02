@@ -8,7 +8,7 @@ import { join } from 'node:path';
 export type Beat = { id: string; at: number; picture: string; section: string; text: string; target: number; lines: [number, number] };
 
 const fail = (status: number, message: string) => Object.assign(new Error(message), { status });
-export const VIDEO_S = 180;
+export const VIDEO_S = 192;
 export const scriptPath = (root: string) => join(root, '..', 'docs', 'video', 'script.md');
 export const narrationDir = (root: string) => join(root, 'video', 'narration');
 const EXT: Record<string, string> = { 'audio/webm': 'webm', 'audio/mp4': 'm4a', 'audio/ogg': 'ogg' };
