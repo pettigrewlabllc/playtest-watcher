@@ -78,7 +78,7 @@ Every game I build goes through this loop, so making it shorter is a big deal. M
 | Freezes the game while the AI thinks; hides unread text; misses taps | `src/agent/play.ts` (page clock, `hideSkipped`, `missTarget`, `missPoint`) |
 | Describe a kid in one sentence | `src/persona/describe.ts` (`placeLevel`) |
 | Fast games at an age reaction time | `src/agent/action.ts` (`reflexDefaults`, `schedule`) |
-| Build from an analytics export, a survey or profile facts | `src/kit/adapters.ts` (`fromEvents`, `fromSurvey`, `fromProfile`); the card on screen is the real output of `npm run persona -- new --answers examples/answers/analytics-player.yaml` (made-up example data) |
+| Build from an analytics export, a survey or profile facts | `src/kit/adapters.ts` (`fromEvents`, `fromSurvey`, `fromProfile`); the numbers on screen are the real output of `npm run persona -- new --answers examples/answers/analytics-player.yaml` (made-up example data), laid out as a table |
 | Consent before anything is read | `src/kit/intake.ts` (`checkConsent` runs first in `buildPersona`) |
 | The card says measured vs research | `renderCard`: each number tagged `measured, n=` or `from norms by age` |
 | Any agent that speaks MCP; six tools | `src/kit/mcp.ts` (list, show, new, validate, run, get_report), a local stdio server |
