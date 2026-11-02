@@ -14,6 +14,8 @@ Chrome. Every number says where it came from: measured, self-report, guess, or a
 - Node 22.18+, Google Chrome, `npm install` in this repo.
 - Through MCP: `claude mcp add personas -- node <repo>/src/kit/mcp.ts` (or your agent's equivalent).
   Without MCP, the same commands are `npm run persona -- <command>`.
+- Personas are saved in `<repo>/personas`; set `PERSONAS_DIR` to keep them elsewhere. Run ids live as long as the
+  MCP server does, so read a finished run's `steps.jsonl` directly after a restart.
 - Live runs need `PW_LIVE=1` and a Meta Model API key in `<repo>/.env.local`. Without them the model client is
   fake and costs nothing, which is right for trying the flow.
 
@@ -51,7 +53,7 @@ model's, not a real person's. Say which limits were measured, borrowed from a si
 
 ## Limits to state before claiming anything
 
-- On the fixed harness, pace and reading land within 1.5x of the persona's numbers; first tap usually does. Error
+- On the fixed harness, pace and reading land within 1.5x of the persona's numbers; first tap did in one of two runs. Error
   rate doesn't compare yet (`results/group/validation.json`).
 - With four kids, a person's play on other games picked them out at chance: limits carry over as a hint.
 - Muse misreads busy screens. Canvas taps go through a labelled grid and land on target, but check small targets.

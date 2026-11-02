@@ -1,7 +1,7 @@
 // MCP server: Informed Persona Testers from any agent (Claude Code, Cursor, VS Code, Codex, Gemini CLI).
 //   claude mcp add personas -- node /path/to/playtest-watcher/src/kit/mcp.ts
 // Tools: list_personas, show_persona, new_persona, validate_persona, run_persona (returns a run id at once; a run
-// takes minutes), get_report. Personas live in ./personas of the directory the server starts in (PERSONAS_DIR to
+// takes minutes), get_report. Personas live in <repo>/personas, next to the CLI's (PERSONAS_DIR to
 // change it). Live runs need PW_LIVE=1 and a Meta Model API key in this repo's .env.local; without them the model
 // client is fake and costs nothing.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -16,8 +16,9 @@ import { listPersonas, loadPersona, savePersona, toEngine, validatePersona } fro
 
 const REPO = resolve(import.meta.dirname, '..', '..');
 const RECORDINGS = join(REPO, 'recordings');
-const DIR = resolve(process.env.PERSONAS_DIR ?? 'personas');
+const DIR = resolve(process.env.PERSONAS_DIR ?? join(REPO, 'personas'));
 const client = () => process.env.PW_LIVE === '1' ? clientFromEnv(REPO) : createMetaClient({ live: false, budgetUsd: 0, spendLog: join(RECORDINGS, 'spend.jsonl') });
+const FAKE = process.env.PW_LIVE === '1' ? '' : 'model: fake client (no PW_LIVE or key); steps are placeholders, not a real play.\n';
 const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
 
 type Run = { status: 'running' | 'done' | 'failed'; persona: string; member?: string; used: Record<string, string>; session?: string; dir?: string; summary?: unknown; error?: string; started: string };
@@ -73,7 +74,7 @@ server.registerTool('run_persona', {
   play(letter, { persona, game: o.game, url: o.url, steps: o.steps, seed: o.seed, client: client(), point: o.point, progress: o.progress, log: (l: string) => { const m = /^session (\S+):/.exec(l); if (m) run.session = m[1]; } } as Parameters<typeof play>[1])
     .then(r => { run.status = 'done'; run.session = r.session; run.dir = (r as { dir?: string }).dir; run.summary = summarize(r.steps); })
     .catch(e => { run.status = 'failed'; run.error = (e as Error).message; });
-  return text(`${id}: ${p.name}${member ? ` (this run plays ${member})` : ''} started on ${o.url}\nlimits: ${Object.entries(used).map(([k, v]) => `${k} ${v}`).join('; ')}`);
+  return text(`${FAKE}${id}: ${p.name}${member ? ` (this run plays ${member})` : ''} started on ${o.url}\nlimits: ${Object.entries(used).map(([k, v]) => `${k} ${v}`).join('; ')}`);
 });
 
 server.registerTool('get_report', { description: 'Status of a run, and when done its summary and where the step log is.', inputSchema: { run_id: z.string() } },
@@ -82,7 +83,7 @@ server.registerTool('get_report', { description: 'Status of a run, and when done
     if (!r) return text('no such run in this server session');
     const dir = r.dir ?? (r.session ? join(RECORDINGS, r.session) : null);
     const steps = dir && existsSync(join(dir, 'steps.jsonl')) ? (await readFile(join(dir, 'steps.jsonl'), 'utf8')).trim().split('\n').length : 0;
-    return text(JSON.stringify({ ...r, steps, step_log: dir ? join(dir, 'steps.jsonl') : null }, null, 2));
+    return text(FAKE + JSON.stringify({ ...r, steps, step_log: dir ? join(dir, 'steps.jsonl') : null }, null, 2));
   });
 
 await server.connect(new StdioServerTransport());
