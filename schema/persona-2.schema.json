@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/pettigrewlabllc/playtest-watcher/schema/persona-2.schema.json",
-  "title": "Informed Persona Testers: persona/2",
+  "title": "Playtest Doubles: persona/2",
   "description": "A persona tester: measured limits a harness enforces, what drives them, where every number came from, and consent. Limits a persona has no measurement for are filled at run time from published norms by age (src/persona/norms.ts).",
   "type": "object",
   "additionalProperties": false,

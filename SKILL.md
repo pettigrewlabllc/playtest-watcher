@@ -1,9 +1,9 @@
 ---
-name: informed-persona-testers
+name: playtest-doubles
 description: Build a persona tester from real people's data (recordings, an analytics export, a survey, profile facts), from a one-sentence description, or from a group, then run it against a web game or app held to measured limits and report what it saw, did, skipped and missed. Use when someone wants to playtest a game or flow as a specific kind of player before real players see it.
 ---
 
-# Informed Persona Testers
+# Playtest Doubles
 
 A persona is limits, not a paragraph: how long they look before the first tap, how fast they go, how much they
 read, how often they miss, how many fails before they sour. A harness holds a live AI player (Muse Spark by
@@ -12,11 +12,11 @@ default, or Claude or Gemini) to them in Chrome. Every number says where it came
 ## Setup
 
 - Node 22.18+ and Google Chrome. No clone needed:
-  `claude mcp add personas -- npx -y -p github:pettigrewlabllc/playtest-watcher informed-personas-mcp` (or your
-  agent's equivalent). Without MCP: `npx -y -p github:pettigrewlabllc/playtest-watcher informed-personas <command>`.
+  `claude mcp add playtest-doubles -- npx -y -p github:pettigrewlabllc/playtest-watcher playtest-doubles-mcp` (or your
+  agent's equivalent). Without MCP: `npx -y -p github:pettigrewlabllc/playtest-watcher playtest-doubles <command>`.
   From a checkout: `node <repo>/src/kit/mcp.ts` and `npm run persona -- <command>`.
 - Personas are saved in `<home>/personas/<slug>/persona.json` (earlier versions in `versions/`), runs in
-  `<home>/recordings/<run>/`. Home is the repo in a checkout and `~/.informed-personas` when installed. The `where`
+  `<home>/recordings/<run>/`. Home is the repo in a checkout and `~/.playtest-doubles` when installed. The `where`
   command prints both, and `show_persona` gives the file. `PERSONAS_HOME` or `PERSONAS_DIR` moves them.
   Run ids live as long as the MCP server does, so read a finished run's `steps.jsonl` directly after a restart.
 - Live runs need `PW_LIVE=1` and one model key in `<home>/.env.local` or the environment: `MODEL_API_KEY` (Meta),

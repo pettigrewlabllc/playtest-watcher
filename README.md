@@ -1,4 +1,6 @@
-# Informed Persona Testers
+# Playtest Doubles
+
+AI playtesters built from your real players.
 
 I've built twenty-some games with AI in the last six months. Building them isn't the slow part anymore. Finding the fun is, and that takes someone actually playing. My four kids are my playtesters, and a kid can only play a game fresh once.
 
@@ -29,7 +31,7 @@ Where a persona has no measured number, the gap is filled from **published resea
 No clone needed. Node 22.18 or newer and Google Chrome, then:
 
 ```bash
-npx -y -p github:pettigrewlabllc/playtest-watcher informed-personas new
+npx -y -p github:pettigrewlabllc/playtest-watcher playtest-doubles new
 ```
 
 Everything below works the same from a checkout with `npm run persona -- <command>`:
@@ -47,7 +49,7 @@ The example builds a persona from a made-up analytics export (`examples/data/eve
 
 A Google Analytics 4 / Firebase, GameAnalytics or Unity Analytics export needs no mapping file. The kit tells which one it is from the columns and asks which player when there's more than one. None of the three has a standard event for a tap or an answer, so out of the box you get the fail streak and the rest comes from norms. The card says so, lists the export's most common events, and gives you the two lines to add so first tap and pace get measured too ([src/kit/presets/README.md](src/kit/presets/README.md)).
 
-Personas stay on your machine. From a checkout they're in the repo's `personas/` folder, which git ignores. Installed, they're in `~/.informed-personas`. `where` prints the exact folders. `forget` deletes one for good: the file, every earlier version, and every run it played. The export or survey you built it from is yours, so it doesn't touch that, but it tells you where it is. Consent is checked before any file is opened, a child under 13 needs a parent's yes, and a persona file can't hold anyone's quoted words.
+Personas stay on your machine. From a checkout they're in the repo's `personas/` folder, which git ignores. Installed, they're in `~/.playtest-doubles`. `where` prints the exact folders. `forget` deletes one for good: the file, every earlier version, and every run it played. The export or survey you built it from is yours, so it doesn't touch that, but it tells you where it is. Consent is checked before any file is opened, a child under 13 needs a parent's yes, and a persona file can't hold anyone's quoted words.
 
 Every persona is a `persona/2` file, defined by a published JSON Schema ([schema/persona-2.schema.json](schema/persona-2.schema.json)), validated on every load and save, and versioned on disk. Each number carries its basis: measured, self-report, guess, or norm. When sources disagree, measured wins.
 
@@ -100,7 +102,7 @@ My bet is that more measured dimensions make a persona play closer to the person
 An MCP server puts the personas in any agent that speaks MCP (Claude Code, Cursor, VS Code, Codex, Gemini CLI):
 
 ```bash
-claude mcp add personas -- npx -y -p github:pettigrewlabllc/playtest-watcher informed-personas-mcp
+claude mcp add playtest-doubles -- npx -y -p github:pettigrewlabllc/playtest-watcher playtest-doubles-mcp
 ```
 
 From a checkout, point it at `node /path/to/playtest-watcher/src/kit/mcp.ts` instead. It's a local server over stdio, so there's nothing to host.

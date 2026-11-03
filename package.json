@@ -1,12 +1,14 @@
 {
-  "name": "playtest-watcher",
+  "name": "playtest-doubles",
   "version": "0.3.0",
-  "description": "Persona testers built from real players' data, run against your web game by an AI player held to their limits. CLI and local MCP server.",
+  "description": "Playtest Doubles: AI playtesters built from your real players, held to their measured limits on your web game. CLI and local MCP server.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pettigrewlabllc/playtest-watcher.git"
   },
   "bin": {
+    "playtest-doubles": "dist/src/kit/cli.js",
+    "playtest-doubles-mcp": "dist/src/kit/mcp.js",
     "informed-personas": "dist/src/kit/cli.js",
     "informed-personas-mcp": "dist/src/kit/mcp.js"
   },
