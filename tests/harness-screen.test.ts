@@ -77,7 +77,7 @@ const PAGE = `<!doctype html><html><body style="margin:0;font:16px sans-serif">
   <canvas width="390" height="200" style="display:block;background:#246"></canvas>
 </body></html>`;
 
-describe('in Chrome', () => {
+describe('in Chrome', { timeout: 30000 }, () => {   // a cold CI runner's Chrome is slow; 5 s has failed twice
   it('sees divs with handlers, pointer-cursor cards, tabindex, inputs, labels and summaries, without nested repeats', async ctx => {
     if (!browser) return ctx.skip();
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
