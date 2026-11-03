@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// MCP server: Informed Persona Testers from any agent (Claude Code, Cursor, VS Code, Codex, Gemini CLI).
-//   claude mcp add personas -- npx -y -p github:pettigrewlabllc/playtest-watcher informed-personas-mcp
+// MCP server: Playtest Doubles from any agent (Claude Code, Cursor, VS Code, Codex, Gemini CLI).
+//   claude mcp add playtest-doubles -- npx -y -p github:pettigrewlabllc/playtest-watcher playtest-doubles-mcp
 //   (from a checkout: claude mcp add personas -- node /path/to/playtest-watcher/src/kit/mcp.ts)
 // Tools: list_personas, show_persona, new_persona, validate_persona, run_persona (returns a run id at once; a run
 // takes minutes), get_report, forget_persona. Personas are kept where the CLI keeps them (src/kit/home.ts: the repo
-// in a checkout, ~/.informed-personas when installed; PERSONAS_HOME or PERSONAS_DIR to change it). Live runs need
+// in a checkout, ~/.playtest-doubles when installed; PERSONAS_HOME or PERSONAS_DIR to change it). Live runs need
 // PW_LIVE=1 and a model key (Meta, Anthropic or Gemini) in <home>/.env.local or the environment; without them the
 // model client is fake and costs nothing.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -39,7 +39,7 @@ const source = z.discriminatedUnion('type', [
   z.object({ type: z.literal('description'), text: z.string() }),
 ]);
 
-const server = new McpServer({ name: 'informed-persona-testers', version: '0.2.0' });
+const server = new McpServer({ name: 'playtest-doubles', version: '0.3.0' });
 
 server.registerTool('list_personas', { description: 'List the saved personas.', inputSchema: {} },
   async () => text((await listPersonas(DIR)).map(p => `${p.slug} (${p.kind}, v${p.version}): ${p.card.who}`).join('\n') || 'no personas yet'));

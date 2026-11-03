@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// informed-personas <command>        (in a checkout of the repo: npm run persona -- <command>)
+// playtest-doubles <command>         (in a checkout of the repo: npm run persona -- <command>)
 //   new [--answers answers.yaml]       build a persona: asks who, consent, what data (or reads the answers file)
 //   list                               saved personas
 //   show <slug|path>                   the card
@@ -9,7 +9,7 @@
 //   run <slug|path> --url <game> [--game name] [--limits-game g] [--steps 30] [--seed 7] [--point] [--progress js]
 //       [--no-watcher] [--out dir] --live
 // Personas are saved to <home>/personas/<slug>/persona.json: the repo in a git checkout (git-ignored, so real
-// people's personas stay local), ~/.informed-personas when installed. `where` prints it; --dir overrides.
+// people's personas stay local), ~/.playtest-doubles when installed. `where` prints it; --dir overrides.
 import { createInterface } from 'node:readline/promises';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';

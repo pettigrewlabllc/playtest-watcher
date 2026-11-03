@@ -2,7 +2,7 @@
 
 ## Name
 
-Informed Persona Testers (repo: playtest-watcher)
+Playtest Doubles (repo: playtest-watcher)
 
 ## One line
 
