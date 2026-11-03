@@ -10,7 +10,7 @@ Persona testers built from how real people actually play, held to their measured
 
 ## The problem
 
-I've built twenty-some games with AI in the last six months. Vibe coding is fun and ideas come out fast, but vibe slop is what you get when nobody plays it enough. Building isn't the long part anymore. Finding the fun is. My four kids are my playtesters, and a kid can only play a game fresh once.
+I've built twenty-some games with AI in the last six months. Vibe coding is fun and ideas come out fast, but vibe slop is what you get when nobody plays it enough. Building isn't the long part anymore. Finding the fun is. My four kids are my playtesters, and they only get one first time with a game.
 
 ## What it does
 
