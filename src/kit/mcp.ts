@@ -26,7 +26,9 @@ const runs = new Map<string, Run>();
 
 const source = z.discriminatedUnion('type', [
   z.object({ type: z.literal('recorder'), root: z.string(), letter: z.string() }),
-  z.object({ type: z.literal('events'), path: z.string(), map: z.string().describe('a mapping file, see examples/data/events.map.yaml') }),
+  z.object({ type: z.literal('events'), path: z.string().describe('an analytics export, CSV or JSON lines'),
+    map: z.string().optional().describe('leave out for a GA4/Firebase, GameAnalytics or Unity export (detected from its columns); else a preset name (ga4, gameanalytics, unity) or a mapping file, see src/kit/presets/README.md'),
+    player: z.string().optional().describe('which player in the export, when it holds several') }),
   z.object({ type: z.literal('survey'), path: z.string(), map: z.string().describe('see examples/data/survey.map.yaml') }),
   z.object({ type: z.literal('profile'), path: z.string().describe('profile facts the person exported themselves, see examples/data/profile.yaml') }),
   z.object({ type: z.literal('description'), text: z.string() }),

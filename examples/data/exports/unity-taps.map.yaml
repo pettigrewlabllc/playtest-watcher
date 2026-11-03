@@ -1,0 +1,6 @@
+# A Unity export plus this game's own tap event: the preset reads the columns and the level events, this file
+# adds the two numbers only the game's own events can give.
+extends: unity
+measures:
+  first_tap_s:  { median_gap: [gameStarted, buttonTap] }
+  action_gap_s: { median_gap: [buttonTap, buttonTap] }

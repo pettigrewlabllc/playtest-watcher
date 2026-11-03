@@ -1,0 +1,10 @@
+EVENT_NAME,EVENT_TIMESTAMP,USER_ID,SESSION_ID
+gameStarted,2026-11-01T12:00:00.000Z,player-7,sess-1
+buttonTap,2026-11-01T12:00:01.800Z,player-7,sess-1
+level_fail,2026-11-01T12:00:20.000Z,player-7,sess-1
+buttonTap,2026-11-01T12:00:21.000Z,player-7,sess-1
+level_complete,2026-11-01T12:00:40.000Z,player-7,sess-1
+level_fail,2026-11-01T12:01:00.000Z,player-7,sess-1
+level_fail,2026-11-01T12:01:20.000Z,player-7,sess-1
+level_complete,2026-11-01T12:01:39.000Z,player-7,sess-1
+gameEnded,2026-11-01T12:01:40.000Z,player-7,sess-1

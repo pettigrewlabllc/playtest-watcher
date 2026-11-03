@@ -1,0 +1,22 @@
+{"event_date": "20261101", "event_timestamp": "1761998400000000", "event_name": "screen_view", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 111}}]}
+{"event_date": "20261101", "event_timestamp": "1761998402100000", "event_name": "level_start", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 111}}]}
+{"event_date": "20261101", "event_timestamp": "1761998403000000", "event_name": "select_content", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 111}}]}
+{"event_date": "20261101", "event_timestamp": "1761998433000000", "event_name": "level_end", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 111}}, {"key": "success", "value": {"int_value": 0}}]}
+{"event_date": "20261101", "event_timestamp": "1761998434500000", "event_name": "level_start", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 111}}]}
+{"event_date": "20261101", "event_timestamp": "1761998435400000", "event_name": "select_content", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 111}}]}
+{"event_date": "20261101", "event_timestamp": "1761998465400000", "event_name": "level_end", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 111}}, {"key": "success", "value": {"int_value": 0}}]}
+{"event_date": "20261101", "event_timestamp": "1761998466900000", "event_name": "level_start", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 111}}]}
+{"event_date": "20261101", "event_timestamp": "1761998467800000", "event_name": "select_content", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 111}}]}
+{"event_date": "20261101", "event_timestamp": "1761998497800000", "event_name": "level_end", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 111}}, {"key": "success", "value": {"int_value": 1}}]}
+{"event_date": "20261101", "event_timestamp": "1761998499300000", "event_name": "screen_view", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 222}}]}
+{"event_date": "20261101", "event_timestamp": "1761998501400000", "event_name": "level_start", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 222}}]}
+{"event_date": "20261101", "event_timestamp": "1761998502300000", "event_name": "select_content", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 222}}]}
+{"event_date": "20261101", "event_timestamp": "1761998532300000", "event_name": "level_end", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 222}}, {"key": "success", "value": {"int_value": 0}}]}
+{"event_date": "20261101", "event_timestamp": "1761998533800000", "event_name": "level_start", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 222}}]}
+{"event_date": "20261101", "event_timestamp": "1761998534700000", "event_name": "select_content", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 222}}]}
+{"event_date": "20261101", "event_timestamp": "1761998564700000", "event_name": "level_end", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 222}}, {"key": "success", "value": {"int_value": 0}}]}
+{"event_date": "20261101", "event_timestamp": "1761998566200000", "event_name": "level_start", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 222}}]}
+{"event_date": "20261101", "event_timestamp": "1761998567100000", "event_name": "select_content", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 222}}]}
+{"event_date": "20261101", "event_timestamp": "1761998597100000", "event_name": "level_end", "user_pseudo_id": "p1", "event_params": [{"key": "ga_session_id", "value": {"int_value": 222}}, {"key": "success", "value": {"int_value": 1}}]}
+{"event_date": "20261101", "event_timestamp": "1761998598600000", "event_name": "screen_view", "user_pseudo_id": "p2", "event_params": [{"key": "ga_session_id", "value": {"int_value": 333}}]}
+{"event_date": "20261101", "event_timestamp": "1761998603600000", "event_name": "level_start", "user_pseudo_id": "p2", "event_params": [{"key": "ga_session_id", "value": {"int_value": 333}}]}

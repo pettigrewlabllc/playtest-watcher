@@ -44,12 +44,21 @@ export async function fromRecorder(root: string, letter: string): Promise<Partia
 }
 
 // ---- any event log (CSV or JSONL) through a mapping file -------------------------------------------------------
+// A column can be a list (first one present wins). `event` can also be a template ("{category}:{event_id}", with
+// "{a|b}" for either column). A pattern is an event name, "*" a wildcard, or a list of either. A map can `extends`
+// a preset (presets/*.map.yaml) and add or replace measures; with no map at all the preset is picked by columns.
+type Col = string | string[];
+type Pattern = string | string[];
+export type Measure = { median_gap?: [Pattern, Pattern]; ratio?: [Pattern, Pattern]; rate_per_min?: Pattern; longest_streak_of?: Pattern; reset_on?: Pattern };
 export type EventMap = {
-  time: string; event: string; session?: string; member?: { column: string; value: string };
-  time_unit?: 's' | 'ms' | 'us' | 'iso';
-  measures: Partial<Record<LimitKey, { median_gap?: [string, string]; ratio?: [string, string]; rate_per_min?: string; longest_streak_of?: string; reset_on?: string }>>;
+  extends?: string; format?: string; detect?: string[][];
+  time: Col; event: Col; session?: Col; player?: Col; member?: { column: string; value: string };
+  time_unit?: 's' | 'ms' | 'us' | 'iso' | 'auto';
+  measures: Partial<Record<LimitKey, Measure>>;
 };
 type Row = Record<string, string>;
+export const PRESETS_DIR = join(import.meta.dirname, 'presets');
+export const PRESETS = ['ga4', 'gameanalytics', 'unity'] as const;
 
 function parseCsv(text: string): Row[] {
   const lines = text.replace(/\r/g, '').split('\n').filter(Boolean);
@@ -57,53 +66,136 @@ function parseCsv(text: string): Row[] {
   const head = split(lines[0]);
   return lines.slice(1).map(l => Object.fromEntries(split(l).map((v, i) => [head[i], v])));
 }
+// Nested JSON becomes dotted columns (data.category); GA4's [{key, value: {int_value: 1}}] lists become
+// event_params.<key>. Other arrays stay as JSON text.
+function flatten(o: Record<string, unknown>, pre = '', out: Row = {}): Row {
+  for (const [k, v] of Object.entries(o)) {
+    const key = pre + k;
+    if (Array.isArray(v) && v.every(x => x && typeof x === 'object' && 'key' in x && 'value' in x)) {
+      for (const x of v as { key: string; value: unknown }[]) {
+        const val = x.value && typeof x.value === 'object' ? Object.values(x.value).find(y => y != null) : x.value;
+        if (val != null) out[`${key}.${x.key}`] = String(val);
+      }
+    } else if (v && typeof v === 'object' && !Array.isArray(v)) flatten(v as Record<string, unknown>, `${key}.`, out);
+    else if (v != null) out[key] = typeof v === 'object' ? JSON.stringify(v) : String(v);
+  }
+  return out;
+}
 export async function readRows(path: string): Promise<Row[]> {
   const t = await readFile(path, 'utf8');
-  return path.endsWith('.csv') ? parseCsv(t) : t.split('\n').filter(l => l.trim()).map(l => Object.fromEntries(Object.entries(JSON.parse(l)).map(([k, v]) => [k, typeof v === 'object' ? JSON.stringify(v) : String(v)])));
+  return path.endsWith('.csv') ? parseCsv(t) : t.split('\n').filter(l => l.trim()).map(l => flatten(JSON.parse(l)));
 }
 export async function readMap<T>(path: string): Promise<T> { const t = await readFile(path, 'utf8'); return (path.endsWith('.json') ? JSON.parse(t) : YAML.parse(t)) as T; }
 
-const toSeconds = (v: string, unit: EventMap['time_unit']) =>
-  unit === 'iso' ? Date.parse(v) / 1000 : unit === 'ms' ? Number(v) / 1000 : unit === 'us' ? Number(v) / 1e6 : Number(v);
+// A mapping file, with `extends` resolved: the preset's columns, then this map's own fields, measures merged.
+export async function loadEventMap(nameOrPath: string): Promise<EventMap> {
+  const file = (PRESETS as readonly string[]).includes(nameOrPath) ? join(PRESETS_DIR, `${nameOrPath}.map.yaml`) : nameOrPath;
+  const m = await readMap<EventMap>(file);
+  if (!m.extends) return m;
+  const base = await loadEventMap(m.extends);
+  return { ...base, ...m, measures: { ...base.measures, ...m.measures } };
+}
 
-export function measureEvents(rows: Row[], map: EventMap): { limits: Partial2['limits']; notes: string[] } {
+// Which standard export this is, from its columns; null if none matches.
+export async function detectPreset(rows: Row[]): Promise<string | null> {
+  const cols = new Set(rows.slice(0, 50).flatMap(r => Object.keys(r)));
+  for (const p of PRESETS) {
+    const m = await loadEventMap(p);
+    if (m.detect?.some(set => set.every(c => cols.has(c)))) return p;
+  }
+  return null;
+}
+
+const pick = (r: Row, c: Col | undefined) => { for (const k of [c ?? []].flat()) if (r[k] != null && r[k] !== '') return r[k]; return undefined; };
+const eventOf = (r: Row, c: Col) => typeof c === 'string' && c.includes('{')
+  ? c.replace(/\{([^}]+)\}/g, (_, alts: string) => pick(r, alts.split('|')) ?? '').replace(/:+$/, '') : pick(r, c);   // no param, no trailing ":"
+const matcher = (p: Pattern) => {
+  const res = [p].flat().map(s => new RegExp(`^${s.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`));
+  return (e: string) => res.some(re => re.test(e));
+};
+const toSeconds = (v: string, unit: EventMap['time_unit']) => {
+  if (unit === 'auto') { const x = Number(v); return Number.isFinite(x) ? (x > 1e14 ? x / 1e6 : x > 1e11 ? x / 1000 : x) : Date.parse(v) / 1000; }
+  return unit === 'iso' ? Date.parse(v) / 1000 : unit === 'ms' ? Number(v) / 1000 : unit === 'us' ? Number(v) / 1e6 : Number(v);
+};
+
+// The players in an export, most events first.
+export function playersIn(rows: Row[], map: EventMap): [string, number][] {
+  const n = new Map<string, number>();
+  for (const r of rows) { const p = pick(r, map.player); if (p != null) n.set(p, (n.get(p) ?? 0) + 1); }
+  return [...n.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+export function measureEvents(rows: Row[], map: EventMap, player?: string): { limits: Partial2['limits']; notes: string[]; events: Map<string, number> } {
   const unit = map.time_unit ?? 'ms';
-  const evs = rows.filter(r => !map.member || r[map.member.column] === map.member.value)
-    .map(r => ({ t: toSeconds(r[map.time], unit), e: r[map.event], s: map.session ? r[map.session] : '_' }))
+  const evs = rows.filter(r => (!map.member || r[map.member.column] === map.member.value) && (player == null || pick(r, map.player) === player))
+    .map(r => ({ t: toSeconds(pick(r, map.time) ?? '', unit), e: eventOf(r, map.event) ?? '', s: pick(r, map.session) ?? '_' }))
     .filter(x => Number.isFinite(x.t)).sort((a, b) => a.s.localeCompare(b.s) || a.t - b.t);
   const bySession = new Map<string, typeof evs>();
   for (const x of evs) (bySession.get(x.s) ?? bySession.set(x.s, []).get(x.s)!).push(x);
+  const events = new Map<string, number>();
+  for (const x of evs) events.set(x.e, (events.get(x.e) ?? 0) + 1);
   const limits: Partial2['limits'] = {}, notes: string[] = [];
-  if (unit === 's' && evs.some(x => !Number.isInteger(x.t)) === false) notes.push('times are whole seconds: too coarse for first tap and pace; use ms if the export has them');
-  for (const [k, m] of Object.entries(map.measures) as [LimitKey, NonNullable<EventMap['measures'][LimitKey]>][]) {
+  if ((unit === 's' || unit === 'auto') && evs.length && evs.every(x => Number.isInteger(x.t))) notes.push('times are whole seconds: too coarse for first tap and pace; use ms if the export has them');
+  for (const [k, m] of Object.entries(map.measures) as [LimitKey, Measure][]) {
     let value: number | null = null, n = 0;
     if (m.median_gap) {
-      const [a, b] = m.median_gap, gaps: number[] = [];
-      for (const s of bySession.values()) for (let i = 0; i < s.length; i++) if (s[i].e === a) { const j = s.findIndex((x, jj) => jj > i && x.e === b); if (j > i) gaps.push(s[j].t - s[i].t); }
+      const [a, b] = m.median_gap.map(matcher), gaps: number[] = [];
+      for (const s of bySession.values()) for (let i = 0; i < s.length; i++) if (a(s[i].e)) { const j = s.findIndex((x, jj) => jj > i && b(x.e)); if (j > i) gaps.push(s[j].t - s[i].t); }
       value = median(gaps); n = gaps.length;
     } else if (m.ratio) {
-      const num = evs.filter(x => x.e === m.ratio![0]).length, den = evs.filter(x => x.e === m.ratio![1]).length;
+      const [a, b] = m.ratio.map(matcher);
+      const num = evs.filter(x => a(x.e)).length, den = evs.filter(x => b(x.e)).length;
       value = den ? num / den : null; n = den;
     } else if (m.rate_per_min) {
+      const a = matcher(m.rate_per_min);
       const mins = [...bySession.values()].reduce((t, s) => t + (s.length ? (s[s.length - 1].t - s[0].t) / 60 : 0), 0);
-      const c = evs.filter(x => x.e === m.rate_per_min).length;
+      const c = evs.filter(x => a(x.e)).length;
       value = mins > 0 ? c / mins : null; n = c;
     } else if (m.longest_streak_of) {
       // A streak resets only on `reset_on` (a success), so taps and other events between fails don't break it.
-      const streaks = [...bySession.values()].map(s => { let best = 0, cur = 0; for (const x of s) { if (x.e === m.longest_streak_of) cur++; else if (!m.reset_on || x.e === m.reset_on) cur = 0; best = Math.max(best, cur); } return best; }).filter(x => x > 0);
+      const fail = matcher(m.longest_streak_of), reset = m.reset_on ? matcher(m.reset_on) : null;
+      const streaks = [...bySession.values()].map(s => { let best = 0, cur = 0; for (const x of s) { if (fail(x.e)) cur++; else if (!reset || reset(x.e)) cur = 0; best = Math.max(best, cur); } return best; }).filter(x => x > 0);
       value = median(streaks); n = streaks.length;
     }
     if (value == null) { notes.push(`${k}: no matching events, left to norms`); continue; }
     limits[k] = { value, n, basis: 'measured', sources: [`events: ${JSON.stringify(m)}`] };
   }
-  return { limits, notes };
+  return { limits, notes, events };
 }
 
-export async function fromEvents(path: string, mapPath: string): Promise<Partial2> {
-  const map = await readMap<EventMap>(mapPath);
+// What an agent needs to finish the mapping: the limits still on norms, and this export's own most common events.
+const NEED: Partial<Record<LimitKey, string>> = {
+  first_tap_s: 'median_gap: [<a new screen>, <a tap>]', action_gap_s: 'median_gap: [<a tap>, <a tap>]',
+  error_rate: 'ratio: [<a wrong answer>, <any answer>]', idle_per_min: 'rate_per_min: <a pause or idle event>',
+};
+function mappingHint(preset: string, limits: Partial2['limits'], events: Map<string, number>): string | null {
+  const open = (Object.keys(NEED) as LimitKey[]).filter(k => limits[k] == null);
+  if (!open.length) return null;
+  const top = [...events.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([e, n]) => `${e || '(blank)'} ${n}`).join(', ');
+  return `${open.join(', ')} have no standard event in a ${preset} export, so they came from norms. This export's most common events: ${top}. `
+    + `To measure them, write a map with "extends: ${preset}" and ${open.map(k => `${k}: { ${NEED[k]} }`).join('; ')} (see src/kit/presets/README.md).`;
+}
+
+const fail = (m: string) => Object.assign(new Error(m), { status: 400 });
+
+// An export plus, optionally, a mapping file or preset name and which player in it. With neither, the preset is
+// picked from the columns; an export with several players needs `player`.
+export async function fromEvents(path: string, o: { map?: string; player?: string } = {}): Promise<Partial2> {
   const rows = await readRows(path);
-  const { limits, notes } = measureEvents(rows, map);
-  return { limits, drives: {}, notes, source: { type: 'events', path, read_at: now(), summary: `${rows.length} events mapped by ${mapPath}: ${Object.keys(limits).join(', ') || 'nothing measured'}` } };
+  const preset = o.map ?? await detectPreset(rows);
+  if (!preset) throw fail(`couldn't tell which export ${path} is (columns: ${Object.keys(rows[0] ?? {}).slice(0, 12).join(', ')}). Known: ${PRESETS.join(', ')}. For anything else write a mapping file; src/kit/presets/README.md shows how.`);
+  const map = await loadEventMap(preset);
+  let player = o.player;
+  if (player == null && map.player && !map.member) {
+    const ps = playersIn(rows, map);
+    if (ps.length > 1) throw fail(`${path} has ${ps.length} players; a persona is one of them. Say which with player: <id>. Most events: ${ps.slice(0, 5).map(([p, n]) => `${p} (${n})`).join(', ')}`);
+    player = ps[0]?.[0];
+  }
+  const { limits, notes, events } = measureEvents(rows, map, player);
+  const kind = map.format ?? (o.map ? 'a mapping file' : preset);
+  const hint = map.format ? mappingHint(map.format, limits, events) : null;
+  return { limits, drives: {}, notes: [...notes, ...(hint ? [hint] : [])],
+    source: { type: 'events', path, read_at: now(), summary: `${events.size ? [...events.values()].reduce((a, b) => a + b, 0) : 0} events${player ? ` from player ${player}` : ''}, read as ${kind}${o.map && !(PRESETS as readonly string[]).includes(o.map) ? ` (${o.map})` : ''}: ${Object.keys(limits).join(', ') || 'nothing measured'}` } };
 }
 
 // ---- survey answers -> drives (self-report) -----------------------------------------------------------------

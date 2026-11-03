@@ -11,7 +11,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import YAML from 'yaml';
 import { clientFromEnv, createMetaClient } from '../meta/client.ts';
-import { buildPersona, checkConsent, renderCard, type Answers, type SourceAnswer } from './intake.ts';
+import { buildPersona, checkConsent, renderCard, type Answers } from './intake.ts';
 import { listPersonas, loadPersona, savePersona, toEngine, validatePersona } from './persona.ts';
 
 const REPO = resolve(import.meta.dirname, '..', '..');
@@ -41,13 +41,14 @@ async function ask(): Promise<Answers> {
   } else if (kind === 'described') {
     a.sources = [{ type: 'description', text: await q('Describe them in a sentence:') }];
   } else {
-    console.log('What do you have? Add as many as you like; blank to finish.\n  recorder <recordings dir> <letter> | events <file> <map.yaml> | survey <file> <map.yaml> | profile <facts.yaml> | description <a sentence>');
+    console.log('What do you have? Add as many as you like; blank to finish.\n  recorder <recordings dir> <letter> | events <file> [map.yaml|ga4|gameanalytics|unity] [player id] | survey <file> <map.yaml> | profile <facts.yaml> | description <a sentence>');
     for (;;) {
       const line = await q('>');
       if (!line) break;
       const [t, ...rest] = line.split(' ');
       if (t === 'recorder') a.sources!.push({ type: 'recorder', root: rest[0], letter: rest[1] });
-      else if (t === 'events' || t === 'survey') a.sources!.push({ type: t, path: rest[0], map: rest[1] } as SourceAnswer);
+      else if (t === 'events') a.sources!.push({ type: 'events', path: rest[0], ...(rest[1] ? { map: rest[1] } : {}), ...(rest[2] ? { player: rest[2] } : {}) });
+      else if (t === 'survey') a.sources!.push({ type: 'survey', path: rest[0], map: rest[1] });
       else if (t === 'profile') a.sources!.push({ type: 'profile', path: rest[0] });
       else if (t === 'description') a.sources!.push({ type: 'description', text: rest.join(' ') });
       else console.log(`  don't know "${t}"`);

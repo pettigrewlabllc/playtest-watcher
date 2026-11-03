@@ -1,0 +1,12 @@
+# GameAnalytics raw data export: one JSON event per line, with the event fields at the top level or under "data".
+# Progression events have category "progression" and an event_id like Start:World1:Level1, Fail:..., Complete:...
+format: gameanalytics
+detect: [[category, event_id, client_ts], [data.category, data.event_id, data.client_ts]]
+time: [client_ts, data.client_ts]
+time_unit: s                        # unix seconds; GameAnalytics has no finer stamp, so pace can't be measured
+event: "{category|data.category}:{event_id|data.event_id}"
+session: [session_id, data.session_id]
+player: [user_id, data.user_id]
+measures:
+  # Design events (category design) are your own names: map taps and answers from them (see presets/README.md).
+  sour_after_fails: { longest_streak_of: "progression:Fail:*", reset_on: "progression:Complete:*" }

@@ -1,0 +1,12 @@
+# Unity Analytics (Unity Gaming Services) raw data export: one row per event, CSV or JSON lines. Column names are
+# upper case in the warehouse export and camel case in the SQL Data Explorer; both are read.
+format: unity
+detect: [[EVENT_NAME, EVENT_TIMESTAMP, USER_ID], [eventName, eventTimestamp, userID]]
+time: [EVENT_TIMESTAMP, eventTimestamp]
+time_unit: auto                     # an ISO date or epoch milliseconds, whichever the export used
+event: [EVENT_NAME, eventName]
+session: [SESSION_ID, sessionID]
+player: [USER_ID, userID]
+measures:
+  # Unity's standard level events. Taps and answers are your own custom events (see presets/README.md).
+  sour_after_fails: { longest_streak_of: level_fail, reset_on: level_complete }

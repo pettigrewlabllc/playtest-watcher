@@ -3,7 +3,7 @@ import { mkdtemp, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { measureEvents, mergeParts, profileDrives, readMap, readRows, fromSurvey, type EventMap } from '../src/kit/adapters.ts';
+import { detectPreset, fromEvents, measureEvents, mergeParts, profileDrives, readMap, readRows, fromSurvey, type EventMap } from '../src/kit/adapters.ts';
 import { buildPersona, checkConsent, renderCard, type Answers } from '../src/kit/intake.ts';
 import { loadPersona, pickMember, savePersona, toEngine, validatePersona, type Persona2 } from '../src/kit/persona.ts';
 import { createMetaClient } from '../src/meta/client.ts';
@@ -31,6 +31,40 @@ describe('event logs through a mapping file', () => {
   it('flags whole-second timestamps as too coarse', () => {
     const { notes } = measureEvents([{ t: '1', e: 'screen_view' }, { t: '4', e: 'tap' }], { time: 't', event: 'e', time_unit: 's', measures: { first_tap_s: { median_gap: ['screen_view', 'tap'] } } });
     expect(notes.join(' ')).toMatch(/whole seconds/);
+  });
+});
+
+describe('standard analytics exports, no mapping file', () => {
+  const X = (f: string) => join(EX, 'data', 'exports', f);
+  it('recognises GA4/Firebase, GameAnalytics and Unity exports from their columns', async () => {
+    expect(await detectPreset(await readRows(X('ga4.jsonl')))).toBe('ga4');
+    expect(await detectPreset(await readRows(X('gameanalytics.jsonl')))).toBe('gameanalytics');
+    expect(await detectPreset(await readRows(X('unity.csv')))).toBe('unity');
+    expect(await detectPreset(await readRows(join(EX, 'data', 'events.csv')))).toBeNull();
+  });
+  it('reads GA4 params and asks which player when there are several', async () => {
+    await expect(fromEvents(X('ga4.jsonl'))).rejects.toThrow(/2 players.*p1 \(/);
+    const p = await fromEvents(X('ga4.jsonl'), { player: 'p1' });
+    expect(p.limits.sour_after_fails).toMatchObject({ value: 2, n: 2, basis: 'measured' });   // two fails, then a win, per session
+    expect(p.notes!.join(' ')).toMatch(/first_tap_s.*select_content 6.*extends: ga4/);          // tells the agent what to map
+  });
+  it('reads GameAnalytics fields nested under data, and flags whole-second stamps', async () => {
+    const p = await fromEvents(X('gameanalytics.jsonl'));
+    expect(p.limits.sour_after_fails!.value).toBe(3);
+    expect(p.notes!.join(' ')).toMatch(/whole seconds/);
+    expect(p.source.summary).toMatch(/player u1, read as gameanalytics/);
+  });
+  it('lets a two-line map extend a preset with the game\'s own tap event', async () => {
+    const base = await fromEvents(X('unity.csv'));
+    expect(base.limits.sour_after_fails!.value).toBe(2);
+    expect(base.limits.first_tap_s).toBeUndefined();
+    const p = await fromEvents(X('unity.csv'), { map: X('unity-taps.map.yaml') });
+    expect(p.limits.first_tap_s!.value).toBeCloseTo(1.8);
+    expect(p.limits.sour_after_fails!.value).toBe(2);       // still the preset's
+    expect(p.notes!.join(' ')).not.toMatch(/first_tap_s/);
+  });
+  it('says what to do with an export it doesn\'t know', async () => {
+    await expect(fromEvents(join(EX, 'data', 'events.csv'))).rejects.toThrow(/presets\/README.md/);
   });
 });
 

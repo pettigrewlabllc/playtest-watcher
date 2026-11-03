@@ -8,7 +8,7 @@ import { readingWpm, reactionMs, tapMiss } from '../persona/norms.ts';
 
 export type SourceAnswer =
   | { type: 'recorder'; root: string; letter: string }
-  | { type: 'events'; path: string; map: string }
+  | { type: 'events'; path: string; map?: string; player?: string }   // map: a preset name or a mapping file; none: detected
   | { type: 'survey'; path: string; map: string }
   | { type: 'profile'; path: string }
   | { type: 'description'; text: string };
@@ -109,7 +109,7 @@ export async function buildPersona(a: Answers, o: { root: string; personasDir: s
   const parts: Partial2[] = [];
   for (const s of a.sources ?? []) {
     if (s.type === 'recorder') parts.push(await fromRecorder(s.root, s.letter));
-    else if (s.type === 'events') parts.push(await fromEvents(s.path, s.map));
+    else if (s.type === 'events') parts.push(await fromEvents(s.path, { map: s.map, player: s.player }));
     else if (s.type === 'survey') parts.push(await fromSurvey(s.path, s.map));
     else if (s.type === 'profile') parts.push(await fromProfile(s.path));
     else if (s.type === 'description') parts.push(await fromDescription(s.text, a.name, o.root, o.client));
