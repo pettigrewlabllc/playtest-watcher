@@ -61,7 +61,7 @@ describe('aim grid', () => {
 let browser: Browser | null = null;
 beforeAll(async () => {
   try { browser = await chromium.launch({ channel: 'chrome', headless: true }); } catch { browser = null; }
-});
+}, 60000);   // a cold Chrome on a CI runner has taken over 10 s to start
 afterAll(async () => { await browser?.close(); });
 
 const PAGE = `<!doctype html><html><body style="margin:0;font:16px sans-serif">
