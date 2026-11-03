@@ -34,5 +34,5 @@ Repo: github.com/pettigrewlabllc/playtest-watcher, public, MIT.
 4. **Joel reads README and submission** in the same sitting as the final video, then submits (sign-in, his step).
 
 **Fallback:** if there's no narration by Tue 9 PM MT, the captions-only cut ships with the corrected captions.
-**Added 2026-11-02:** analytics presets (GA4/Firebase, GameAnalytics, Unity), a forget command, `where`.
+**Added 2026-11-02:** analytics presets (GA4/Firebase, GameAnalytics, Unity), a forget command, `where`, npx install from GitHub, Anthropic and Gemini as model providers (not run live).
 **Cut, decided:** validation on each card, a mobile harness, new live runs.

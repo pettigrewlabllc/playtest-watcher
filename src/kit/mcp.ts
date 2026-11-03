@@ -1,9 +1,12 @@
+#!/usr/bin/env node
 // MCP server: Informed Persona Testers from any agent (Claude Code, Cursor, VS Code, Codex, Gemini CLI).
-//   claude mcp add personas -- node /path/to/playtest-watcher/src/kit/mcp.ts
+//   claude mcp add personas -- npx -y github:pettigrewlabllc/playtest-watcher informed-personas-mcp
+//   (from a checkout: claude mcp add personas -- node /path/to/playtest-watcher/src/kit/mcp.ts)
 // Tools: list_personas, show_persona, new_persona, validate_persona, run_persona (returns a run id at once; a run
 // takes minutes), get_report, forget_persona. Personas are kept where the CLI keeps them (src/kit/home.ts: the repo
 // in a checkout, ~/.informed-personas when installed; PERSONAS_HOME or PERSONAS_DIR to change it). Live runs need
-// PW_LIVE=1 and a model key in <home>/.env.local; without them the model client is fake and costs nothing.
+// PW_LIVE=1 and a model key (Meta, Anthropic or Gemini) in <home>/.env.local or the environment; without them the
+// model client is fake and costs nothing.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
@@ -20,7 +23,7 @@ const P = kitPaths();
 const RECORDINGS = P.runs;
 const DIR = P.personas;
 const client = () => process.env.PW_LIVE === '1' ? clientFromEnv(P.home) : createMetaClient({ live: false, budgetUsd: 0, spendLog: P.spend });
-const FAKE = process.env.PW_LIVE === '1' ? '' : 'model: fake client (no PW_LIVE or key); steps are placeholders, not a real play.\n';
+const FAKE = client().live ? '' : `model: fake client (needs PW_LIVE=1 and a model key in ${P.env}); steps are placeholders, not a real play.\n`;
 const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
 
 type Run = { status: 'running' | 'done' | 'failed'; persona: string; member?: string; used: Record<string, string>; session?: string; dir?: string; summary?: unknown; error?: string; started: string };

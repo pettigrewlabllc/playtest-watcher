@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { usd, type Usage } from './prices.ts';
 import { fakeFileId, fakeRespond, fakeSam, fakeTranscribe } from './fake.ts';
+import { createProviderClient, type Provider } from './providers.ts';
 
 export type { Usage };
 export type ContentPart =
@@ -192,10 +193,19 @@ function readEnvLocal(rootDir: string): Record<string, string> {
   return out;
 }
 
+// Which model answers: Meta's (MODEL_API_KEY), Anthropic's (ANTHROPIC_API_KEY) or Google's (GEMINI_API_KEY), from
+// <rootDir>/.env.local or the environment. PW_PROVIDER picks one when several keys are set (else Meta, Anthropic,
+// Gemini, in that order); PW_MODEL picks the model for the other two. Live only with PW_LIVE=1 and a key.
 export function clientFromEnv(rootDir: string): MetaClient {
   const env = readEnvLocal(rootDir);
-  const apiKey = env.MODEL_API_KEY || process.env.MODEL_API_KEY;
-  const live = process.env.PW_LIVE === '1' && !!apiKey;
+  const get = (k: string) => env[k] || process.env[k] || '';
+  const keys: Record<Provider, string> = { meta: get('MODEL_API_KEY'), anthropic: get('ANTHROPIC_API_KEY'), gemini: get('GEMINI_API_KEY') || get('GOOGLE_API_KEY') };
+  const asked = get('PW_PROVIDER') as Provider | '';
+  if (asked && !(asked in keys)) throw new Error(`PW_PROVIDER must be meta, anthropic or gemini, not "${asked}"`);
+  const provider: Provider = asked || (['meta', 'anthropic', 'gemini'] as Provider[]).find(p => keys[p]) || 'meta';
+  const live = process.env.PW_LIVE === '1' && !!keys[provider];
   const budgetUsd = Number(process.env.PW_BUDGET_USD ?? env.PW_BUDGET_USD ?? 120);
-  return createMetaClient({ live, apiKey, budgetUsd, spendLog: join(rootDir, 'recordings', 'spend.jsonl') });
+  const spendLog = join(rootDir, 'recordings', 'spend.jsonl');
+  if (live && provider !== 'meta') return createProviderClient({ provider, apiKey: keys[provider], model: get('PW_MODEL') || undefined, budgetUsd, spendLog });
+  return createMetaClient({ live, apiKey: keys.meta || undefined, budgetUsd, spendLog });
 }

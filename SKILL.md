@@ -6,19 +6,23 @@ description: Build a persona tester from real people's data (recordings, an anal
 # Informed Persona Testers
 
 A persona is limits, not a paragraph: how long they look before the first tap, how fast they go, how much they
-read, how often they miss, how many fails before they sour. A harness holds a live Muse Spark player to them in
-Chrome. Every number says where it came from: measured, self-report, guess, or a published norm by age.
+read, how often they miss, how many fails before they sour. A harness holds a live AI player (Muse Spark by
+default, or Claude or Gemini) to them in Chrome. Every number says where it came from: measured, self-report, guess, or a published norm by age.
 
 ## Setup
 
-- Node 22.18+, Google Chrome, `npm install` in this repo.
-- Through MCP: `claude mcp add personas -- node <repo>/src/kit/mcp.ts` (or your agent's equivalent).
-  Without MCP, the same commands are `npm run persona -- <command>`.
-- Personas are saved in `<repo>/personas/<slug>/persona.json` (earlier versions in `versions/`), runs in
-  `<repo>/recordings/<run>/`. `npm run persona -- where` prints both; `PERSONAS_HOME` or `PERSONAS_DIR` moves them.
+- Node 22.18+ and Google Chrome. No clone needed:
+  `claude mcp add personas -- npx -y github:pettigrewlabllc/playtest-watcher informed-personas-mcp` (or your
+  agent's equivalent). Without MCP: `npx -y github:pettigrewlabllc/playtest-watcher informed-personas <command>`.
+  From a checkout: `node <repo>/src/kit/mcp.ts` and `npm run persona -- <command>`.
+- Personas are saved in `<home>/personas/<slug>/persona.json` (earlier versions in `versions/`), runs in
+  `<home>/recordings/<run>/`. Home is the repo in a checkout and `~/.informed-personas` when installed. The `where`
+  command prints both, and `show_persona` gives the file. `PERSONAS_HOME` or `PERSONAS_DIR` moves them.
   Run ids live as long as the MCP server does, so read a finished run's `steps.jsonl` directly after a restart.
-- Live runs need `PW_LIVE=1` and a Meta Model API key in `<repo>/.env.local`. Without them the model client is
-  fake and costs nothing, which is right for trying the flow.
+- Live runs need `PW_LIVE=1` and one model key in `<home>/.env.local` or the environment: `MODEL_API_KEY` (Meta),
+  `ANTHROPIC_API_KEY` or `GEMINI_API_KEY`. `PW_PROVIDER` picks one when several are set, `PW_MODEL` the model.
+  Without a key the model client is fake and costs nothing, which is right for trying the flow. The tool output
+  says when it's fake.
 
 ## Build a persona: ask, don't assume
 
@@ -69,4 +73,5 @@ you do it. It never touches the files the persona was built from; tell the user 
 - With four kids, a person's play on other games picked them out at chance: limits carry over as a hint.
 - Muse misreads busy screens. Canvas taps go through a labelled grid and land on target, but check small targets.
 - Never publish a persona or run built from a real person or a family; `npm run export-results` refuses them.
-- Spend is about $0.02 to $0.03 per step. Check `recordings/spend.jsonl` before a large batch.
+- On Muse Spark, spend is about $0.02 to $0.03 per step. Other models cost differently. Check `<home>/recordings/spend.jsonl`
+  before a large batch. The accuracy numbers above are from Muse; Claude and Gemini haven't been measured.
