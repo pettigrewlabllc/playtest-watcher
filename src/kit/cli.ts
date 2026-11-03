@@ -3,24 +3,29 @@
 //   list                               personas in ./personas
 //   show <slug|path>                   the card
 //   validate <path>                    schema and consent checks
+//   forget <slug> [--with-groups] [--yes]   delete a persona, its versions and its runs (asks you to type the slug)
+//   where                              where personas, runs and keys are kept
 //   run <slug|path> --url <game> [--game name] [--limits-game g] [--steps 30] [--seed 7] [--point] [--progress js]
 //       [--no-watcher] [--out dir] --live
-// Personas are saved to ./personas/<slug>/persona.json (git-ignored: real people's personas stay local).
+// Personas are saved to <home>/personas/<slug>/persona.json: the repo in a git checkout (git-ignored, so real
+// people's personas stay local), ~/.informed-personas when installed. `where` prints it; --dir overrides.
 import { createInterface } from 'node:readline/promises';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import YAML from 'yaml';
 import { clientFromEnv, createMetaClient } from '../meta/client.ts';
-import { buildPersona, checkConsent, renderCard, type Answers, type SourceAnswer } from './intake.ts';
+import { buildPersona, checkConsent, renderCard, type Answers } from './intake.ts';
 import { listPersonas, loadPersona, savePersona, toEngine, validatePersona } from './persona.ts';
+import { forgetPersona } from './forget.ts';
+import { kitPaths } from './home.ts';
 
-const REPO = resolve(import.meta.dirname, '..', '..');
-const RECORDINGS = join(REPO, 'recordings');
+const P = kitPaths();
+const RECORDINGS = P.runs;
 const args = process.argv.slice(2);
 const opt = (k: string, d = '') => { const i = args.indexOf(`--${k}`); return i >= 0 ? args[i + 1] : d; };
 const has = (k: string) => args.includes(`--${k}`);
-const dir = resolve(opt('dir', 'personas'));
-const client = () => has('live') ? clientFromEnv(REPO) : createMetaClient({ live: false, budgetUsd: 0, spendLog: join(RECORDINGS, 'spend.jsonl') });
+const dir = opt('dir') ? resolve(opt('dir')) : P.personas;
+const client = () => has('live') ? clientFromEnv(P.home) : createMetaClient({ live: false, budgetUsd: 0, spendLog: P.spend });
 
 async function ask(): Promise<Answers> {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -41,13 +46,14 @@ async function ask(): Promise<Answers> {
   } else if (kind === 'described') {
     a.sources = [{ type: 'description', text: await q('Describe them in a sentence:') }];
   } else {
-    console.log('What do you have? Add as many as you like; blank to finish.\n  recorder <recordings dir> <letter> | events <file> <map.yaml> | survey <file> <map.yaml> | profile <facts.yaml> | description <a sentence>');
+    console.log('What do you have? Add as many as you like; blank to finish.\n  recorder <recordings dir> <letter> | events <file> [map.yaml|ga4|gameanalytics|unity] [player id] | survey <file> <map.yaml> | profile <facts.yaml> | description <a sentence>');
     for (;;) {
       const line = await q('>');
       if (!line) break;
       const [t, ...rest] = line.split(' ');
       if (t === 'recorder') a.sources!.push({ type: 'recorder', root: rest[0], letter: rest[1] });
-      else if (t === 'events' || t === 'survey') a.sources!.push({ type: t, path: rest[0], map: rest[1] } as SourceAnswer);
+      else if (t === 'events') a.sources!.push({ type: 'events', path: rest[0], ...(rest[1] ? { map: rest[1] } : {}), ...(rest[2] ? { player: rest[2] } : {}) });
+      else if (t === 'survey') a.sources!.push({ type: 'survey', path: rest[0], map: rest[1] });
       else if (t === 'profile') a.sources!.push({ type: 'profile', path: rest[0] });
       else if (t === 'description') a.sources!.push({ type: 'description', text: rest.join(' ') });
       else console.log(`  don't know "${t}"`);
@@ -85,13 +91,27 @@ try {
     const { play, summarize } = await import('../agent/play.ts');
     const out = await play(letter, { persona, game, url, steps: Number(opt('steps', '30')), seed: Number(opt('seed', '7')), client: client(),
       watcher: has('no-watcher') ? undefined : opt('watcher', 'http://localhost:3058'), point: has('point'), progress: opt('progress') || undefined,
-      ...(opt('out') ? { outDir: resolve(opt('out')) } : {}) } as Parameters<typeof play>[1]);
+      outDir: opt('out') ? resolve(opt('out')) : RECORDINGS } as Parameters<typeof play>[1]);
     const sum = summarize(out.steps);
     const runDir = (out as { dir?: string }).dir ?? join(RECORDINGS, out.session);
     await mkdir(runDir, { recursive: true });
     await writeFile(join(runDir, 'summary.json'), JSON.stringify(sum, null, 2));
     console.log(JSON.stringify(sum));
     console.log(`steps: ${join(runDir, 'steps.jsonl')}`);
+  } else if (cmd === 'forget') {
+    const slug = args[1] ?? '';
+    if (!has('yes')) {
+      const rl = createInterface({ input: process.stdin, output: process.stdout });
+      const typed = (await rl.question(`This deletes ${slug}, every earlier version and every run it played. Type ${slug} to go ahead: `)).trim();
+      rl.close();
+      if (typed !== slug) throw new Error('nothing deleted');
+    }
+    const r = await forgetPersona(slug, { personasDir: dir, runsRoot: RECORDINGS, withGroups: has('with-groups') });
+    console.log(`deleted:\n${r.removed.map(f => `  ${f}`).join('\n')}`);
+    if (r.groups.length) console.log(`groups that held it, deleted too: ${r.groups.join(', ')}`);
+    if (r.left.length) console.log(`not touched, the data it was built from (yours to delete):\n${r.left.map(f => `  ${f}`).join('\n')}`);
+  } else if (cmd === 'where') {
+    console.log(`personas: ${dir}  (<slug>/persona.json, earlier versions in <slug>/versions/)\nruns:     ${RECORDINGS}  (one folder per run; players/<slug>/ holds each run's copy)\nkeys:     ${P.env}\nspend:    ${P.spend}`);
   } else {
     console.log(await readFile(new URL(import.meta.url), 'utf8').then(t => t.split('\n').filter(l => l.startsWith('//')).map(l => l.slice(3)).join('\n')));
   }

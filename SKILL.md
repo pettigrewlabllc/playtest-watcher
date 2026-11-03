@@ -14,8 +14,9 @@ Chrome. Every number says where it came from: measured, self-report, guess, or a
 - Node 22.18+, Google Chrome, `npm install` in this repo.
 - Through MCP: `claude mcp add personas -- node <repo>/src/kit/mcp.ts` (or your agent's equivalent).
   Without MCP, the same commands are `npm run persona -- <command>`.
-- Personas are saved in `<repo>/personas`; set `PERSONAS_DIR` to keep them elsewhere. Run ids live as long as the
-  MCP server does, so read a finished run's `steps.jsonl` directly after a restart.
+- Personas are saved in `<repo>/personas/<slug>/persona.json` (earlier versions in `versions/`), runs in
+  `<repo>/recordings/<run>/`. `npm run persona -- where` prints both; `PERSONAS_HOME` or `PERSONAS_DIR` moves them.
+  Run ids live as long as the MCP server does, so read a finished run's `steps.jsonl` directly after a restart.
 - Live runs need `PW_LIVE=1` and a Meta Model API key in `<repo>/.env.local`. Without them the model client is
   fake and costs nothing, which is right for trying the flow.
 
@@ -28,8 +29,11 @@ Ask the user each question yourself and pass their answers to `new_persona`. Nev
 3. For real people: did they agree, and a parent for anyone under 13? The tool refuses to read any data without
    this.
 4. What data do they have, and where is it?
-   - an event log (CSV or JSONL) plus a mapping file (copy `examples/data/events.map.yaml` and change the
-     column and event names; ask the user which events mean "new screen", "tap", "wrong", "right")
+   - an analytics export (CSV or JSONL). A GA4/Firebase, GameAnalytics or Unity export needs no map: pass the path,
+     and `player` if it holds several players. The card's notes list the export's most common events; to measure
+     first tap and pace, write a two-line map that `extends` the preset with the user's tap event
+     (`src/kit/presets/README.md`). Any other export gets a full map (`examples/data/events.map.yaml`); ask the user
+     which events mean "new screen", "tap", "wrong", "right".
    - survey answers plus a mapping (`examples/data/survey.map.yaml`)
    - profile facts the person exported themselves (`examples/data/profile.yaml`)
    - recordings from this repo's recorder (`recorder`, with the recordings folder and the player's letter)
@@ -50,6 +54,13 @@ does (`limits_game`). For canvas games set `point`; if the game exposes its own 
 Read the step log (`steps.jsonl`): what it read, what it skipped, what it tapped and what it meant to tap when it
 missed, how it felt, what it said. Report findings as **what the persona did on which step**. Its words are the
 model's, not a real person's. Say which limits were measured, borrowed from a similar game, or from norms.
+
+## Forget one
+
+When the user asks to delete a persona, confirm the slug with them, then call `forget_persona` with it twice
+(`slug` and `confirm_slug`). It deletes the persona, every earlier version and every run it played. A group holds
+full copies of its members, so a member in a group needs `with_groups` and takes the group with it; say so before
+you do it. It never touches the files the persona was built from; tell the user where those are.
 
 ## Limits to state before claiming anything
 

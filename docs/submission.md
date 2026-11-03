@@ -65,7 +65,7 @@ And it doesn't need anyone's data to work at all. Describe a kid in one sentence
 
 ## What's next
 
-The intake, the persona schema and the MCP server shipped this week. Next is more people than my family, presets for the common analytics tools so nobody has to write a mapping file, and phones.
+The intake, the persona schema and the MCP server shipped this week, along with presets for GA4/Firebase, GameAnalytics and Unity exports, so nobody has to write a mapping file to start. Next is more people than my family, and phones.
 
 ## Cost
 

@@ -1,0 +1,14 @@
+# Google Analytics 4 / Firebase Analytics, BigQuery export (events_* tables), one row per event, as JSON lines
+# or CSV. event_params arrives as [{key, value: {string_value | int_value | double_value | float_value}}] and is
+# flattened to event_params.<key>.
+format: ga4
+detect: [[event_name, event_timestamp, user_pseudo_id]]
+time: event_timestamp
+time_unit: us                       # GA4 stamps events in microseconds
+event: "{event_name}:{event_params.success}"   # level_end carries success: level_end:1, level_end:0; the rest keep their own name
+session: [event_params.ga_session_id, ga_session_id]
+player: [user_pseudo_id, user_id]
+measures:
+  # GA4's recommended game events have no tap and no answer, so first tap, pace and errors come from your own
+  # events (see presets/README.md). A level failed in a row, before a level won, is the fail streak.
+  sour_after_fails: { longest_streak_of: "level_end:0", reset_on: "level_end:1" }

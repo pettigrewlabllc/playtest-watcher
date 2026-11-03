@@ -74,7 +74,8 @@ export async function savePersona(dir: string, p: Persona2): Promise<string> {
 }
 
 export async function loadPersona(pathOrSlug: string, dir = 'personas'): Promise<Persona2> {
-  const f = existsSync(pathOrSlug) ? pathOrSlug : join(dir, pathOrSlug, 'persona.json');
+  // A path names a file; a slug never has a slash or .json, so a folder that happens to share its name can't win.
+  const f = /[\\/]|\.json$/.test(pathOrSlug) && existsSync(pathOrSlug) ? pathOrSlug : join(dir, pathOrSlug, 'persona.json');
   return assertPersona(JSON.parse(await readFile(f, 'utf8')));
 }
 

@@ -81,7 +81,7 @@ Every game I build goes through this loop, so making it shorter is a big deal. M
 | Build from an analytics export, a survey or profile facts | `src/kit/adapters.ts` (`fromEvents`, `fromSurvey`, `fromProfile`); the numbers on screen are the real output of `npm run persona -- new --answers examples/answers/analytics-player.yaml` (made-up example data), laid out as a table |
 | Consent before anything is read | `src/kit/intake.ts` (`checkConsent` runs first in `buildPersona`) |
 | The card says measured vs research | `renderCard`: each number tagged `measured, n=` or `from norms by age` |
-| Any agent that speaks MCP; six tools | `src/kit/mcp.ts` (list, show, new, validate, run, get_report), a local stdio server |
+| Any agent that speaks MCP; six tools on the card | `src/kit/mcp.ts` (list, show, new, validate, run, get_report, plus forget_persona added after the cut), a local stdio server |
 | Hoard Keeper got four rounds of fixes from the kids' playtests | hoard-keeper commits f86f0d6, c24f871, 3486547, 40ff7eb ("Kid playtest 1-4"); the build played is bae1914 |
 | Player B: "I left 7 slips in the pit", then set up the Storm-only question | run `20261101-141138-b-hoard-keeper-agent`, steps 34 to 40. The "why" screen dates from build 3 (560422d), not the kids' fixes, so the script doesn't credit them for it. |
 | Player A skipped the King's question, tapped Biggest "shiny", and Biggest was what the King asked | run `20261101-141138-a-hoard-keeper-agent`, steps 39 and 40 (`skipped` holds "What was the BIGGEST single haul...") |

@@ -1,0 +1,6 @@
+{"data": {"category": "progression", "event_id": "Start:World1:Level1", "client_ts": 1761998400, "session_id": "s1", "user_id": "u1"}}
+{"data": {"category": "progression", "event_id": "Fail:World1:Level1", "client_ts": 1761998440, "session_id": "s1", "user_id": "u1"}}
+{"data": {"category": "progression", "event_id": "Fail:World1:Level1", "client_ts": 1761998480, "session_id": "s1", "user_id": "u1"}}
+{"data": {"category": "progression", "event_id": "Fail:World1:Level1", "client_ts": 1761998520, "session_id": "s1", "user_id": "u1"}}
+{"data": {"category": "progression", "event_id": "Complete:World1:Level1", "client_ts": 1761998560, "session_id": "s1", "user_id": "u1"}}
+{"data": {"category": "design", "event_id": "ui:hint_button", "client_ts": 1761998450, "session_id": "s1", "user_id": "u1"}}
