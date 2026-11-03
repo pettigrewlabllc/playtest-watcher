@@ -29,7 +29,7 @@ Where a persona has no measured number, the gap is filled from **published resea
 No clone needed. Node 22.18 or newer and Google Chrome, then:
 
 ```bash
-npx -y github:pettigrewlabllc/playtest-watcher informed-personas new
+npx -y -p github:pettigrewlabllc/playtest-watcher informed-personas new
 ```
 
 Everything below works the same from a checkout with `npm run persona -- <command>`:
@@ -100,7 +100,7 @@ My bet is that more measured dimensions make a persona play closer to the person
 An MCP server puts the personas in any agent that speaks MCP (Claude Code, Cursor, VS Code, Codex, Gemini CLI):
 
 ```bash
-claude mcp add personas -- npx -y github:pettigrewlabllc/playtest-watcher informed-personas-mcp
+claude mcp add personas -- npx -y -p github:pettigrewlabllc/playtest-watcher informed-personas-mcp
 ```
 
 From a checkout, point it at `node /path/to/playtest-watcher/src/kit/mcp.ts` instead. It's a local server over stdio, so there's nothing to host.

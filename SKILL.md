@@ -12,8 +12,8 @@ default, or Claude or Gemini) to them in Chrome. Every number says where it came
 ## Setup
 
 - Node 22.18+ and Google Chrome. No clone needed:
-  `claude mcp add personas -- npx -y github:pettigrewlabllc/playtest-watcher informed-personas-mcp` (or your
-  agent's equivalent). Without MCP: `npx -y github:pettigrewlabllc/playtest-watcher informed-personas <command>`.
+  `claude mcp add personas -- npx -y -p github:pettigrewlabllc/playtest-watcher informed-personas-mcp` (or your
+  agent's equivalent). Without MCP: `npx -y -p github:pettigrewlabllc/playtest-watcher informed-personas <command>`.
   From a checkout: `node <repo>/src/kit/mcp.ts` and `npm run persona -- <command>`.
 - Personas are saved in `<home>/personas/<slug>/persona.json` (earlier versions in `versions/`), runs in
   `<home>/recordings/<run>/`. Home is the repo in a checkout and `~/.informed-personas` when installed. The `where`
