@@ -8,9 +8,7 @@
   },
   "bin": {
     "playtest-doubles": "dist/src/kit/cli.js",
-    "playtest-doubles-mcp": "dist/src/kit/mcp.js",
-    "informed-personas": "dist/src/kit/cli.js",
-    "informed-personas-mcp": "dist/src/kit/mcp.js"
+    "playtest-doubles-mcp": "dist/src/kit/mcp.js"
   },
   "files": [
     "dist",

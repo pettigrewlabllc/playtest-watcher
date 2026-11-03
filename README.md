@@ -89,11 +89,11 @@ On two builds no kid had played yet:
 Honest numbers, every one with a file in `results/`:
 
 - **The kids checked Muse.** Watching their own clips, they picked Muse's exact word 5 times in 20 and agreed on good vs bad about three times in four. Twice Muse read a kid concentrating as bored. (`kid-check.json`)
-- **Predictions frozen before four check sessions tied with knowing only the kid's age** (kappa 0.069 vs 0.067). (`group/scoreboard.json`)
+- **Predictions frozen before four check sessions tied with knowing only the kid's age** (kappa 0.069 vs 0.067, the mean over the four kids). (`group/scoreboard.json`)
 - **Does a run play at the numbers it was given?** On the fixed harness, time between actions and reading share both land within 1.5x of the persona's numbers in every committed run (2 of 2), and first tap in 1 of 2 (the other ran 1.6x). Before the fix, the harness added its own pause each step and pace held in only 1 of 6. Error rate doesn't compare yet: the setting is a tap miss, while the game counts Muse's wrong answers. (`group/validation.json`)
 - **Does a kid's play on other games predict them on a new one?** 19 of 76 checks picked the right kid, which is exactly chance with four kids. (`group/validation.json`)
 - **Muse reads a busy screen worse than my kids.** The personas filed about a third of Hoard Keeper slips wrong, against 18 to 19% for the kids. (`group/agent-vs-kid.json`)
-- **Canvas aim is fixed.** On Continental Drift, Muse's taps used to land 60 to 140 px from what it named (1 of 23 on target). With a labelled coordinate grid on the screenshot it sees, 9 of 9 landed on the named object (`runs/20261101-230511-t-continental-drift-agent`, the `-grid` shots); the targets in that run were big ones, so small targets still need testing.
+- **Canvas aim is fixed.** On Continental Drift, Muse's taps used to land 60 to 140 px from what it named (1 of 23 on target, counted by eye from the step shots). With a labelled coordinate grid on the screenshot it sees, 9 of 9 landed on the named object, also counted by eye (`runs/20261101-230511-t-continental-drift-agent`, the `-grid` shots); the targets in that run were big ones, so small targets still need testing.
 
 My bet is that more measured dimensions make a persona play closer to the person. Four kids isn't enough to prove it.
 
@@ -136,8 +136,10 @@ Raw recordings stay in `recordings/`, which git ignores. Only short clips and se
 
 ## Tests
 
+The tests run the harness's clock arithmetic and the MCP server end to end, against a fake model, so they cost nothing.
+
 ```bash
-npm test        # 230 tests (some skip without the Python venv); a fake model client, never calls the API
+npm test        # 239 tests (some skip without the Python venv); a fake model client, never calls the API
 python3 -m venv analysis/.venv && analysis/.venv/bin/pip install -r analysis/requirements.txt
 cd analysis && .venv/bin/python -m pytest -q tests
 ```

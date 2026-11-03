@@ -26,7 +26,7 @@ Joel's application to the **Meta Global AI Developer Hackathon** (Cerebral Valle
 
 ## Constraints
 
-- **The players are Joel's children.** Faces and voices are sensitive. Keep raw recordings local and out of git (gitignore a `recordings/` dir). Send to the Meta API only what the analysis needs. Check Meta's data terms for retention and training use before uploading kid video. Nothing goes in a public demo without Joel's say-so. One son's photos already live outside every repo by rule (`private-refs/`), and the same care applies here.
+- **The players are Joel's children.** Faces and voices are sensitive. Keep raw recordings local and out of git (gitignore a `recordings/` dir). Send to the Meta API only what the analysis needs. Check Meta's data terms for retention and training use before uploading kid video. Nothing goes in a public demo without Joel's say-so.
 - Fleet rules apply: never push without Joel's approval, never pin a model in image gen, and user-facing copy goes through `joel-voice`. The scope is 9 days, so YAGNI hard. The demo has to *work*.
 - Pick a free dev port from the workspace CLAUDE.md port table (the next free one is around 3058) and add it to the table.
 

@@ -52,7 +52,9 @@ async function fromDescription(text: string, name: string, root: string, client:
   for (const [k, d] of Object.entries(first?.dimensions ?? {})) if (d.distinguishable && d.value != null) traits[k] = { value: d.value, basis: 'guess', why: (d.note ?? '').replace(/^from the description: /, '') };
   const drives: Partial2['drives'] = {};
   for (const d of first?.drives ?? []) if ((DRIVES as readonly string[]).includes(d.drive) && d.pull !== 0) drives[d.drive as Drive] = { pull: d.pull, basis: 'guess', why: d.evidence.replace(/["“”]/g, '') };
-  return { limits, drives, traits, age: first?.age ?? null, adult: (first?.age ?? 0) >= 18,
+  // Without a key the fake client's reading carries a canned age; take the age from the sentence instead.
+  const age = client.live ? first?.age ?? null : Number(/(\d+)[- ]year[- ]old/i.exec(text)?.[1]) || null;
+  return { limits, drives, traits, age, adult: (age ?? 0) >= 18,
     notes: client.live ? [] : ['Built without a model key: this is the fake client\'s placeholder reading, not your description. Add --live for the real one.'],
     source: { type: 'description', read_at: new Date().toISOString(), summary: `one sentence, read once by Muse Wonder: ${text.slice(0, 120)}` } };
 }
