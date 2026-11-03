@@ -2,7 +2,7 @@
 
 AI playtesters built from your real players.
 
-I've built twenty-some games with AI in the last six months. Building them isn't the slow part anymore. Finding the fun is, and that takes someone actually playing. My four kids are my playtesters, and a kid can only play a game fresh once.
+I've built twenty-some games with AI in the last six months. Building them isn't the slow part anymore. Finding the fun is, and that takes someone actually playing. My four kids are my playtesters, and they only get one first time with a game.
 
 So this repo (Playtest Watcher) does two things. It watches a real playtest: screen, face, hands and voice, lined up with the game's own event log, with Meta's models saying what the kid was going through and writing a fix list. Then it turns what it learned into **persona testers I can send into a game nobody has played yet**. A persona isn't a paragraph about a kid. It's measured limits (how long they look before they tap, how fast they go, how much they read, how often they miss, how many fails before they sour), and a harness holds a live AI player to them.
 

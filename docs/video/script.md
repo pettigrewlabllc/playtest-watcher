@@ -10,17 +10,17 @@ It runs in STAR order: the situation, the job, what I built, and what came out o
 
 **[0:00, two Timberline Trek runs side by side, already moving]**
 
-These are two of my kids playing my new game. / Except they're not. Neither one of them has played it yet.
+These are two of my kids playing one of my new games... well kind of.  Cause they aren't.   When this was taken none one of them had played it yet.
 
 **[0:10, the games' title screens, fast]**
 
-In the last six months I've built twenty-some games with AI. Vibe coding is fun. Ideas come out fast. / But vibe slop is what you get when nobody checks it and plays it enough. Building isn't the long part anymore. Finding the fun is.
+In the last six months I've built twenty-some games with AI. I can code some... but I was never good at it.  Agentic coding lets me build and test, and play with ideas.   Vibe coding turns into slop when it isnt tested and the system is trusted too much.   Creativity is enabled with vibe coding and its fun. Ideas come out fast.  Building isn't the long part anymore. Finding the fun is.
 
 ## Task
 
 **[0:28, plain text on dark]**
 
-My four kids are my playtesters, and a kid can only play a game fresh once. / So the job was to shorten that loop. A tester that plays like one of my kids, any time, on a game they've never seen.
+The first time you play a game, you’re figuring out the rules. I have four kids, they’re amazing playtesters, but they can only do that once. / The games are mine from before this hackathon. What I built this week is a way to make that first play as good a lesson for me as it is fun for them.
 
 ## Action
 
@@ -30,7 +30,7 @@ Playtest Watcher records the screen, the player's face, their hands and what the
 
 **[0:58, the interview page, then 5 of 20]**
 
-Then my kids checked its work. They watched their own clips and picked the word that fit. Muse matched them five times out of twenty. Twice it called a kid bored who was concentrating. / So I stopped trying to read faces.
+After we did the recording and review, my kids checked the labels and accuracy to tune the model. They watched their own clips and picked the word that fit. Problem is my kids, in that environment look awkward.  Muse match rate was less then 50%. More then once it called a kid bored who was concentrating.  So I stopped trying to read faces for this persona builder.
 
 **[1:14, the two persona cards, then their Hoard Keeper steps side by side]**
 
@@ -38,29 +38,29 @@ A persona is built from how a kid plays and what drives them. How long they look
 
 **[1:40, the four ways in, then Timberline with key badges]**
 
-I built them four ways: my kids' play and interviews, my own play plus what Meta's ad settings say about me, one sentence about a made-up 16-year-old, and all five of us as one family. / Where nothing's measured, the gaps come from published research by age, and the source is in the code. Fast games work too, at a reaction time for their age.
+We used 4 different inputes to build the personas.  We got real data about game play, we had video of body language and hand placement analyzed by Muse, we had interviews with the kids, my facebook profile info, and we anchored baselines against published standards.  / This enables a developer to create a persona with the data they have.  If its just a made up persona, they can do that, but it gets more accurate by adding data.  This works for picking games, strategy games, and fast runner games work too, at a reaction time for their age.
 
 **[1:52, a terminal: a persona built from an analytics export, its card, then the six MCP tools]**
 
-You don't need my recorder to build one. Hand it an analytics export, a survey or a few profile facts. It asks for consent before it reads anything, and the card says which numbers were measured and which came from research. / Any agent that speaks MCP can build one, run it on your game and read the report.
+You don't need my recorder to build a persona. Hand this tool an analytics export, a survey or a few profile facts. It asks for consent before it reads anything, and the card says which numbers were measured and which came from research. / Any agent that speaks MCP can build one, run it on your game and read the report.
 
 ## Result
 
 **[2:04, Hoard Keeper, the new build: Player B's "machine was right" screen, Player A's blank question]**
 
-Hoard Keeper got four rounds of fixes from my kids' playtests. Then the personas played the new build. / One kid's persona got the King's question wrong, read the screen that says why, and said, "I left seven slips in the pit." / Another one never read the King's question. It tapped Biggest because the trophy was shiny... and that happened to be right. The game can't tell a lucky answer from a real one yet.
+“One of our games is a dragon game that secretly teaches SQL. Hoard Keeper was my kids’ least favorite game we’ve made. They didn’t understand it. We used the personas to drive the changes, clearer screens and better focus. They aren’t perfect, but after the fixes my daughter played it for thirty minutes before I made her turn it off.”
 
 **[2:26, Continental Drift: the game's own screen, then the persona's, with tap rings]**
 
-Continental Drift had just changed, and no kid had played that build. / The one sentence that explains it sits in a panel at the bottom: find the few things that came from somewhere else. Both personas skipped it, and spent three minutes going after Egypt's own pyramids. Then the hint said look for something to eat, and they went after Egypt's own bread. / That's two fixes before a kid ever sees it.
+Another game: find the things in a country that came from somewhere else. That one sentence was buried at the bottom. The personas skipped it, the way my kids would, and spent three minutes clicking on Egypt’s own pyramids. So I fixed it before my kids burned their first play.
 
 **[2:46, plain text on dark: what didn't work]**
 
-Here's what didn't work. / Predictions I froze before my kids played tied with knowing nothing but their age. Once I fixed the harness, pace and reading held. First tap held in one run out of two. And with four kids, nothing carried from one game to the next better than a coin flip.
+It’s open source and it runs on your own machine. Bring an analytics export and a model key, from Meta, Claude or Gemini, and you can send a persona into your game tonight. Nothing to host.
 
 **[3:00, end card]**
 
-Every game I build goes through this loop, so making it shorter is a big deal. My bet is the more dimensions a persona has, the closer it plays to the kid. Four kids isn't enough to prove that yet. / Next is testing with the people you're building for, with their permission. / Informed Persona Testers. Built on Muse.
+Every game I build can go through this loop. My kids play it, and I make it better. And anyone trying to make their agentic coding a little less sloppy can do the same.
 
 ---
 
