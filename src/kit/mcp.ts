@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // MCP server: Informed Persona Testers from any agent (Claude Code, Cursor, VS Code, Codex, Gemini CLI).
-//   claude mcp add personas -- npx -y github:pettigrewlabllc/playtest-watcher informed-personas-mcp
+//   claude mcp add personas -- npx -y -p github:pettigrewlabllc/playtest-watcher informed-personas-mcp
 //   (from a checkout: claude mcp add personas -- node /path/to/playtest-watcher/src/kit/mcp.ts)
 // Tools: list_personas, show_persona, new_persona, validate_persona, run_persona (returns a run id at once; a run
 // takes minutes), get_report, forget_persona. Personas are kept where the CLI keeps them (src/kit/home.ts: the repo
