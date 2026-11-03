@@ -31,9 +31,15 @@ npm run persona -- new                                            # asks who it 
 npm run persona -- new --answers examples/answers/analytics-player.yaml   # the same, from an answers file
 npm run persona -- show puzzle-fan                                # the card: every number with where it came from
 npm run persona -- list
+npm run persona -- where                                          # where personas, runs and keys are kept
+npm run persona -- forget puzzle-fan                              # delete it, every version and every run it played
 ```
 
-The example builds a persona from a made-up analytics export (`examples/data/events.csv`), mapped onto persona numbers by a short file you can read in ten seconds (`examples/data/events.map.yaml`): first tap, time between actions, error rate, longest fail streak. A survey adds what they play for, and profile facts add small guesses. Consent is checked before any file is opened, a child under 13 needs a parent's yes, and a persona file can't hold anyone's quoted words.
+The example builds a persona from a made-up analytics export (`examples/data/events.csv`), mapped onto persona numbers by a short file you can read in ten seconds (`examples/data/events.map.yaml`): first tap, time between actions, error rate, longest fail streak. A survey adds what they play for, and profile facts add small guesses.
+
+A Google Analytics 4 / Firebase, GameAnalytics or Unity Analytics export needs no mapping file. The kit tells which one it is from the columns and asks which player when there's more than one. None of the three has a standard event for a tap or an answer, so out of the box you get the fail streak and the rest comes from norms. The card says so, lists the export's most common events, and gives you the two lines to add so first tap and pace get measured too ([src/kit/presets/README.md](src/kit/presets/README.md)).
+
+Personas live in the repo's `personas/` folder (git-ignored, so a real person's persona never leaves the machine). `forget` deletes one for good: the file, every earlier version, and every run it played. The export or survey you built it from is yours, so it doesn't touch that, but it tells you where it is. Consent is checked before any file is opened, a child under 13 needs a parent's yes, and a persona file can't hold anyone's quoted words.
 
 Every persona is a `persona/2` file, defined by a published JSON Schema ([schema/persona-2.schema.json](schema/persona-2.schema.json)), validated on every load and save, and versioned on disk. Each number carries its basis: measured, self-report, guess, or norm. When sources disagree, measured wins.
 
@@ -87,7 +93,7 @@ An MCP server puts the personas in any agent that speaks MCP (Claude Code, Curso
 claude mcp add personas -- node /path/to/playtest-watcher/src/kit/mcp.ts
 ```
 
-Six tools: `list_personas`, `show_persona`, `new_persona` (the agent asks you the intake questions and passes your answers; consent first), `validate_persona`, `run_persona` (returns a run id straight away, since a run takes minutes) and `get_report`. [SKILL.md](SKILL.md) tells an agent how to use them. The full design is in [docs/superpowers/specs/2026-11-01-persona-kit-design.md](docs/superpowers/specs/2026-11-01-persona-kit-design.md).
+Seven tools: `list_personas`, `show_persona`, `new_persona` (the agent asks you the intake questions and passes your answers; consent first), `validate_persona`, `run_persona` (returns a run id straight away, since a run takes minutes), `get_report` and `forget_persona` (the agent has to pass your confirmation). [SKILL.md](SKILL.md) tells an agent how to use them. The full design is in [docs/superpowers/specs/2026-11-01-persona-kit-design.md](docs/superpowers/specs/2026-11-01-persona-kit-design.md).
 
 ## Watching a playtest
 

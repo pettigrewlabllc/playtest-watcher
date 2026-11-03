@@ -7,6 +7,8 @@ import { detectPreset, fromEvents, measureEvents, mergeParts, profileDrives, rea
 import { buildPersona, checkConsent, renderCard, type Answers } from '../src/kit/intake.ts';
 import { loadPersona, pickMember, savePersona, toEngine, validatePersona, type Persona2 } from '../src/kit/persona.ts';
 import { createMetaClient } from '../src/meta/client.ts';
+import { forgetPersona } from '../src/kit/forget.ts';
+import { mkdir, writeFile } from 'node:fs/promises';
 
 const EX = resolve(import.meta.dirname, '..', 'examples');
 const fake = () => createMetaClient({ live: false, budgetUsd: 0, spendLog: join(tmpdir(), 'kit-spend.jsonl') });
@@ -142,5 +144,33 @@ describe('persona/2 rules', () => {
   });
   it('spreads seeds across members', () => {
     expect(new Set(Array.from({ length: 30 }, (_, s) => pickMember(5, s))).size).toBe(5);
+  });
+});
+
+describe('forget', () => {
+  it('deletes a persona, its versions and its runs, keeps what it was built from, and minds groups and recorder folders', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'kit-')), runs = await mkdtemp(join(tmpdir(), 'runs-'));
+    const one = { ...(await build(await analytics(), dir)), name: 'A', slug: 'a' };
+    await savePersona(dir, one); await savePersona(dir, one);
+    await savePersona(dir, { ...one, name: 'B', slug: 'b' });
+    await savePersona(dir, await build({ name: 'Club', kind: 'group', consent: { basis: 'participant', confirmed: true }, members: ['a', 'b'] }, dir));
+    await mkdir(join(runs, 'run-1'), { recursive: true });
+    await writeFile(join(runs, 'run-1', 'persona.json'), JSON.stringify({ persona: { letter: 'a' } }));
+    await mkdir(join(runs, 'run-2'), { recursive: true });
+    await writeFile(join(runs, 'run-2', 'persona.json'), JSON.stringify({ persona: { letter: 'b' } }));
+    await mkdir(join(runs, 'players', 'a'), { recursive: true });
+    await writeFile(join(runs, 'players', 'a', 'persona-g.json'), JSON.stringify({ letter: 'a' }));
+    // A recorder kid's folder is "A": on a case-insensitive disk players/a is the same folder.
+    await mkdir(join(runs, 'players', 'A'), { recursive: true });
+    await writeFile(join(runs, 'players', 'A', 'persona-x.json'), JSON.stringify({ letter: 'A' }));
+
+    await expect(forgetPersona('a', { personasDir: dir, runsRoot: runs })).rejects.toThrow(/club still holds a full copy/);
+    expect(existsSync(join(dir, 'a', 'persona.json'))).toBe(true);
+    const r = await forgetPersona('a', { personasDir: dir, runsRoot: runs, withGroups: true });
+    expect(r.groups).toEqual(['club']);
+    for (const gone of [join(dir, 'a'), join(dir, 'club'), join(runs, 'run-1'), join(runs, 'players', 'a', 'persona-g.json')]) expect(existsSync(gone)).toBe(false);
+    for (const kept of [join(dir, 'b', 'persona.json'), join(runs, 'run-2'), join(runs, 'players', 'A', 'persona-x.json')]) expect(existsSync(kept)).toBe(true);
+    expect(r.left.some(f => f.endsWith('events.csv'))).toBe(true);
+    await expect(forgetPersona('a', { personasDir: dir, runsRoot: runs })).rejects.toThrow(/no persona/);
   });
 });
