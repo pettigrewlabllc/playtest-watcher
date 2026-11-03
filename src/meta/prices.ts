@@ -5,7 +5,21 @@ const PER_MILLION: Record<string, { input: number; output: number }> = {
   'muse-spark-1.2': { input: 1.25, output: 4.25 },
   'muse-spark-1.3': { input: 1.25, output: 4.25 },
   'muse-wonder-1.0': { input: 4.0, output: 20.0 },
+  // Other providers (src/meta/providers.ts), list prices checked 2026-11-02.
+  'claude-opus-5-5': { input: 4.0, output: 20.0 },
+  'claude-sonnet-5-5': { input: 2.0, output: 10.0 },
+  'claude-haiku-5-5': { input: 0.1, output: 0.5 },
+  'gemini-3-flash-preview': { input: 0.5, output: 3.0 },
 };
+
+// A model not listed here needs PW_PRICE_IN and PW_PRICE_OUT ($ per million tokens), so the budget stop still works.
+export function priceFor(model: string): { input: number; output: number } {
+  const i = Number(process.env.PW_PRICE_IN), o = Number(process.env.PW_PRICE_OUT);
+  if (process.env.PW_PRICE_IN && process.env.PW_PRICE_OUT && Number.isFinite(i) && Number.isFinite(o)) return { input: i, output: o };
+  const p = PER_MILLION[model];
+  if (!p) throw new Error(`no price for model ${model}: set PW_PRICE_IN and PW_PRICE_OUT ($ per million tokens)`);
+  return p;
+}
 const TRANSCRIBE_PER_HOUR = 0.18;
 const SAM_PER_1000_FRAMES = 0.2;
 const SAM_MIN_FRAMES = 50;
@@ -13,7 +27,6 @@ const SAM_MIN_FRAMES = 50;
 export function usd(model: string, usage: Usage): number {
   if (model === 'muse-voice-transcribe-1.0') return ((usage.audio_ms ?? 0) / 3_600_000) * TRANSCRIBE_PER_HOUR;
   if (model === 'sam-3.1') return (Math.max(usage.frames ?? 0, SAM_MIN_FRAMES) / 1000) * SAM_PER_1000_FRAMES;
-  const p = PER_MILLION[model];
-  if (!p) throw new Error(`no price for model ${model}`);
+  const p = priceFor(model);
   return ((usage.input_tokens ?? 0) * p.input + (usage.output_tokens ?? 0) * p.output) / 1e6;
 }
