@@ -21,7 +21,7 @@ default, or Claude or Gemini) to them in Chrome. Every number says where it came
   Run ids live as long as the MCP server does, so read a finished run's `steps.jsonl` directly after a restart.
 - Live runs need `PW_LIVE=1` and one model key in `<home>/.env.local` or the environment: `MODEL_API_KEY` (Meta),
   `ANTHROPIC_API_KEY` or `GEMINI_API_KEY`. `PW_PROVIDER` picks one when several are set, `PW_MODEL` the model.
-  Without a key the model client is fake and costs nothing, which is right for trying the flow. The tool output
+  Without a key the model client is fake and costs nothing, which is right for trying the flow (a run still needs Chrome and a game URL it can reach). The tool output
   says when it's fake.
 
 ## Build a persona: ask, don't assume
@@ -73,5 +73,5 @@ you do it. It never touches the files the persona was built from; tell the user 
 - With four kids, a person's play on other games picked them out at chance: limits carry over as a hint.
 - Muse misreads busy screens. Canvas taps go through a labelled grid and land on target, but check small targets.
 - Never publish a persona or run built from a real person or a family; `npm run export-results` refuses them.
-- On Muse Spark, spend is about $0.02 to $0.03 per step. Other models cost differently. Check `<home>/recordings/spend.jsonl`
+- On Muse Spark, spend is about $0.01 to $0.02 per step (`results/spend.jsonl` averages $0.016). Other models cost differently. Check `<home>/recordings/spend.jsonl`
   before a large batch. The accuracy numbers above are from Muse; Claude and Gemini haven't been measured.

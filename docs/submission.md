@@ -1,4 +1,4 @@
-# Submission draft (for Joel's sign-off)
+# Submission
 
 ## Name
 

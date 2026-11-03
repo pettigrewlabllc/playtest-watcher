@@ -48,6 +48,8 @@ describe('other model providers', () => {
     expect(clientFromEnv(root).live).toBe(true);
     await expect(clientFromEnv(root).uploadFile(join(root, 'missing.mp4'), 'video/mp4')).rejects.not.toThrow(/only builds/);
     process.env.PW_PROVIDER = 'gemini';
-    expect(clientFromEnv(root).live).toBe(false);       // asked for Gemini, no Gemini key: fake, costs nothing
+    expect(() => clientFromEnv(root)).toThrow(/PW_PROVIDER=gemini but there's no GEMINI_API_KEY/);   // a live run never silently goes fake
+    process.env.PW_LIVE = '';
+    expect(clientFromEnv(root).live).toBe(false);
   });
 });

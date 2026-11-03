@@ -203,6 +203,7 @@ export function clientFromEnv(rootDir: string): MetaClient {
   const asked = get('PW_PROVIDER') as Provider | '';
   if (asked && !(asked in keys)) throw new Error(`PW_PROVIDER must be meta, anthropic or gemini, not "${asked}"`);
   const provider: Provider = asked || (['meta', 'anthropic', 'gemini'] as Provider[]).find(p => keys[p]) || 'meta';
+  if (process.env.PW_LIVE === '1' && asked && !keys[asked]) throw new Error(`PW_PROVIDER=${asked} but there's no ${({ meta: 'MODEL_API_KEY', anthropic: 'ANTHROPIC_API_KEY', gemini: 'GEMINI_API_KEY' } as const)[asked]}`);
   const live = process.env.PW_LIVE === '1' && !!keys[provider];
   const budgetUsd = Number(process.env.PW_BUDGET_USD ?? env.PW_BUDGET_USD ?? 120);
   const spendLog = join(rootDir, 'recordings', 'spend.jsonl');
