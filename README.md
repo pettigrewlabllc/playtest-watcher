@@ -26,6 +26,14 @@ Where a persona has no measured number, the gap is filled from **published resea
 
 ## Build one
 
+No clone needed. Node 22.18 or newer and Google Chrome, then:
+
+```bash
+npx -y github:pettigrewlabllc/playtest-watcher informed-personas new
+```
+
+Everything below works the same from a checkout with `npm run persona -- <command>`:
+
 ```bash
 npm run persona -- new                                            # asks who it is, consent first, then what data you have
 npm run persona -- new --answers examples/answers/analytics-player.yaml   # the same, from an answers file
@@ -39,7 +47,7 @@ The example builds a persona from a made-up analytics export (`examples/data/eve
 
 A Google Analytics 4 / Firebase, GameAnalytics or Unity Analytics export needs no mapping file. The kit tells which one it is from the columns and asks which player when there's more than one. None of the three has a standard event for a tap or an answer, so out of the box you get the fail streak and the rest comes from norms. The card says so, lists the export's most common events, and gives you the two lines to add so first tap and pace get measured too ([src/kit/presets/README.md](src/kit/presets/README.md)).
 
-Personas live in the repo's `personas/` folder (git-ignored, so a real person's persona never leaves the machine). `forget` deletes one for good: the file, every earlier version, and every run it played. The export or survey you built it from is yours, so it doesn't touch that, but it tells you where it is. Consent is checked before any file is opened, a child under 13 needs a parent's yes, and a persona file can't hold anyone's quoted words.
+Personas stay on your machine. From a checkout they're in the repo's `personas/` folder, which git ignores. Installed, they're in `~/.informed-personas`. `where` prints the exact folders. `forget` deletes one for good: the file, every earlier version, and every run it played. The export or survey you built it from is yours, so it doesn't touch that, but it tells you where it is. Consent is checked before any file is opened, a child under 13 needs a parent's yes, and a persona file can't hold anyone's quoted words.
 
 Every persona is a `persona/2` file, defined by a published JSON Schema ([schema/persona-2.schema.json](schema/persona-2.schema.json)), validated on every load and save, and versioned on disk. Each number carries its basis: measured, self-report, guess, or norm. When sources disagree, measured wins.
 
@@ -54,13 +62,15 @@ Muse Spark plays the real game in Chrome, from a screenshot plus the page's butt
 - **Fast games.** For timing games the clock freezes every 1.2 s of game time, Muse plans up to three moves, and the harness fires them at the persona's reaction time, a little off, and sometimes not at all.
 
 ```bash
-# copy .env.example to .env.local and add a Meta Model API key first
+# copy .env.example to .env.local and add a model key first (Meta, Anthropic or Gemini, see below)
 PW_LIVE=1 npm run play -- A --game hoard-keeper --url http://localhost:3054/ --live                 # a measured kid
 PW_LIVE=1 npm run play -- --describe "a 16-year-old who doesn't like reading" --name T --url <game> --live
 PW_LIVE=1 npm run play -- F --blend <blend.json> --seed 3 --url <game> --live                         # a group
 PW_LIVE=1 npm run play -- J --persona-file <persona.json> --limits-game bond-swap --url <game> --point --live   # canvas game
 PW_LIVE=1 node src/agent/action.ts A --url <game> --keys "Space,ArrowDown" --controls "Space jumps." --live      # fast game
 ```
+
+It doesn't have to be Muse. An `ANTHROPIC_API_KEY` or `GEMINI_API_KEY` in `.env.local` builds and runs personas on Claude (default `claude-opus-5-5`) or Gemini (default `gemini-3-flash-preview`). `PW_MODEL` picks another model and `PW_PROVIDER` picks the provider when you have more than one key. The same budget stop and spend log apply. Watching a recording still needs Meta's models, since that's video and audio. Every number in this README came from Muse runs; I haven't run the other two live yet.
 
 Every run is logged like a real playtest: events, a step log, a screenshot per step. A described persona is read once and saved, so it's the same persona in every game.
 
@@ -90,8 +100,10 @@ My bet is that more measured dimensions make a persona play closer to the person
 An MCP server puts the personas in any agent that speaks MCP (Claude Code, Cursor, VS Code, Codex, Gemini CLI):
 
 ```bash
-claude mcp add personas -- node /path/to/playtest-watcher/src/kit/mcp.ts
+claude mcp add personas -- npx -y github:pettigrewlabllc/playtest-watcher informed-personas-mcp
 ```
+
+From a checkout, point it at `node /path/to/playtest-watcher/src/kit/mcp.ts` instead. It's a local server over stdio, so there's nothing to host.
 
 Seven tools: `list_personas`, `show_persona`, `new_persona` (the agent asks you the intake questions and passes your answers; consent first), `validate_persona`, `run_persona` (returns a run id straight away, since a run takes minutes), `get_report` and `forget_persona` (the agent has to pass your confirmation). [SKILL.md](SKILL.md) tells an agent how to use them. The full design is in [docs/superpowers/specs/2026-11-01-persona-kit-design.md](docs/superpowers/specs/2026-11-01-persona-kit-design.md).
 

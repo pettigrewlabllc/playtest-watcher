@@ -1,6 +1,7 @@
-// npm run persona -- <command>
+#!/usr/bin/env node
+// informed-personas <command>        (in a checkout of the repo: npm run persona -- <command>)
 //   new [--answers answers.yaml]       build a persona: asks who, consent, what data (or reads the answers file)
-//   list                               personas in ./personas
+//   list                               saved personas
 //   show <slug|path>                   the card
 //   validate <path>                    schema and consent checks
 //   forget <slug> [--with-groups] [--yes]   delete a persona, its versions and its runs (asks you to type the slug)
@@ -86,7 +87,7 @@ try {
     if (!url) throw new Error('--url <game> is required');
     const letter = opt('letter') || p.slug;   // the slug, so two personas never share a session or saved copy
     const { persona, used, member } = toEngine(p, { letter, target: game, limitsGame: opt('limits-game') || undefined, seed: Number(opt('seed', '7')) });
-    if (!has('live')) console.log('model: fake client (no --live); steps are placeholders, not a real play.');
+    if (!client().live) console.log(`model: fake client (needs --live, PW_LIVE=1 and a model key in ${P.env}); steps are placeholders, not a real play.`);
     console.log(`${p.name}${member ? `: this run plays ${member}` : ''}\n${Object.entries(used).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`);
     const { play, summarize } = await import('../agent/play.ts');
     const out = await play(letter, { persona, game, url, steps: Number(opt('steps', '30')), seed: Number(opt('seed', '7')), client: client(),
