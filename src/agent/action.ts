@@ -94,16 +94,17 @@ async function freshShot(page: Page): Promise<Buffer> {
   return page.screenshot({ type: 'jpeg', quality: 60 });
 }
 
-async function buttons(page: Page) {
-  return page.evaluate(() => [...document.querySelectorAll('button, [role=button]')].map(e => {
+async function buttons(page: Page, tapAlso = '') {
+  // `tapAlso` adds game elements that take taps but aren't buttons (board tiles), so the persona can tap them too.
+  return page.evaluate((extra) => [...document.querySelectorAll('button, [role=button]' + (extra ? `, ${extra}` : ''))].map(e => {
     const r = (e as HTMLElement).getBoundingClientRect();
     return { text: ((e as HTMLElement).innerText || '').trim().replace(/\s+/g, ' ').slice(0, 40), x: r.x + r.width / 2, y: r.y + r.height / 2, ok: r.width > 4 && r.height > 4 };
-  }).filter(b => b.ok));
+  }).filter(b => b.ok), tapAlso);
 }
 
 export async function playAction(letter: string, o: {
   url: string; keys: string[]; controls: string; looks: number; lookMs: number; state?: string; client: MetaClient; seed?: number; persona?: PersonaFile; game: string; limitsGame?: string; log?: (l: string) => void;
-  film?: boolean; keyNames?: Record<string, string>; hide?: string;
+  film?: boolean; keyNames?: Record<string, string>; hide?: string; tapAlso?: string;
   outDir?: string;   // where the run is written (default <repo>/recordings); persona inputs still come from there
 }) {
   const log = o.log ?? console.log;
@@ -186,7 +187,7 @@ export async function playAction(letter: string, o: {
       const shot = o.film ? await page.screenshot({ type: 'jpeg', quality: 60 }) : await freshShot(page);
       if (!o.film) gameMs += 80;
       await writeFile(join(dir, 'shots', `${String(n).padStart(3, '0')}.jpg`), shot);
-      const btns = await buttons(page);
+      const btns = await buttons(page, o.tapAlso);
       const state = o.state ? await page.evaluate(o.state).catch(() => null) : null;
 
       const prompt = [
@@ -258,6 +259,6 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   if (persona?.blend) console.log(`blend ${persona.blend.name}: this run plays as member ${persona.blend.index} of ${persona.blend.of} (${persona.blend.member})`);
   const out = await playAction(letter, { url, game, persona, client, keys: opt('keys', 'Space').split(',').map(s => s.trim()), controls: opt('controls', ''),
     looks: Number(opt('looks', '40')), lookMs: Number(opt('look-ms', '1200')), state: opt('state', '') || undefined, seed: Number(opt('seed', '7')), limitsGame,
-    outDir: opt('out', '') || undefined, film: args.includes('--film'), hide: opt('hide', '') || undefined, keyNames: Object.fromEntries(opt('key-names', '').split(',').filter(Boolean).map(kv => kv.split('=') as [string, string])) });
+    outDir: opt('out', '') || undefined, film: args.includes('--film'), hide: opt('hide', '') || undefined, tapAlso: opt('tap-also', '') || undefined, keyNames: Object.fromEntries(opt('key-names', '').split(',').filter(Boolean).map(kv => kv.split('=') as [string, string])) });
   console.log(`steps: ${join(out.dir, 'steps.jsonl')}`);
 }
