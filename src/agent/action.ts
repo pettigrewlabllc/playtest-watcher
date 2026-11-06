@@ -85,8 +85,12 @@ async function freshShot(page: Page): Promise<Buffer> {
   // Under a frozen clock Chrome may not paint; let a few real milliseconds run so the screenshot is current.
   await page.clock.resume();
   await page.waitForTimeout(60);
-  const now = await page.evaluate(() => Date.now());
-  await page.clock.pauseAt(now + 20);
+  // Real time keeps moving between reading the clock and pausing it, so a slow round trip can land the pause in
+  // the past. Retry with a wider margin.
+  for (const margin of [20, 250, 1000]) {
+    const now = await page.evaluate(() => Date.now());
+    try { await page.clock.pauseAt(now + margin); break; } catch (e) { if (margin === 1000) throw e; }
+  }
   return page.screenshot({ type: 'jpeg', quality: 60 });
 }
 
