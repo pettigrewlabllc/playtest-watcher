@@ -85,21 +85,26 @@ async function freshShot(page: Page): Promise<Buffer> {
   // Under a frozen clock Chrome may not paint; let a few real milliseconds run so the screenshot is current.
   await page.clock.resume();
   await page.waitForTimeout(60);
-  const now = await page.evaluate(() => Date.now());
-  await page.clock.pauseAt(now + 20);
+  // Real time keeps moving between reading the clock and pausing it, so a slow round trip can land the pause in
+  // the past. Retry with a wider margin.
+  for (const margin of [20, 250, 1000]) {
+    const now = await page.evaluate(() => Date.now());
+    try { await page.clock.pauseAt(now + margin); break; } catch (e) { if (margin === 1000) throw e; }
+  }
   return page.screenshot({ type: 'jpeg', quality: 60 });
 }
 
-async function buttons(page: Page) {
-  return page.evaluate(() => [...document.querySelectorAll('button, [role=button]')].map(e => {
+async function buttons(page: Page, tapAlso = '') {
+  // `tapAlso` adds game elements that take taps but aren't buttons (board tiles), so the persona can tap them too.
+  return page.evaluate((extra) => [...document.querySelectorAll('button, [role=button]' + (extra ? `, ${extra}` : ''))].map(e => {
     const r = (e as HTMLElement).getBoundingClientRect();
-    return { text: ((e as HTMLElement).innerText || '').trim().replace(/\s+/g, ' ').slice(0, 40), x: r.x + r.width / 2, y: r.y + r.height / 2, ok: r.width > 4 && r.height > 4 };
-  }).filter(b => b.ok));
+    return { text: ((e as HTMLElement).innerText || '').trim().replace(/\s+/g, ' ').slice(0, 40), x: r.x + r.width / 2, y: r.y + r.height / 2, ok: r.width > 4 && r.height > 4 && getComputedStyle(e as HTMLElement).visibility !== 'hidden' };
+  }).filter(b => b.ok), tapAlso);
 }
 
 export async function playAction(letter: string, o: {
   url: string; keys: string[]; controls: string; looks: number; lookMs: number; state?: string; client: MetaClient; seed?: number; persona?: PersonaFile; game: string; limitsGame?: string; log?: (l: string) => void;
-  film?: boolean; keyNames?: Record<string, string>; hide?: string;
+  film?: boolean; keyNames?: Record<string, string>; hide?: string; tapAlso?: string;
   outDir?: string;   // where the run is written (default <repo>/recordings); persona inputs still come from there
 }) {
   const log = o.log ?? console.log;
@@ -125,8 +130,13 @@ export async function playAction(letter: string, o: {
   const t0 = Date.now();
   await page.clock.install({ time: t0 });
   await page.goto(o.url);
-  await page.clock.pauseAt(t0 + 1500);
-  let gameMs = 1500;
+  // A slow load (several browsers at once) can already be past t0 + 1500; pause no earlier than just ahead of now.
+  let startAt = t0 + 1500;
+  for (const margin of [250, 1000, 3000]) {
+    startAt = Math.max(t0 + 1500, await page.evaluate(() => Date.now()) + margin);
+    try { await page.clock.pauseAt(startAt); break; } catch (e) { if (margin === 3000) throw e; }
+  }
+  let gameMs = startAt - t0;
   const held = new Map<string, number>();   // key -> game ms at which to let go
   // Film mode: every 1/30 s of game time becomes a frame (canvas frames are fresh under the frozen clock, checked
   // 20 of 20), and a badge shows the key the persona pressed so a viewer can see its moves.
@@ -177,7 +187,7 @@ export async function playAction(letter: string, o: {
       const shot = o.film ? await page.screenshot({ type: 'jpeg', quality: 60 }) : await freshShot(page);
       if (!o.film) gameMs += 80;
       await writeFile(join(dir, 'shots', `${String(n).padStart(3, '0')}.jpg`), shot);
-      const btns = await buttons(page);
+      const btns = await buttons(page, o.tapAlso);
       const state = o.state ? await page.evaluate(o.state).catch(() => null) : null;
 
       const prompt = [
@@ -249,6 +259,6 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   if (persona?.blend) console.log(`blend ${persona.blend.name}: this run plays as member ${persona.blend.index} of ${persona.blend.of} (${persona.blend.member})`);
   const out = await playAction(letter, { url, game, persona, client, keys: opt('keys', 'Space').split(',').map(s => s.trim()), controls: opt('controls', ''),
     looks: Number(opt('looks', '40')), lookMs: Number(opt('look-ms', '1200')), state: opt('state', '') || undefined, seed: Number(opt('seed', '7')), limitsGame,
-    outDir: opt('out', '') || undefined, film: args.includes('--film'), hide: opt('hide', '') || undefined, keyNames: Object.fromEntries(opt('key-names', '').split(',').filter(Boolean).map(kv => kv.split('=') as [string, string])) });
+    outDir: opt('out', '') || undefined, film: args.includes('--film'), hide: opt('hide', '') || undefined, tapAlso: opt('tap-also', '') || undefined, keyNames: Object.fromEntries(opt('key-names', '').split(',').filter(Boolean).map(kv => kv.split('=') as [string, string])) });
   console.log(`steps: ${join(out.dir, 'steps.jsonl')}`);
 }
