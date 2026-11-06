@@ -129,8 +129,11 @@ export async function playAction(letter: string, o: {
   const t0 = Date.now();
   await page.clock.install({ time: t0 });
   await page.goto(o.url);
-  await page.clock.pauseAt(t0 + 1500);
-  let gameMs = 1500;
+  // A slow load (several browsers at once) can already be past t0 + 1500; pause no earlier than just ahead of now.
+  const loaded = await page.evaluate(() => Date.now());
+  const startAt = Math.max(t0 + 1500, loaded + 250);
+  await page.clock.pauseAt(startAt);
+  let gameMs = startAt - t0;
   const held = new Map<string, number>();   // key -> game ms at which to let go
   // Film mode: every 1/30 s of game time becomes a frame (canvas frames are fresh under the frozen clock, checked
   // 20 of 20), and a badge shows the key the persona pressed so a viewer can see its moves.
