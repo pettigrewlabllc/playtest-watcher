@@ -130,9 +130,11 @@ export async function playAction(letter: string, o: {
   await page.clock.install({ time: t0 });
   await page.goto(o.url);
   // A slow load (several browsers at once) can already be past t0 + 1500; pause no earlier than just ahead of now.
-  const loaded = await page.evaluate(() => Date.now());
-  const startAt = Math.max(t0 + 1500, loaded + 250);
-  await page.clock.pauseAt(startAt);
+  let startAt = t0 + 1500;
+  for (const margin of [250, 1000, 3000]) {
+    startAt = Math.max(t0 + 1500, await page.evaluate(() => Date.now()) + margin);
+    try { await page.clock.pauseAt(startAt); break; } catch (e) { if (margin === 3000) throw e; }
+  }
   let gameMs = startAt - t0;
   const held = new Map<string, number>();   // key -> game ms at which to let go
   // Film mode: every 1/30 s of game time becomes a frame (canvas frames are fresh under the frozen clock, checked
