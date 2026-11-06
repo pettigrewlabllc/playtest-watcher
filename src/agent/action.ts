@@ -98,7 +98,7 @@ async function buttons(page: Page, tapAlso = '') {
   // `tapAlso` adds game elements that take taps but aren't buttons (board tiles), so the persona can tap them too.
   return page.evaluate((extra) => [...document.querySelectorAll('button, [role=button]' + (extra ? `, ${extra}` : ''))].map(e => {
     const r = (e as HTMLElement).getBoundingClientRect();
-    return { text: ((e as HTMLElement).innerText || '').trim().replace(/\s+/g, ' ').slice(0, 40), x: r.x + r.width / 2, y: r.y + r.height / 2, ok: r.width > 4 && r.height > 4 };
+    return { text: ((e as HTMLElement).innerText || '').trim().replace(/\s+/g, ' ').slice(0, 40), x: r.x + r.width / 2, y: r.y + r.height / 2, ok: r.width > 4 && r.height > 4 && getComputedStyle(e as HTMLElement).visibility !== 'hidden' };
   }).filter(b => b.ok), tapAlso);
 }
 
