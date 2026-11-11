@@ -205,8 +205,7 @@ export function clientFromEnv(rootDir: string): MetaClient {
   const provider: Provider = asked || (['meta', 'anthropic', 'gemini'] as Provider[]).find(p => keys[p]) || 'meta';
   if (process.env.PW_LIVE === '1' && asked && !keys[asked]) throw new Error(`PW_PROVIDER=${asked} but there's no ${({ meta: 'MODEL_API_KEY', anthropic: 'ANTHROPIC_API_KEY', gemini: 'GEMINI_API_KEY' } as const)[asked]}`);
   const live = process.env.PW_LIVE === '1' && !!keys[provider];
-  // No cap unless PW_BUDGET_USD is set (Joel, 2026-11-11: no token budgets; the old $120 default was never his pick).
-  const cap = process.env.PW_BUDGET_USD ?? env.PW_BUDGET_USD; const budgetUsd = cap ? Number(cap) : Infinity;
+  const budgetUsd = Number(process.env.PW_BUDGET_USD ?? env.PW_BUDGET_USD ?? 120);
   const spendLog = join(rootDir, 'recordings', 'spend.jsonl');
   if (live && provider !== 'meta') return createProviderClient({ provider, apiKey: keys[provider], model: get('PW_MODEL') || undefined, budgetUsd, spendLog });
   return createMetaClient({ live, apiKey: keys.meta || undefined, budgetUsd, spendLog });
