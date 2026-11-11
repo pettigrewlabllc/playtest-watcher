@@ -104,7 +104,7 @@ async function buttons(page: Page, tapAlso = '') {
 
 export async function playAction(letter: string, o: {
   url: string; keys: string[]; controls: string; looks: number; lookMs: number; state?: string; client: MetaClient; seed?: number; persona?: PersonaFile; game: string; limitsGame?: string; log?: (l: string) => void;
-  film?: boolean; keyNames?: Record<string, string>; hide?: string; tapAlso?: string;
+  film?: boolean; keyNames?: Record<string, string>; hide?: string; tapAlso?: string; viewport?: { width: number; height: number };
   outDir?: string;   // where the run is written (default <repo>/recordings); persona inputs still come from there
 }) {
   const log = o.log ?? console.log;
@@ -126,7 +126,8 @@ export async function playAction(letter: string, o: {
   log(`${id}: Player ${persona.letter}, reaction ${rx.reactionMs} ms ± ${rx.timingSdMs}, misses ${Math.round(rx.missRate * 100)}% of moves, looks every ${o.lookMs} ms`);
 
   const browser = await chromium.launch({ channel: 'chrome', headless: true });
-  const page = await browser.newPage({ viewport: { width: 1180, height: 820 } });
+  // Match the orientation the game ships in (--viewport 390x844 for a portrait phone game); iPad landscape stays the default.
+  const page = await browser.newPage({ viewport: o.viewport ?? { width: 1180, height: 820 } });
   const t0 = Date.now();
   await page.clock.install({ time: t0 });
   await page.goto(o.url);
@@ -246,7 +247,7 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   const description = opt('describe', '');
   const letter = description ? opt('name', 'X').toUpperCase() : args.find(a => /^[A-Za-z]$/.test(a));
   const url = opt('url', '');
-  if (!letter || !url) { console.error('usage: node src/agent/action.ts <letter> | --describe "<a kid>" --url <game> --keys "Space,ArrowDown" --controls "<how to play>" [--game name] [--state "<js>"] [--looks 40] [--look-ms 1200] [--film] [--hide "#dbg"] [--key-names "Space=JUMP,ArrowDown=GRAZE"] [--out <dir>] --live'); process.exit(1); }
+  if (!letter || !url) { console.error('usage: node src/agent/action.ts <letter> | --describe "<a kid>" --url <game> --keys "Space,ArrowDown" --controls "<how to play>" [--game name] [--state "<js>"] [--looks 40] [--look-ms 1200] [--film] [--hide "#dbg"] [--key-names "Space=JUMP,ArrowDown=GRAZE"] [--out <dir>] [--viewport 390x844] --live'); process.exit(1); }
   const live = args.includes('--live');
   const client = live ? clientFromEnv(REPO) : createMetaClient({ live: false, budgetUsd: 0, spendLog: join(ROOT, 'spend.jsonl') });
   const game = opt('game', 'action-game');
@@ -259,6 +260,6 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   if (persona?.blend) console.log(`blend ${persona.blend.name}: this run plays as member ${persona.blend.index} of ${persona.blend.of} (${persona.blend.member})`);
   const out = await playAction(letter, { url, game, persona, client, keys: opt('keys', 'Space').split(',').map(s => s.trim()), controls: opt('controls', ''),
     looks: Number(opt('looks', '40')), lookMs: Number(opt('look-ms', '1200')), state: opt('state', '') || undefined, seed: Number(opt('seed', '7')), limitsGame,
-    outDir: opt('out', '') || undefined, film: args.includes('--film'), hide: opt('hide', '') || undefined, tapAlso: opt('tap-also', '') || undefined, keyNames: Object.fromEntries(opt('key-names', '').split(',').filter(Boolean).map(kv => kv.split('=') as [string, string])) });
+    outDir: opt('out', '') || undefined, film: args.includes('--film'), hide: opt('hide', '') || undefined, tapAlso: opt('tap-also', '') || undefined, viewport: (([w, h]) => w && h ? { width: w, height: h } : undefined)(opt('viewport', '').split('x').map(Number)), keyNames: Object.fromEntries(opt('key-names', '').split(',').filter(Boolean).map(kv => kv.split('=') as [string, string])) });
   console.log(`steps: ${join(out.dir, 'steps.jsonl')}`);
 }
